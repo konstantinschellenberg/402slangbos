@@ -23,7 +23,7 @@ file = brick(in.name)
 file[file == -99] = NA
 
 #convert from dB to linear values
-file = 10^(file/10)
+# file = 10^(file/10) # fatal: lets laptop crash
 
 #save as data frame without spatial information
 df = as.data.frame(file) #xy=TRUE
@@ -37,7 +37,6 @@ bandnames = names(df)
 for (i in bandnames){
         date = substr(bandnames,13,20)
 }
-
 
 # convert date string into R date-time format
 date_s1 = c()
