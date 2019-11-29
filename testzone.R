@@ -36,4 +36,7 @@ half2 = subset(file, (n/2+1) : n)
 # df = as.data.frame(a) #xy=TRUE
 # ------------------------------------------------------------------------------
 
+library(zoo)
 
+z <- read.zoo(text = Lines, header = TRUE, format = "%m/%d/%Y")
+#

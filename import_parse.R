@@ -14,7 +14,7 @@ library(cowplot)
 
 library(rts)
 library(sf)
-library(dplyr)
+library(purrr)
 
 ###########################################################
 # Import Sentinel-1 time series data
@@ -47,11 +47,11 @@ crs(roi)
 plot(roi, axes = TRUE, col="blue")
 
 #convert to sf object (S4)
-sf_roi = st_as_sf(roi)
-
-
 # set crs of s1 layer
-st_transform(sf_roi, st_crs(s1))
+
+sf_roi = roi %>%
+    st_as_sf() %>%
+    st_transform(st_crs(s1))
 
 # --------------------subset to the first ROI-----------------------------------
 
@@ -59,15 +59,13 @@ st_transform(sf_roi, st_crs(s1))
 roi_increase = sf_roi %>%
     filter(sf_roi$Name == 1)
 
-test_polygon = roi_increase[1,1]
+plot(roi_increase[1,1], main = "Increase")
 
-plot(test_polygon, main = "1")
 
-# ------------------------------------------------------------------------------
+# here: iteration through polygons and writing to df ###############
 
-# here: iteration through polygons and writing to df
-
-subset = extract(s1, roi_1[1,1])
+# subsetting (cutting out)
+subset = extract(s1, roi_increase[1,1])
 
 # convert to dataframe
 df = as.data.frame(subset)
@@ -86,6 +84,31 @@ for (i in 1:length(date)){
     date_s1 <- append(date_s1, as.POSIXct(date[i], format = "%Y%m%d")) #https://www.statmethods.net/input/dates.html
 }
 date_s1
+
+# ------------------------------------------------------------------------------
+
+# integrate date to dataset: making time series
+# hereby the table needs to be transposed temporarily as `xts()` orders by rows
+
+# calculating the mean and margins (stdev), one transposition needed here (better this way?)
+date_df = df %>%
+    t() %>%
+    xts(order.by = date_s1) %>%
+    as.data.frame()
+
+rownames(date_df)
+colnames(date_df)
+
+# shows first 10 pixel values of the first raster
+head(date_df[, 1:2], 10)
+
+plot(date_df[, 1])
+
+ggplot(data = date_df, aes(x = DATE, y = PRECIP)) +
+    geom_bar(stat = "identity", fill = "purple") +
+    labs(title = "Total daily precipitation in Boulder, Colorado",
+         subtitle = "Fall 2013",
+         x = "Date", y = "Daily Precipitation (Inches)")
 
 # replace colnames by date
 #
@@ -111,9 +134,5 @@ class(ex)
 ex[1]
 
 
-ggplot(data = ex, aes(x = DATE, y = PRECIP)) +
-    geom_bar(stat = "identity", fill = "purple") +
-    labs(title = "Total daily precipitation in Boulder, Colorado",
-         subtitle = "Fall 2013",
-         x = "Date", y = "Daily Precipitation (Inches)")
+
 
