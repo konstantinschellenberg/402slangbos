@@ -1,5 +1,4 @@
 .Rproj.user
 .Rhistory
-out.*
-output.*
-boulder*
+out*
+*/ignored/*
