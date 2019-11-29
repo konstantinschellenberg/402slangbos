@@ -1,2 +1,5 @@
-
 .Rproj.user
+.Rhistory
+out.*
+output.*
+boulder*
