@@ -94,21 +94,24 @@ date_s1
 date_df = df %>%
     t() %>%
     xts(order.by = date_s1) %>%
-    as.data.frame()
+    as.data.frame() %>%
+    mutate(date = date_s1) %>%
+    na.omit()
+
+map(date_df[, -length(date_df)], mean)
+
 
 rownames(date_df)
 colnames(date_df)
 
-# shows first 10 pixel values of the first raster
 head(date_df[, 1:2], 10)
+View(date_df)
 
-plot(date_df[, 1])
 
-ggplot(data = date_df, aes(x = DATE, y = PRECIP)) +
-    geom_bar(stat = "identity", fill = "purple") +
-    labs(title = "Total daily precipitation in Boulder, Colorado",
-         subtitle = "Fall 2013",
-         x = "Date", y = "Daily Precipitation (Inches)")
+
+
+ggplot(date_df, aes(x = date, y = date_df[, 1]))
+
 
 # replace colnames by date
 #
@@ -133,6 +136,8 @@ plot(ex)
 class(ex)
 ex[1]
 
-
-
-
+ggplot(data = date_df, aes(x = DATE, y = PRECIP)) +
+    geom_bar(stat = "identity", fill = "purple") +
+    labs(title = "Total daily precipitation in Boulder, Colorado",
+         subtitle = "Fall 2013",
+         x = "Date", y = "Daily Precipitation (Inches)")
