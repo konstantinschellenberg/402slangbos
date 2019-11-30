@@ -89,7 +89,6 @@ date_s1
 
 # integrate date to dataset: making time series
 # hereby the table needs to be transposed temporarily as `xts()` orders by rows
-
 # calculating the mean and margins (stdev), one transposition needed here (better this way?)
 date_df = df %>%
     t() %>%
@@ -98,17 +97,20 @@ date_df = df %>%
     mutate(date = date_s1) %>%
     na.omit()
 
-map(date_df[, -length(date_df)], mean)
+# transmute(date_df, median = median(.x))
+df2 = mutate(date_df, median = pmap(date_df[, -length(date_df)], sum))
 
+
+# mapper machen!!
+
+df2 = date_df[, -length(date_df)] %>%
+    pmap(.x, ~mean)
 
 rownames(date_df)
 colnames(date_df)
 
 head(date_df[, 1:2], 10)
 View(date_df)
-
-
-
 
 ggplot(date_df, aes(x = date, y = date_df[, 1]))
 
