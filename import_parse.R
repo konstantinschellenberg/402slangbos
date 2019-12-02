@@ -20,8 +20,10 @@ library(purrr)
 # Import Sentinel-1 time series data
 ###########################################################
 
+# for windows
 s1_path = "D:\\Geodaten\\#Jupiter\\GEO402\\01_data\\s1_data\\S1_A_D_VH_free_state_study_area_geo402"
-
+# for linux
+s1_path = "/home/aleko-kon/Dokumente/402_outdated/GEO402/01_Daten/s1_data/S1_A_D_VH_free_state_study_area_geo402"
 s1 = brick(s1_path)
 
 # define nodata values
@@ -38,6 +40,8 @@ n = nlayers(s1)
 ###########################################################
 
 roi_path = "D:\\Geodaten\\#Jupiter\\GEO402\\02_features\\ROI_updated.kml"
+# for linux
+roi_path = "/home/aleko-kon/Dokumente/402_outdated/GEO402/ROI_updated.kml"
 
 # make spatial subset with ROI bounds
 roi = readOGR(roi_path, "ROI_updated")
