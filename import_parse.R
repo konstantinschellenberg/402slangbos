@@ -17,6 +17,7 @@ library(rts)
 library(sf)
 library(purrr)
 library(plotly)
+library(processx)
 
 # Prerequisit:
 # Sentinel-1 time-stack
@@ -72,31 +73,34 @@ crs(roi)
 # 3 = Continuous Slangbos coverage
 # 4 = Agriculture
 
-example_roi_no = 1
+example_roi_no = 5
 code = 1
 
-# get object with name = 1
+codename = ""
+
+# looping for plotting name
+if (code == 1) {
+    codename = "Increase"
+}
+if (code == 2) {
+    codename = "Cleaned"
+}
+if (code == 12) {
+    codename = "Increase, then cleaned"
+}
+if (code == 3) {
+    codename = "Continuous"
+}
+if (code == 4) {
+    codename = "Agriculture"
+}
+
+# receiving code
 roi_increase = roi %>%
     filter(roi$Name == code)
 
+# get single object
 example_roi = roi_increase[example_roi_no, 1]
-
-
-# here: iteration through polygons and writing to df ###############
-# frame = data.frame(a = 1:10,b= 1:10)
-#
-# for (i in nrow(roi)) {
-#     # extract pixels from subset
-#     subset = as.data.frame(raster::extract(s1, i))
-#
-#     # create dataframe
-#     frame %<>%
-#         cbind(datasubset)
-#         #add col
-#
-#     # add dataframe to frame as nested dataframe
-# }
-
 
 # make spatial subset with ROI bounds
 subset = raster::extract(s1, example_roi)
@@ -190,9 +194,11 @@ plt = plot_ly(data = df_summary,
               type = 'scatter',
               line = data.fmt,
               mode = "lines",
-              name = paste(code))
+              name = paste(codename))
 
-plt = plotly::layout(plt, title = paste0("Median Backscatter for site no. ", example_roi_no))
+plt = plotly::layout(plt, title = paste0("Median Backscatter for site no. ",
+                                         example_roi_no),
+                     yaxis = list(range = c(-27, -10)))
 
 plt = add_lines(plt,
                 x = x,
@@ -206,4 +212,6 @@ plt = add_ribbons(plt, x = x, ymin = pr_losd$y, ymax = pr_upsd$y, color = I("gre
 
 print(plt)
 
-interval_ribbon.fmt
+# exporting graphics to dst
+# plotly::orca(plt, "D:\\Geodaten\\#Jupiter\\GEO402\\work progress\\plotly")
+
