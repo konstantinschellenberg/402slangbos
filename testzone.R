@@ -101,13 +101,13 @@ roi_increase = roi %>%
 example_roi = roi_increase[example_roi_no, 1]
 
 # make spatial subset with ROI bounds
-subset = raster::extract(s1, roi[1])
+subset = raster::extract(s1, roi[1,])
 
 # convert to dataframe
 subset_df = as.data.frame(subset)
 
 subset = s1 %>%
-    raster::extract(roi) %>%
+    raster::extract(roi[1,]) %>%
     as.data.frame()
 
 
@@ -119,22 +119,29 @@ subsetting = function(roi, brick){
     for (roi in roi) {
 
         # retrieve colname for colnames in final df
-        colname = roi[1, ]$Name
+        colname = roi$Name
 
-        subset = s1 %>%
+        df = s1 %>%
             raster::extract(roi) %>%
             as.data.frame()
 
-
-
-        df
         list_of_df = c(list_of_df, df)
     }
     return(list_of_df)
 }
 
+
 # run function
 subsetting(roi, s1)
+
+roi
+
+for (i in roi){
+    print(i)
+    print(class(i))
+    colname = i$Name
+    return(colname)
+}
 
 #
 # for (i in roi) {
@@ -153,3 +160,4 @@ mylist <- c(1,2,3,4)
 newelem <- 5
 mylist <- c(mylist, newelem)
 mylist
+
