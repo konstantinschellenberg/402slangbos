@@ -9,6 +9,10 @@ library(sf)
 library(purrr)
 library(plotly)
 library(processx)
+# library(openair) # Marcel packages
+# library(readxl)
+# library(scales)
+# library(cowplot)
 
 f <- system.file("external/rlogo.grd", package="raster")
 f
@@ -160,4 +164,92 @@ mylist <- c(1,2,3,4)
 newelem <- 5
 mylist <- c(mylist, newelem)
 mylist
+
+# ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# DEPRECATED CODE; NOW ALL IN FUNCTION------------------------------------------
+
+roi_code = filter(roi, roi$Name == code)
+
+example_roi_no = 1
+code = 1
+
+codename = ""
+
+# looping for plotting name
+if (code == 1) {
+    codename = "Increase"
+}
+if (code == 2) {
+    codename = "Cleaned"
+}
+if (code == 12) {
+    codename = "Increase, then cleaned"
+}
+if (code == 3) {
+    codename = "Continuous"
+}
+if (code == 4) {
+    codename = "Agriculture"
+}
+
+# receiving code
+roi_increase = roi %>%
+    filter(roi$Name == code)
+
+# get single object
+example_roi = roi_increase[example_roi_no, 1]
+
+# make spatial subset with ROI bounds
+subset = raster::extract(s1, example_roi)
+
+# convert to dataframe
+subset_df = as.data.frame(subset)
+
+# convert band names to date
+bandnames = names(subset_df)
+
+# iterate for date in column-names
+for (i in bandnames){
+    date = substr(bandnames,13,20)
+}
+
+# convert date string into R date-time format
+date_s1 = c()
+for (i in 1:length(date)){
+    date_s1 <- append(date_s1, as.POSIXct(date[i], format = "%Y%m%d")) #https://www.statmethods.net/input/dates.html
+}
+date_s1
+
+# ------------------------------------------------------------------------------
+
+# integrate date to dataset: making time series
+# hereby the table needs to be transposed temporarily as `xts()` orders by rows
+# calculating the mean and margins (stdev), one transposition needed here (better this way?)
+df_date = subset_df %>%
+    t() %>%
+    as.data.frame() %>%
+    mutate(date = date_s1) %>%
+    na.omit()
+
+df = pivot_longer(df_date,
+                  -date,
+                  names_to = "names",
+                  values_to = "values"
+)
+
+paste("count of pixel in the timestack:", nrow(df))
+
+df_summary = df %>%
+    group_by(date) %>%
+    summarise(mean = mean(values),
+              median = median(values),
+              sd = sd(values),
+              "lower_sd" = mean(values) - sd(values),
+              "upper_sd" = mean(values) + sd(values))
+
+
+# map of df_list
 

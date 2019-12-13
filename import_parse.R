@@ -6,10 +6,6 @@ library(raster)
 library(dplyr)
 library(rgdal)
 library(ggplot2)
-# library(openair)
-# library(readxl)
-# library(scales)
-# library(cowplot)
 
 library(tidyverse)
 library(magrittr)
@@ -18,21 +14,23 @@ library(sf)
 library(purrr)
 library(plotly)
 library(processx)
+library(latex2exp)
 
 # Prerequisit:
 # Sentinel-1 time-stack
 # Polygons of the Region of interest with name == 1(slangbos encroachment) existing
 
 
-###########################################################
-# Import Sentinel-1 time series data
-###########################################################
+################################################################################
+# Import Sentinel-1 time series data--------------------------------------------
+################################################################################
 
 # for windows
-s1_path = "D:\\Geodaten\\#Jupiter\\GEO402\\01_data\\s1_data\\S1_A_D_VH_free_state_study_area_geo402"
+s1vv_path = "D:\\Geodaten\\#Jupiter\\GEO402\\01_data\\s1_data\\S1_A_D_VV_free_state_study_area_geo402"
+s1vh_path = "D:\\Geodaten\\#Jupiter\\GEO402\\01_data\\s1_data\\S1_A_D_VH_free_state_study_area_geo402"
 # for linux
 # s1_path = "/home/aleko-kon/Dokumente/402_outdated/GEO402/01_Daten/s1_data/S1_A_D_VH_free_state_study_area_geo402"
-s1 = brick(s1_path)
+s1 = brick(s1vv_path)
 
 # define nodata values
 # file[file == -99] = NA
@@ -43,28 +41,29 @@ dim(s1)
 res(s1)
 nlayers(s1)
 
-###########################################################
-# Import ROIs
-###########################################################
+
+################################################################################
+# Import ROIs-------------------------------------------------------------------
+################################################################################
 
 roi_path = "D:\\Geodaten\\#Jupiter\\GEO402\\02_features\\ROI_updated.kml"
 # for linux
 # roi_path = "/home/aleko-kon/Dokumente/402_outdated/GEO402/ROI_updated.kml"
 
-# read in
-roi_sp = readOGR(roi_path, "ROI_updated")
 
-# convert to sf object
-# set crs of s1 layer
-roi = roi_sp %>%
-    st_as_sf() %>%
-    st_transform(st_crs(s1))
+roi_sf = st_read(roi_path) # read in
 
-# check if class == sf, crs == South African projection
+# set crs(roi) to the crs(s1) brick. Remove Z-Dimension
+roi = st_transform(roi_sf, st_crs(s1)) %>%
+    st_zm(drop = TRUE)
+
 class(roi)
 crs(roi)
+# check if class == sf, crs == South African projection
 
-# --------------------subset to the first ROI-----------------------------------
+################################################################################
+# subset to the first ROI-------------------------------------------------------
+################################################################################
 
 # User decision which Roi with which code to use:
 # 1 = Slangbos increase
@@ -73,88 +72,104 @@ crs(roi)
 # 3 = Continuous Slangbos coverage
 # 4 = Agriculture
 
-example_roi_no = 5
-code = 1
 
-codename = ""
+# Function definition
+carve_brick = function(sentinel1_brick = s1,
+                        polygon = roi,
+                        code = 1,
+                        roi_example_no = 1){
 
-# looping for plotting name
-if (code == 1) {
-    codename = "Increase"
+    codename = ""
+
+    # looping for plotting name
+    if (code == 1) {
+        codename = "Increase"
+    }
+    if (code == 2) {
+        codename = "Cleaned"
+    }
+    if (code == 12) {
+        codename = "Increase, then cleaned"
+    }
+    if (code == 3) {
+        codename = "Continuous"
+    }
+    if (code == 4) {
+        codename = "Agriculture"
+    }
+    ####
+
+    # filtering code
+    roi_code = filter(polygon, polygon$Name == code)
+
+    # indexing single object
+    single_roi = roi_code[roi_example_no, 1]
+
+    # spatial subset with single ROI bounds
+    subset = raster::extract(s1, single_roi) %>%
+        as.data.frame()
+
+    # convert band names to date
+    bandnames = names(subset)
+
+    # iterate for date in column-names
+    for (i in bandnames){
+        date = substr(bandnames,13,20)
+    }
+
+    # convert date string into R date-time format
+    date_s1 = c()
+    for (i in 1:length(date)){
+        date_s1 <- append(date_s1, as.POSIXct(date[i], format = "%Y%m%d")) #https://www.statmethods.net/input/dates.html
+    }
+    ####
+
+    # integrate date to dataset: making time series
+    # calculating the mean and margins (stdev), one transposition t() needed here
+    df_date = subset %>%
+        t() %>%
+        as.data.frame() %>%
+        mutate(date = date_s1) %>%
+        na.omit()
+
+    df = pivot_longer(df_date,
+                      -date,
+                      names_to = "names",
+                      values_to = "values"
+    )
+
+    df_summary = df %>%
+        group_by(date) %>%
+        summarise(mean = mean(values),
+                  median = median(values),
+                  sd = sd(values),
+                  "lower_sd" = mean(values) - sd(values),
+                  "upper_sd" = mean(values) + sd(values))
+
+    # printing summary to console
+    paste = paste(
+        paste("Size of the plot:", st_area(single_roi[1,]), sep = " "),
+        paste("count of pixel in the timestack:", nrow(df), sep = " "),
+        paste("ROI of type: ", codename, sep = " "),
+        paste("median = ", mean(df_summary$median), sep = " "),
+        paste("mean = ", mean(df_summary$mean), sep = " "),
+        paste("standard deviation = ", mean(df_summary$sd), "\n", sep = " "),
+        sep = "\n")
+    ####
+
+    cat(paste)
+    return(df_summary)
 }
-if (code == 2) {
-    codename = "Cleaned"
-}
-if (code == 12) {
-    codename = "Increase, then cleaned"
-}
-if (code == 3) {
-    codename = "Continuous"
-}
-if (code == 4) {
-    codename = "Agriculture"
-}
 
-# receiving code
-roi_increase = roi %>%
-    filter(roi$Name == code)
+raster_stats(sentinel1_brick = s1,
+             polygon = roi,
+             code = 2,
+             roi_example_no = 1)
 
-# get single object
-example_roi = roi_increase[example_roi_no, 1]
+st_area(roi[1,])
 
-# make spatial subset with ROI bounds
-subset = raster::extract(s1, example_roi)
-
-# convert to dataframe
-subset_df = as.data.frame(subset)
-
-# convert band names to date
-bandnames = names(subset_df)
-
-# iterate for date in column-names
-for (i in bandnames){
-    date = substr(bandnames,13,20)
-}
-
-# convert date string into R date-time format
-date_s1 = c()
-for (i in 1:length(date)){
-    date_s1 <- append(date_s1, as.POSIXct(date[i], format = "%Y%m%d")) #https://www.statmethods.net/input/dates.html
-}
-date_s1
-
-# ------------------------------------------------------------------------------
-
-# integrate date to dataset: making time series
-# hereby the table needs to be transposed temporarily as `xts()` orders by rows
-# calculating the mean and margins (stdev), one transposition needed here (better this way?)
-df_date = subset_df %>%
-    t() %>%
-    as.data.frame() %>%
-    mutate(date = date_s1) %>%
-    na.omit()
-
-df = pivot_longer(df_date,
-             -date,
-             names_to = "names",
-             values_to = "values"
-)
-
-paste("count of pixel in the timestack:", nrow(df))
-
-df_summary = df %>%
-    group_by(date) %>%
-    summarise(mean = mean(values),
-              median = median(values),
-              sd = sd(values),
-              "lower_sd" = mean(values) - sd(values),
-              "upper_sd" = mean(values) + sd(values))
-
-
-# map of df_list
 
 # -------------------PLOTTING---------------------------------------------------
-
 
 # 1st Raster
 mycolour = terrain.colors(6)
@@ -173,7 +188,7 @@ plot(example_roi,
      main = "Example Used",
      col = "black",
      axes = TRUE,
-     add = T
+     add = F
 )
 
 # format edits
@@ -187,8 +202,10 @@ losd = df_summary$lower_sd
 upsd = df_summary$upper_sd
 
 pr = supsmu(x, med)
-pr_losd = supsmu(x, losd)
-pr_upsd = supsmu(x, upsd)
+
+# making smoothed line for standard deviation
+# pr_losd = supsmu(x, losd)
+# pr_upsd = supsmu(x, upsd)
 
 plt = plot_ly(data = df_summary,
               x = ~date,
@@ -208,12 +225,13 @@ plt = add_lines(plt,
                 line = line.fmt,
                 name = "Gleitendes Mittel",
                 )
+
 # plt = add_lines(plt, x = x, y = pr_losd$y, line = interval.fmt, name = "Lower standard deviation")
 # plt = add_lines(plt, x = x, y = pr_upsd$y, line = interval.fmt, name = "Upper standard deviation")
-plt = add_ribbons(plt, x = x, ymin = pr_losd$y, ymax = pr_upsd$y, color = I("grey80"), line = list(width = 0), opacity = 0.9, name = "Interval")
+plt = add_ribbons(plt, x = x, ymin = losd, ymax = upsd, color = I("grey80"), line = list(width = 0), opacity = 0.9,
+                  name = "1 sigma standard deviation")
 
 print(plt)
 
 # exporting graphics to dst
 # plotly::orca(plt, "D:\\Geodaten\\#Jupiter\\GEO402\\work progress\\plotly")
-
