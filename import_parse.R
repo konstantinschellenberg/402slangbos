@@ -1,25 +1,40 @@
-# Script for loading S1 data and parsing date from filename
-# supported by Marcel Urban, University of Jena
+# Konstantin Schellenberg, WS 2019/20
+# University of Jena, Chair of remote sensing
+# supervisor: Dr. Marcel Urban
+
+# This script serves to read Sentinel-1 Radar time series in order to extract region of interest (ROI)
+# Functions are written to simplify the usage and enhance debugging
+#
+# 1. carve_brick:
+# Reads s1 and roi, extracts "carves" the polygons in the raster brick and calculates some basic stats (mean, median, stdev)
+#
+# 2. add_summaries_to_list:
+# Takes s1 and roi data, calls carve_brick and appends each retrieved dataframe-summary to a created list "summary"
+
+
+# Prerequisits:
+# Sentinel-1 time-stack
+# Polygons of the region of interest (ROI) with the follwing column:
+# name
+# can have categories:
+#     1 == slangbos encroachment, increase
+#     12 == encroachment with cleaning/breakpoint
+#     2 == cleaning/breakpoint
+#     3 == continous persistance of slangbos
+#     4 == agricultural site
 
 # load required packages
 library(raster)
 library(dplyr)
 library(rgdal)
-library(ggplot2)
 
 library(tidyverse)
 library(magrittr)
-library(rts)
 library(sf)
 library(purrr)
 library(plotly)
 library(processx)
 library(latex2exp)
-
-# Prerequisit:
-# Sentinel-1 time-stack
-# Polygons of the Region of interest with name == 1(slangbos encroachment) existing
-
 
 ################################################################################
 # Import Sentinel-1 time series data--------------------------------------------
@@ -46,10 +61,11 @@ nlayers(s1)
 # Import ROIs-------------------------------------------------------------------
 ################################################################################
 
+# windows
 roi_path = "D:\\Geodaten\\#Jupiter\\GEO402\\02_features\\ROI_updated.kml"
-# for linux
-# roi_path = "/home/aleko-kon/Dokumente/402_outdated/GEO402/ROI_updated.kml"
 
+# linux
+# roi_path = "/home/aleko-kon/Dokumente/402_outdated/GEO402/ROI_updated.kml"
 
 roi_sf = st_read(roi_path) # read in
 
@@ -59,21 +75,12 @@ roi = st_transform(roi_sf, st_crs(s1)) %>%
 
 class(roi)
 crs(roi)
-# check if class == sf, crs == South African projection
+# check if class is sf, crs is South African projection
 
 ################################################################################
-# subset to the first ROI-------------------------------------------------------
+# Function definition `carve_brick`---------------------------------------------
 ################################################################################
 
-# User decision which Roi with which code to use:
-# 1 = Slangbos increase
-# 2 = Slangbos decrease (burnt or ploughed)
-# 12 = Slangbos increase with subsequent "2" event
-# 3 = Continuous Slangbos coverage
-# 4 = Agriculture
-
-
-# Function definition
 carve_brick = function(sentinel1_brick = s1,
                         polygon = roi,
                         code = 1,
@@ -161,13 +168,90 @@ carve_brick = function(sentinel1_brick = s1,
     return(df_summary)
 }
 
-raster_stats(sentinel1_brick = s1,
-             polygon = roi,
-             code = 2,
-             roi_example_no = 1)
+# how-to-call
+df_summary = carve_brick(sentinel1_brick = s1,
+                         polygon = roi,
+                         code = 2,
+                         roi_example_no = 1)
 
-st_area(roi[1,])
 
+################################################################################
+# Developing loop for `carve_brick`---------------------------------------------
+################################################################################
+
+
+add_summaries_to_list = function(sentinel1_brick = s1, polygon = roi){
+
+    # help for data.frame in loops:
+    # https://stackoverflow.com/questions/17499013/how-do-i-make-a-list-of-data-frames
+    # set up function to set back all counters and variables before running the loops below
+    initialise_counters <<- function(){
+        code <<- 1
+        ct_1 <<- 1
+        ct_12 <<- 1
+        ct_2 <<- 1
+        ct_3 <<- 1
+        ct_4 <<- 1
+        summary <<- list()
+        roi <<- roi
+        s1 <<- s1
+    }
+
+    # run the intialisation
+    initialise_counters()
+
+    # for loop to write dataframes for each roi to the summary list
+    for (code in roi$Name) {
+        if (code == 1) { #increase
+
+            new = list(carve_brick(code = code, roi_example_no = ct_1))
+            summary = append(summary, new)
+            names(summary)[length(summary)] = paste0("plot", code, "_", ct_1)
+            ct_1 = ct_1 + 1
+
+        } else if (code == 12) { #increase, then cleaned
+            new = list(carve_brick(code = code, roi_example_no = ct_12))
+            summary = append(summary, new)
+            names(summary)[length(summary)] = paste0("plot", code, "_", ct_12)
+            ct_12 = ct_12 + 1
+
+        } else if (code == 2) { #cleaning
+            new = list(carve_brick(code = code, roi_example_no = ct_2))
+            summary = append(summary, new)
+            names(summary)[length(summary)] = paste0("plot", code, "_", ct_2)
+            ct_2 = ct_2 + 1
+
+        } else if (code == 3) { #continuous
+            new = list(carve_brick(code = code, roi_example_no = ct_3))
+            summary = append(summary, new)
+            names(summary)[length(summary)] = paste0("plot", code, "_", ct_3)
+            ct_3 = ct_3 + 1
+
+        } else if (code == 4) { #agriculture
+            new = list(carve_brick(code = code, roi_example_no = ct_4))
+            summary = append(summary, new)
+            names(summary)[length(summary)] = paste0("plot", code, "_", ct_4)
+            ct_4 = ct_4 + 1
+
+        } else {
+            print("Not correctly assigned ROI code")
+        }
+
+        print("\n")
+    }
+    return(summary)
+
+    statement = paste(
+        paste("Number of code 1:", nrow(filter(roi, roi$Name == 1))),
+        paste("Number of code 12:", nrow(filter(roi, roi$Name == 12))),
+        paste("Number of code 2:", nrow(filter(roi, roi$Name == 2))),
+        paste("Number of code 3:", nrow(filter(roi, roi$Name == 3))),
+        paste("Number of code 4:", nrow(filter(roi, roi$Name == 4))),
+        sep = "\n")
+
+    # print statement to console
+    cat(statement)
+}
 
 # -------------------PLOTTING---------------------------------------------------
 
@@ -182,14 +266,6 @@ mycolour = terrain.colors(6)
 
 # all rois
 plot(roi[1], main = "All ROIs", col = "red")
-
-# example roi
-plot(example_roi,
-     main = "Example Used",
-     col = "black",
-     axes = TRUE,
-     add = F
-)
 
 # format edits
 data.fmt = list(color="#878787", width=1)
@@ -216,7 +292,7 @@ plt = plot_ly(data = df_summary,
               name = paste(codename))
 
 plt = plotly::layout(plt, title = paste0("Median Backscatter for site no. ",
-                                         example_roi_no),
+                                         roi_example_no),
                      yaxis = list(range = c(-27, -10)))
 
 plt = add_lines(plt,
