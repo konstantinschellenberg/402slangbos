@@ -130,13 +130,15 @@ carve_brick = function(sentinel1_brick,
     }
     ####
 
+    datenames <<- date_s1
+
     # integrate date to dataset: making time series
     # calculating the mean and margins (stdev), one transposition t() needed here
     df_date = subset %>%
         t() %>%
         as.data.frame() %>%
-        mutate(date = date_s1) %>%
-        na.omit()
+        mutate(date = date_s1) #%>%
+        # na.omit()
 
     df = pivot_longer(df_date,
                       -date,
@@ -157,9 +159,9 @@ carve_brick = function(sentinel1_brick,
         paste("Size of the plot:", st_area(single_roi[1,]), sep = " "),
         paste("count of pixel in the timestack:", nrow(df), sep = " "),
         paste("ROI of type: ", codename, sep = " "),
-        paste("median = ", mean(df_summary$median), sep = " "),
-        paste("mean = ", mean(df_summary$mean), sep = " "),
-        paste("standard deviation = ", mean(df_summary$sd), "\n", sep = " "),
+        paste("median = ", mean(df_summary$median, na.rm = TRUE), sep = " "),
+        paste("mean = ", mean(df_summary$mean, na.rm = TRUE), sep = " "),
+        paste("standard deviation = ", mean(df_summary$sd, na.rm = TRUE), "\n", sep = " "),
         sep = "\n")
     ####
 
@@ -169,10 +171,10 @@ carve_brick = function(sentinel1_brick,
 
 # how-to-call
 
-# df_summary = carve_brick(sentinel1_brick = s1vv,
-#                          polygon = roi,
-#                          code = 2,
-#                          roi_example_no = 1)
+df_summary = carve_brick(sentinel1_brick = s1vv,
+                         polygon = roi,
+                         code = 2,
+                         roi_example_no = 1)
 
 
 ################################################################################
@@ -281,8 +283,8 @@ vh = list_summaries(sentinel1_brick = s1vh,
                                  polygon = roi)
 
 # debug: check if different
-identical(s1_vv_summaries$plot1_1$median,
-          s1_vh_summaries$plot1_1$median)
+identical(vv$plot1_1$median,
+          vh$plot1_1$median)
 
 ################################################################################
 # Calculations------------------------------------------------------------------
@@ -292,24 +294,50 @@ class(vv)
 class(vv$plot1_1)
 class(vv$plot1_1$mean)
 
-# http://www.endmemo.com/program/R/grepl.php ## regular expression syntax
-increase = vv[grepl("plot1_", names(vv))]
 
-get_median_col = function(df_category){
-    # init
-    df = data.frame(matrix(NA, nrow = length(increase$plot1_1$date)))
+# initialise empty dataframe, nrow
+# empty = data.frame(matrix(NA, nrow = length(sb_1$plot1_1$date)))
 
-    return(mutation)
+
+
+# Function definition-----------------------------------------------------------
+summarise_roi = function(polarisation, category = "1", argument = "median"){
+    # function to summaries the data with the given argument (must be a col name from carve_brick. E.g mean, median, sd)
+
+    # http://www.endmemo.com/program/R/grepl.php ## regular expression syntax
+    roi_vv = polarisation[grepl(paste0("plot", category, "_"), names(polarisation))]
+
+    ####
+
+    return(roi_vv)
 }
+summarise_roi(polarisation = vv,
+              category = 2,
+              argument = "median")
 
-get_median_col(increase)
+# ------------------------------------------------------------------------------
 
-#medians transmuted
-# initialise dataframe
-df = data.frame(matrix(NA, nrow = length(increase$plot1_1$date)))
+# medians transmuted
+plot1_1 = sb_1$plot1_1
 
-df %>%
-    mutate(increase$plot1_1$median)
+sb_1 = vv[grepl(paste0("plot", 1, "_"), names(vv))]
+
+
+
+n = sb_1 %>%
+    map_dfr("median") %>%
+    mutate(date = datenames) %>%
+    group_by(date)
+
+n_2 = n %>%
+    summarise_all(mean = mean())
+
+n[grepl("plot", names(n))]
+
+plot(t(n))
+mutate(n, . ~mean)
+
+# parse datenames
 
 map(increase, mean)
 
@@ -353,8 +381,8 @@ plt = plot_ly(data = df_summary,
               y = ~median,
               type = 'scatter',
               line = data.fmt,
-              mode = "lines",
-              name = paste(codename))
+              mode = "lines")
+              # name = paste(codename))
 
 plt = plotly::layout(plt, title = paste0("Median Backscatter for site no. ",
                                          roi_example_no),
