@@ -330,7 +330,14 @@ n = sb_1 %>%
     group_by(date)
 
 n_2 = n %>%
-    summarise_all(mean = mean())
+    select(plot1_1, plot1_2) %>%
+    summarise_all(mean)
+n_2
+
+    summarise_at(vars(1:5), mean, rm.na = TRUE)
+
+
+n_2
 
 n[grepl("plot", names(n))]
 
@@ -360,23 +367,38 @@ plot(roi[1], main = "All ROIs", col = "red", add = TRUE)
 
 # Plotly graphs-----------------------------------------------------------------
 
+vv_na = vv[["plot1_2"]]
+vv_plot = na.omit(vv_na)
+
+vh_na = vh[["plot1_2"]]
+vh_plot = na.omit(vh_na)
+
 # format edits
 data.fmt = list(color="#878787", width=1)
 line.fmt = list(dash="solid", width = 1.5, color="red")
 # interval.fmt = list(dash="dot", width = 1, color="grey")
 
-x = df_summary$date
-med = df_summary$median
-losd = df_summary$lower_sd
-upsd = df_summary$upper_sd
 
-pr = supsmu(x, med)
+# save stats of vv and vh
+x_vv = vv_plot$date
+med_vv = vv_plot$median
+losd_vv = vv_plot$lower_sd
+upsd_vv = vv_plot$upper_sd
+
+x_vh = vh_plot$date
+med_vh = vh_plot$median
+losd_vh = vh_plot$lower_sd
+upsd_vh = vh_plot$upper_sd
+
+# smoothing curve
+pr_vv = supsmu(x_vv, med_vv)
+pr_vh = supsmu(x_vh, med_vh)
 
 # making smoothed line for standard deviation
 # pr_losd = supsmu(x, losd)
 # pr_upsd = supsmu(x, upsd)
 
-plt = plot_ly(data = df_summary,
+plt = plot_ly(data = vv_plot,
               x = ~date,
               y = ~median,
               type = 'scatter',
@@ -384,21 +406,38 @@ plt = plot_ly(data = df_summary,
               mode = "lines")
               # name = paste(codename))
 
-plt = plotly::layout(plt, title = paste0("Median Backscatter for site no. ",
-                                         roi_example_no),
-                     yaxis = list(range = c(-27, -10)))
+plt = plotly::layout(plt, title = paste0("Median Backscatter for site no. ", 1),
+                     yaxis = list(range = c(-27, -8)))
 
 plt = add_lines(plt,
                 x = x,
-                y = pr$y,
+                y = pr_vv$y,
                 line = line.fmt,
-                name = "Gleitendes Mittel",
+                name = "Smooth VV",
                 )
 
 # plt = add_lines(plt, x = x, y = pr_losd$y, line = interval.fmt, name = "Lower standard deviation")
 # plt = add_lines(plt, x = x, y = pr_upsd$y, line = interval.fmt, name = "Upper standard deviation")
-plt = add_ribbons(plt, x = x, ymin = losd, ymax = upsd, color = I("grey80"), line = list(width = 0), opacity = 0.9,
-                  name = "1 sigma standard deviation")
+plt = add_ribbons(plt, x = x, ymin = losd_vv, ymax = upsd_vv,
+                  color = I("grey80"), line = list(width = 0), opacity = 0.9,
+                  name = "VV 1 sigma standard deviation")
+
+## add vh
+plt = add_lines(plt,
+                x = x,
+                y = med_vh,
+                name = "VH")
+
+plt = add_lines(plt,
+                x = x,
+                y = pr_vh$y,
+                line = line.fmt,
+                name = "Smooth VH")
+
+plt = add_ribbons(plt, x = x, ymin = losd_vh, ymax = upsd_vh,
+                  color = I("grey80"), line = list(width = 0), opacity = 0.9,
+                  name = "VH 1 sigma standard deviation")
+
 
 print(plt)
 
