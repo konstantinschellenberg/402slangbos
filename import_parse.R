@@ -85,6 +85,9 @@ carve_brick = function(sentinel1_brick,
                         code = 1,
                         roi_example_no = 1){
 
+    # built-in function for naming rois
+    namer <<- function(code){
+
     codename = ""
 
     # looping for plotting name
@@ -103,7 +106,8 @@ carve_brick = function(sentinel1_brick,
     if (code == 4) {
         codename = "Agriculture"
     }
-    ####
+    return(codename)
+    }
 
     # filtering code
     roi_code = filter(polygon, polygon$Name == code)
@@ -158,7 +162,7 @@ carve_brick = function(sentinel1_brick,
     paste = paste(
         paste("Size of the plot:", st_area(single_roi[1,]), sep = " "),
         paste("count of pixel in the timestack:", nrow(df), sep = " "),
-        paste("ROI of type: ", codename, sep = " "),
+        paste("ROI of type: ", namer(code), sep = " "),
         paste("median = ", mean(df_summary$median, na.rm = TRUE), sep = " "),
         paste("mean = ", mean(df_summary$mean, na.rm = TRUE), sep = " "),
         paste("standard deviation = ", mean(df_summary$sd, na.rm = TRUE), "\n", sep = " "),
@@ -318,35 +322,33 @@ summarise_roi(polarisation = vv,
 # ------------------------------------------------------------------------------
 
 # medians transmuted
-plot1_1 = sb_1$plot1_1
-
-sb_1 = vv[grepl(paste0("plot", 1, "_"), names(vv))]
-
-
-
-n = sb_1 %>%
-    map_dfr("median") %>%
-    mutate(date = datenames) %>%
-    group_by(date)
-
-n_2 = n %>%
-    select(plot1_1, plot1_2) %>%
-    summarise_all(mean)
-n_2
-
-    summarise_at(vars(1:5), mean, rm.na = TRUE)
-
-
-n_2
-
-n[grepl("plot", names(n))]
-
-plot(t(n))
-mutate(n, . ~mean)
+# sb_1 = vv[grepl(paste0("plot", 1, "_"), names(vv))]
+#
+#
+#
+# n = sb_1 %>%
+#     map_dfr("median") %>%
+#     mutate(date = datenames) %>%
+#     group_by(date)
+#
+# n_2 = n %>%
+#     select(plot1_1, plot1_2) %>%
+#     summarise_all(mean)
+# n_2
+#
+#     summarise_at(vars(1:5), mean, rm.na = TRUE)
+#
+#
+# n_2
+#
+# n[grepl("plot", names(n))]
+#
+# plot(t(n))
+# mutate(n, . ~mean)
 
 # parse datenames
 
-map(increase, mean)
+# map(increase, mean)
 
 ################################################################################
 # Plotting----------------------------------------------------------------------
@@ -356,7 +358,7 @@ map(increase, mean)
 mycolour = terrain.colors(20)
 
 # raster
-plot(s1[[1]],
+plot(s1vv[[1]],
      breaks = c(-25:-5),
      col = mycolour,
      axes = TRUE
@@ -367,15 +369,38 @@ plot(roi[1], main = "All ROIs", col = "red", add = TRUE)
 
 # Plotly graphs-----------------------------------------------------------------
 
-vv_na = vv[["plot1_2"]]
-vv_plot = na.omit(vv_na)
+stelle = 3
+code = 1
 
-vh_na = vh[["plot1_2"]]
-vh_plot = na.omit(vh_na)
+# get roi
+example = roi %>%
+    filter(roi$Name == code) %>%
+    .[stelle, ]
+
+plot(example[1])
+
+################ unbedingt besser coden!!
+
+vv_grep = vv[grepl(paste0("plot", code, "_"), names(vv))]
+# indexing
+vv_fetched = vv_grep[[stelle]]
+# remove na
+vv_plot = na.omit(vv_fetched)
+nrow(vv_plot)
+
+vh_grep = vh[grepl(paste0("plot", code, "_"), names(vv))]
+# indexing
+vh_fetched = vh_grep[[stelle]]
+# remove na
+vh_plot = na.omit(vh_fetched)
+nrow(vh_plot)
+
+# ------------------------------------------------------------------------------
 
 # format edits
 data.fmt = list(color="#878787", width=1)
-line.fmt = list(dash="solid", width = 1.5, color="red")
+linevv.fmt = list(dash="solid", width = 1.5, color="red")
+linevh.fmt = list(dash="solid", width = 1.5, color="blue")
 # interval.fmt = list(dash="dot", width = 1, color="grey")
 
 
@@ -398,6 +423,8 @@ pr_vh = supsmu(x_vh, med_vh)
 # pr_losd = supsmu(x, losd)
 # pr_upsd = supsmu(x, upsd)
 
+# PLOTLY--------------------------------------------------------------------------
+
 plt = plot_ly(data = vv_plot,
               x = ~date,
               y = ~median,
@@ -406,35 +433,35 @@ plt = plot_ly(data = vv_plot,
               mode = "lines")
               # name = paste(codename))
 
-plt = plotly::layout(plt, title = paste0("Median Backscatter for site no. ", 1),
+plt = plotly::layout(plt, title = paste0("Median Backscatter for site no. ", code," ", "_", stelle, ": ", namer(code)),
                      yaxis = list(range = c(-27, -8)))
 
 plt = add_lines(plt,
-                x = x,
+                x = x_vv,
                 y = pr_vv$y,
-                line = line.fmt,
+                line = linevv.fmt,
                 name = "Smooth VV",
                 )
 
 # plt = add_lines(plt, x = x, y = pr_losd$y, line = interval.fmt, name = "Lower standard deviation")
 # plt = add_lines(plt, x = x, y = pr_upsd$y, line = interval.fmt, name = "Upper standard deviation")
-plt = add_ribbons(plt, x = x, ymin = losd_vv, ymax = upsd_vv,
+plt = add_ribbons(plt, x = x_vv, ymin = losd_vv, ymax = upsd_vv,
                   color = I("grey80"), line = list(width = 0), opacity = 0.9,
                   name = "VV 1 sigma standard deviation")
 
 ## add vh
 plt = add_lines(plt,
-                x = x,
+                x = x_vh,
                 y = med_vh,
                 name = "VH")
 
 plt = add_lines(plt,
-                x = x,
+                x = x_vh,
                 y = pr_vh$y,
-                line = line.fmt,
+                line = linevh.fmt,
                 name = "Smooth VH")
 
-plt = add_ribbons(plt, x = x, ymin = losd_vh, ymax = upsd_vh,
+plt = add_ribbons(plt, x = x_vh, ymin = losd_vh, ymax = upsd_vh,
                   color = I("grey80"), line = list(width = 0), opacity = 0.9,
                   name = "VH 1 sigma standard deviation")
 
