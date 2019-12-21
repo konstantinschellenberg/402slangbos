@@ -369,16 +369,16 @@ plot(roi[1], main = "All ROIs", col = "red", add = TRUE)
 
 # Plotly graphs-----------------------------------------------------------------
 
-stelle = 3
-code = 1
+stelle = 1
+code = 4
 
 # get roi
 example = roi %>%
     filter(roi$Name == code) %>%
     .[stelle, ]
 
-plot(example[1])
-
+plot(example[1], main = paste0(namer(code), ": ", code, "_", stelle), col = "grey")
+plot(s1vh[[1]], add = F)
 ################ unbedingt besser coden!!
 
 vv_grep = vv[grepl(paste0("plot", code, "_"), names(vv))]
@@ -469,4 +469,5 @@ plt = add_ribbons(plt, x = x_vh, ymin = losd_vh, ymax = upsd_vh,
 print(plt)
 
 # exporting graphics to dst
+
 # plotly::orca(plt, "D:\\Geodaten\\#Jupiter\\GEO402\\work progress\\plotly")
