@@ -1,0 +1,34 @@
+---
+title: "Slangbos encroachment - Mini Paper"
+author: "Konstantin Schellenberg"
+date: "`r format(Sys.time(), '%B %e, %Y')`"
+output: pdf_document
+bibliography: [slangbos.bib, refs.bib]
+biblio-style: apalike
+always_allow_html: true
+---
+
+```{r, echo=FALSE, results='hide', message=FALSE, warning=FALSE}
+
+my.packages = c("raster", "sf", "rgdal", "caret")
+lapply(my.packages, require, character.only = TRUE)
+```
+
+
+```{r include=FALSE}
+knitr::write_bib(my.packages,
+  file = "refs.bib",
+  prefix = "R-"
+)
+
+```
+
+
+# Introduction
+## Chapter
+
+@Ludwig.2019 said things.
+@R-caret is great
+@R-raster is also good
+
+# References
