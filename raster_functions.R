@@ -55,6 +55,7 @@ dim(s1vv)
 res(s1vv)
 nlayers(s1vv)
 
+options(digits = 4)
 
 ################################################################################
 # Import ROIs-------------------------------------------------------------------
@@ -156,12 +157,14 @@ carve_brick = function(sentinel1_brick,
                   median = median(values),
                   sd = sd(values),
                   "lower_sd" = mean(values) - sd(values),
-                  "upper_sd" = mean(values) + sd(values))
+                  "upper_sd" = mean(values) + sd(values),
+                  count = n())
 
     # printing summary to console
     paste = paste(
         paste("Size of the plot:", st_area(single_roi[1,]), sep = " "),
-        paste("count of pixel in the timestack:", nrow(df), sep = " "),
+        paste("count of pixels in the timestack:", nrow(df), sep = " "),
+        paste("count of pixels in the polygon:", median(df_summary$count), sep = " "),
         paste("ROI of type: ", namer(code), sep = " "),
         paste("median = ", mean(df_summary$median, na.rm = TRUE), sep = " "),
         paste("mean = ", mean(df_summary$mean, na.rm = TRUE), sep = " "),
@@ -175,9 +178,9 @@ carve_brick = function(sentinel1_brick,
 
 # how-to-call
 
-df_summary = carve_brick(sentinel1_brick = s1vv,
+df_summary = carve_brick(sentinel1_brick = s1vh,
                          polygon = roi,
-                         code = 2,
+                         code = 1,
                          roi_example_no = 1)
 
 
