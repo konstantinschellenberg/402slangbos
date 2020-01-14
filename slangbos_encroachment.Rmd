@@ -10,7 +10,7 @@ always_allow_html: true
 
 ```{r, echo=FALSE, results='hide', message=FALSE, warning=FALSE}
 
-my.packages = c("raster", "sf", "rgdal", "caret")
+my.packages = c("raster", "sf", "rgdal", "caret", "cast")
 lapply(my.packages, require, character.only = TRUE)
 ```
 
@@ -32,3 +32,4 @@ knitr::write_bib(my.packages,
 @R-raster is also good
 
 # References
+

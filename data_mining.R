@@ -46,7 +46,7 @@ raster = rename_bandnames(raster = s1vh) %>%
     .[[c(-14, -17, -62)]]
 
 #subsetting raster for easier calculation. Max. variables for rf is 32
-raster = raster[[1:30]]
+raster = raster[[1:10]]
 
 # beginCluster()
 # raster[raster == -99] = NA
@@ -83,7 +83,9 @@ nsamples <- 1000
 sdfAll <- dfAll[sample(1:nrow(dfAll), nsamples), ]
 
 # train model
-modFit_rf <- train(as.factor(class) ~ ., method = "rf", data = sdfAll)
+modFit_rf <- train(as.factor(class) ~ ., method = "rf", data = sdfAll,
+                   importance=TRUE,
+                   trControl=trainControl(method="cv",number=5))
 
 # predict model
 beginCluster()
@@ -91,5 +93,10 @@ system.time(preds_rf <- clusterR(raster, raster::predict, args = list(model = mo
 endCluster()
 
 # write as file
-raster::writeRaster(preds_rf, "D:\\Geodaten\\#Jupiter\\GEO402\\04_products\\rf\\preds_rf_20200111_vh_sample30_rm.NA.tif", overwrite=TRUE)
+raster::writeRaster(preds_rf, "D:\\Geodaten\\#Jupiter\\GEO402\\04_products\\rf\\preds_rf_20200112_vh_sample10_CV.tif", overwrite=TRUE)
+
+# spacetime
+# blast
+# CAST
+# stars
 

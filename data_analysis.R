@@ -11,14 +11,14 @@ source("import_parse.R")
 # s1_vv_summaries
 vv = list_summaries(sentinel1_brick = s1vv,
                     polygon = roi)
-
-# s1_vh_summaries
 vh = list_summaries(sentinel1_brick = s1vh,
                     polygon = roi)
 
 # debug: check if different
-identical(vv$plot1_1$median,
-          vh$plot1_1$median)
+if(!identical(vv$plot1_1$median,
+          vh$plot1_1$median)){
+    warning("the input raster are the same")
+}
 
 ################################################################################
 # Calculations------------------------------------------------------------------
@@ -84,7 +84,8 @@ summarise_roi(polarisation = vv,
 # Plotting----------------------------------------------------------------------
 ################################################################################
 
-# 1st Raster
+
+
 mycolour = terrain.colors(20)
 
 # raster
@@ -97,33 +98,39 @@ plot(s1vv[[1]],
 # ROI
 plot(roi[1], main = "All ROIs", col = "red", add = TRUE)
 
-# Plotly graphs-----------------------------------------------------------------
+### init for plotly
+
+# overview plots-----------------------------------------------------------------
 
 stelle = 1
-code = 4
+code = 1
 
 # get roi
 example = roi %>%
     filter(roi$Name == code) %>%
     .[stelle, ]
 
-plot(example[1], main = paste0(namer(code), ": ", code, "_", stelle), col = "grey")
-plot(s1vh[[1]], add = F)
-################ unbedingt besser coden!!
+plot(example[1], main = paste0(names(code), ": ", code, "_", stelle), col = "grey")
 
-vv_grep = vv[grepl(paste0("plot", code, "_"), names(vv))]
-# indexing
-vv_fetched = vv_grep[[stelle]]
-# remove na
-vv_plot = na.omit(vv_fetched)
-nrow(vv_plot)
+# Plotly graphs-----------------------------------------------------------------
 
-vh_grep = vh[grepl(paste0("plot", code, "_"), names(vv))]
-# indexing
-vh_fetched = vh_grep[[stelle]]
-# remove na
-vh_plot = na.omit(vh_fetched)
-nrow(vh_plot)
+vv = vv # whole summary
+vh = vh
+
+grep = function(summary = vv, stelle = 1, code = 1){
+
+    grep = summary[grepl(paste0("plot", code, "_"), names(summary))]
+    # indexing
+    fetched = grep[[stelle]]
+    # remove na
+    ready = na.omit(fetched)
+    nrow(ready)
+    return(ready)
+}
+
+# get data for the double plot
+agro = grep(vh, 1, code = 4)
+incr = grep(vh, 1, code = 1)
 
 # ------------------------------------------------------------------------------
 
@@ -131,31 +138,38 @@ nrow(vh_plot)
 data.fmt = list(color="#878787", width=1)
 linevv.fmt = list(dash="solid", width = 1.5, color="red")
 linevh.fmt = list(dash="solid", width = 1.5, color="blue")
-# interval.fmt = list(dash="dot", width = 1, color="grey")
-
+interval.fmt = list(dash="dot", width = 1, color="grey")
 
 # save stats of vv and vh
-x_vv = vv_plot$date
-med_vv = vv_plot$median
-losd_vv = vv_plot$lower_sd
-upsd_vv = vv_plot$upper_sd
 
-x_vh = vh_plot$date
-med_vh = vh_plot$median
-losd_vh = vh_plot$lower_sd
-upsd_vh = vh_plot$upper_sd
+x_1 = agro$date
+med_1 = agro$median
+upsd_1 = agro$lower_sd
+losd_1 = agro$upper_sd
 
-# smoothing curve
-pr_vv = supsmu(x_vv, med_vv)
-pr_vh = supsmu(x_vh, med_vh)
+x_2 = incr$date
+med_2 = incr$median
+upsd_2 = incr$lower_sd
+losd_2 = incr$upper_sd
 
-# making smoothed line for standard deviation
-# pr_losd = supsmu(x, losd)
-# pr_upsd = supsmu(x, upsd)
+# x_vv = vv_plot$date
+# med_vv = vv_plot$median
+# losd_vv = vv_plot$lower_sd
+# upsd_vv = vv_plot$upper_sd
+#
+# x_vh = vh_plot$date
+# med_vh = vh_plot$median
+# losd_vh = vh_plot$lower_sd
+# upsd_vh = vh_plot$upper_sd
+
+pr_1 = supsmu(x_1, med_1) # smoothing curve
+pr_2 = supsmu(x_2, med_2)
+pr_losd = supsmu(x_1, losd_1) # making smoothed line for standard deviation
+pr_upsd = supsmu(x_2, upsd_2)
 
 # PLOTLY--------------------------------------------------------------------------
 
-plt = plot_ly(data = vv_plot,
+plt = plot_ly(data = agro,
               x = ~date,
               y = ~median,
               type = 'scatter',
@@ -163,7 +177,7 @@ plt = plot_ly(data = vv_plot,
               mode = "lines")
 # name = paste(codename))
 
-plt = plotly::layout(plt, title = paste0("Median Backscatter for site no. ", code," ", "_", stelle, ": ", namer(code)),
+plt = plotly::layout(plt, title = paste0()
                      yaxis = list(range = c(-27, -8)))
 
 plt = add_lines(plt,
