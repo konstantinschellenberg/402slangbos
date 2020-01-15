@@ -2,7 +2,8 @@
 title: "Slangbos encroachment - Mini Paper"
 author: "Konstantin Schellenberg"
 date: "`r format(Sys.time(), '%B %e, %Y')`"
-output: pdf_document
+output: 
+    bookdown::html_document2
 bibliography: [slangbos.bib, refs.bib]
 biblio-style: apalike
 always_allow_html: true
@@ -10,8 +11,10 @@ always_allow_html: true
 
 ```{r, echo=FALSE, results='hide', message=FALSE, warning=FALSE}
 
-my.packages = c("raster", "sf", "rgdal", "caret", "cast")
+my.packages = c("raster", "sf", "rgdal", "caret", "mlr")
 lapply(my.packages, require, character.only = TRUE)
+
+source("data_analysis.R")
 ```
 
 
@@ -25,7 +28,41 @@ knitr::write_bib(my.packages,
 
 
 # Introduction
-## Chapter
+
+The increase of woody covers in the semi-arid and arid enviornments have especially pulled consequences for the savannas on the African continent [@Eldridge.2011]. @Stevens.2016 have shown that woody cover has increased throughout the South African savannas within a 70 years period. Both, local and global drivers are suspected to drive continous encroachment. The local extinction of large herbivore herds and the increase of global CO2 in the atmosphere are likely to be the main indicators for the expansion of woody biomass increase. While the cursors for the gradual expansion of woody elements combating mostly grassy landscapes still remain subject to a broad academic discussion the consequences are well visible. 
+
+In the case of the grassy plains of Freestate/South Africa slangbos (Seriphium plumosum, bankrupt bush) communities increasingly drive out the prevalent open and grassy landscapes. The rapid change of the land's botanic composition pose great challenges for the local ecological dynamics on the one, and for livestock breeders and shepherds (@PaulAvenant) on the other hand. Common livestock species avoid ingesting the hard structure of the bush which hence poses bigger pressure on the existing open lands leading to overgrazing and land degradation. A national survey by the Department of Agriculture, Forestry & Fisheries (DAFF) of the Republic of South Africa set the expansion of the bush under scrutiny [@PaulAvenant]. In order to discriminate the drivers and to assess the consequences of how bush encroachment will change the savanna biom, large datasets are needed. Due to the large area investigated for the retrieveal of bush coverage remote sensing in conjuction with machine learning models have already led to good results [@Ludwig.2019].
+
+This study aims to use primarily SAR (Synthetic Aperture Radar) time series data in order to measure bush encroachment on the both, the spatial and the temporal scale. Five years of Sentinel-1 C-Band data available.
+Preprocession has been done by Dr Marcel Urban (Friedrich Schiller University Jena). 
+
+# Methods
+
+Training sample were retrieved from aerial imagery (@NGI) and Google Earth VHR data [@GoogleEarth] via a visual and manual picking approach. Ground truth information and expert knowledge has been retrieved by survey on site and a photo documentation. 
+
+The random forest algorithm [@Breiman.2001] has been chose for classification of the dataset since it has been proven suitable for spatio-temporal applications [@Belgiu.2016]. The model is trained on the relationship of bush structure and backscatter signal to gain a sensitivity for subtle feature discrimination in hypertemporal radar data cubes. 
+
+The structural element of slangbos are likely to be recorded by C-Band signals. The fraction of bush compartments are roughly of the size where C-Band waves interact the most. Additionally, the round bush geometry implies it to be a strong volume scatterer. The depolarisation leads to a large cross-pol fraction. First investigations on the reaction of slangbos in C-Band waves implies more VH backscatter with growing bush volume and bush cover density the VH [\@ref(fig:4-plot)].
+
+```{r exploration plot, results='hold', echo = True}
+plt
+```
+
+
+ ## Chapter
+
+## Data exploration
+
+Fig. X. Median and standard deviation interval of Sentinel-1 VH time series (temporal resolution less than 7d, 354 scenes). Sites associated with slangbos (Seriphium plumosum) return a stronger signal the further the bush encroached (red, n = 564 pixels). Agricultural sites leave stronger patterns of seasonality without overall slope (blue, n = 1393 pixels). Plots being subject to slangbos control through chemical treatment, burning or manual uprooting or ploughing return significantly less signal after the operation (black, n = 105 pixels).
+
+
+354 Sentinel-1 scenes
+
+1393 agro
+564 incr
+105
+
+
 
 @Ludwig.2019 said things.
 @R-caret is great

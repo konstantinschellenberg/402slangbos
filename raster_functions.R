@@ -2,19 +2,20 @@
 # University of Jena, Chair of remote sensing
 # supervisor: Dr. Marcel Urban
 
-# This script serves to read Sentinel-1 Radar time series in order to extract region of interest (ROI)
+# This script serves to read Sentinel-1 Radar time series in order to extract pixel values falling in the ground truth training
+# and validation polygons (GT)
 # Functions are written to simplify the usage and enhance debugging
 #
 # 1. carve_brick:
-# Reads s1 and roi, extracts "carves" the polygons in the raster brick and calculates some basic stats (mean, median, stdev)
+# Reads s1 and gt, extracts "carves" the polygons in the raster brick and calculates some basic stats (mean, median, stdev)
 #
 # 2. list_summaries:
-# Takes s1 and roi data, calls carve_brick and appends each retrieved dataframe-summary to a created list "summary"
+# Takes s1 and gt data, calls carve_brick and appends each retrieved dataframe-summary to a created list "summary"
 
 
 # Prerequisits:
 # Sentinel-1 time-stack
-# Polygons of the region of interest (ROI) with the follwing column:
+# Polygons of ground truth with the follwing column:
 # name
 # can have categories:
 #     1 == slangbos encroachment, increase
@@ -26,56 +27,32 @@
 # load required packages
 library(raster)
 library(dplyr)
-library(rgdal)
-
 library(tidyverse)
-library(magrittr)
 library(sf)
 library(purrr)
-library(plotly)
-library(processx)
-library(latex2exp)
 
 ################################################################################
-# Import Sentinel-1 time series data--------------------------------------------
+# Rename bandnames -------------------------------------------------------------
 ################################################################################
 
-# windows
-s1vv_path = "D:\\Geodaten\\#Jupiter\\GEO402\\01_data\\s1_data\\S1_A_D_VV_free_state_study_area_geo402"
-s1vh_path = "D:\\Geodaten\\#Jupiter\\GEO402\\01_data\\s1_data\\S1_A_D_VH_free_state_study_area_geo402"
+rename_bandnames = function(raster = s1vv){
 
-# linux
-# s1_path = "/home/aleko-kon/Dokumente/402_outdated/GEO402/01_Daten/s1_data/S1_A_D_VH_free_state_study_area_geo402"
-s1vv = brick(s1vv_path)
-s1vh = brick(s1vh_path)
+    bandnames = names(raster)
 
-crs(s1vv)
-ncell(s1vv)
-dim(s1vv)
-res(s1vv)
-nlayers(s1vv)
+    # iterate for date in column-names
+    for (i in bandnames){
+        date_in_bandnames = substr(bandnames,13,20)
+    }
 
-options(digits = 4)
+    # convert date string into R date-time format
+    date <- c()
+    for (i in 1:length(date_in_bandnames)){
+        date <- append(date, as.POSIXct(date_in_bandnames[i], format = "%Y%m%d")) #https://www.statmethods.net/input/dates.html
+    }
 
-################################################################################
-# Import ROIs-------------------------------------------------------------------
-################################################################################
-
-# windows
-roi_path = "D:\\Geodaten\\#Jupiter\\GEO402\\02_features\\ROI_updated.kml"
-
-# linux
-# roi_path = "/home/aleko-kon/Dokumente/402_outdated/GEO402/ROI_updated.kml"
-
-roi_sf = st_read(roi_path) # read in
-
-# set crs(roi) to the crs(s1) brick. Remove Z-Dimension
-roi = st_transform(roi_sf, st_crs(s1vv)) %>%
-    st_zm(drop = TRUE)
-
-class(roi)
-crs(roi)
-# check if class is sf, crs is South African projection
+    names(raster) <- paste0(date) # change names to more easy
+    return(raster)
+}
 
 ################################################################################
 # Function definition `carve_brick`---------------------------------------------
@@ -84,9 +61,9 @@ crs(roi)
 carve_brick = function(sentinel1_brick,
                         polygon,
                         code = 1,
-                        roi_example_no = 1){
+                        gt_example_no = 1){
 
-    # built-in function for naming rois
+    # built-in function for naming gts
     namer <<- function(code){
 
     codename = ""
@@ -111,13 +88,13 @@ carve_brick = function(sentinel1_brick,
     }
 
     # filtering code
-    roi_code = filter(polygon, polygon$Name == code)
+    gt_code = filter(polygon, polygon$Name == code)
 
     # indexing single object
-    single_roi = roi_code[roi_example_no, 1]
+    single_gt = gt_code[gt_example_no, 1]
 
-    # spatial subset with single ROI bounds
-    subset = raster::extract(sentinel1_brick, single_roi) %>%
+    # spatial subset with single gt bounds
+    subset = raster::extract(sentinel1_brick, single_gt) %>%
         as.data.frame()
 
     # convert band names to date
@@ -162,10 +139,10 @@ carve_brick = function(sentinel1_brick,
 
     # printing summary to console
     paste = paste(
-        paste("Size of the plot:", st_area(single_roi[1,]), sep = " "),
+        paste("Size of the plot:", st_area(single_gt[1,]), sep = " "),
         paste("count of pixels in the timestack:", nrow(df), sep = " "),
         paste("count of pixels in the polygon:", median(df_summary$count), sep = " "),
-        paste("ROI of type: ", namer(code), sep = " "),
+        paste("gt of type: ", namer(code), sep = " "),
         paste("median = ", mean(df_summary$median, na.rm = TRUE), sep = " "),
         paste("mean = ", mean(df_summary$mean, na.rm = TRUE), sep = " "),
         paste("standard deviation = ", mean(df_summary$sd, na.rm = TRUE), "\n", sep = " "),
@@ -178,10 +155,10 @@ carve_brick = function(sentinel1_brick,
 
 # how-to-call
 
-df_summary = carve_brick(sentinel1_brick = s1vh,
-                         polygon = roi,
-                         code = 1,
-                         roi_example_no = 1)
+# df_summary = carve_brick(sentinel1_brick = s1vh,
+#                          polygon = gt,
+#                          code = 1,
+#                          gt_example_no = 1)
 
 
 ################################################################################
@@ -208,15 +185,15 @@ list_summaries = function(sentinel1_brick, polygon){
     summary = list()
     counter = 1
 
-    # for loop to write dataframes for each roi to the summary list
-    for (code in roi$Name) {
+    # for loop to write dataframes for each gt to the summary list
+    for (code in gt$Name) {
 
         print(counter)
 
         if (code == 1) { #increase
             new = list(carve_brick(sentinel1_brick = sentinel1_brick,
                                    polygon = polygon,
-                                   code = code, roi_example_no = ct_1))
+                                   code = code, gt_example_no = ct_1))
             summary = append(summary, new)
             names(summary)[length(summary)] = paste0("plot", code, "_", ct_1)
             ct_1 = ct_1 + 1
@@ -224,7 +201,7 @@ list_summaries = function(sentinel1_brick, polygon){
         } else if (code == 12) { #increase, then cleaned
             new = list(carve_brick(sentinel1_brick = sentinel1_brick,
                                    polygon = polygon,
-                                   code = code, roi_example_no = ct_12))
+                                   code = code, gt_example_no = ct_12))
             summary = append(summary, new)
             names(summary)[length(summary)] = paste0("plot", code, "_", ct_12)
             ct_12 = ct_12 + 1
@@ -232,7 +209,7 @@ list_summaries = function(sentinel1_brick, polygon){
         } else if (code == 2) { #cleaning
             new = list(carve_brick(sentinel1_brick = sentinel1_brick,
                                    polygon = polygon,
-                                   code = code, roi_example_no = ct_2))
+                                   code = code, gt_example_no = ct_2))
             summary = append(summary, new)
             names(summary)[length(summary)] = paste0("plot", code, "_", ct_2)
             ct_2 = ct_2 + 1
@@ -240,7 +217,7 @@ list_summaries = function(sentinel1_brick, polygon){
         } else if (code == 3) { #continuous
             new = list(carve_brick(sentinel1_brick = sentinel1_brick,
                                    polygon = polygon,
-                                   code = code, roi_example_no = ct_3))
+                                   code = code, gt_example_no = ct_3))
             summary = append(summary, new)
             names(summary)[length(summary)] = paste0("plot", code, "_", ct_3)
             ct_3 = ct_3 + 1
@@ -248,13 +225,13 @@ list_summaries = function(sentinel1_brick, polygon){
         } else if (code == 4) { #agriculture
             new = list(carve_brick(sentinel1_brick = sentinel1_brick,
                                    polygon = polygon,
-                                   code = code, roi_example_no = ct_4))
+                                   code = code, gt_example_no = ct_4))
             summary = append(summary, new)
             names(summary)[length(summary)] = paste0("plot", code, "_", ct_4)
             ct_4 = ct_4 + 1
 
         } else {
-            print("Not correctly assigned ROI code")
+            print("Not correctly assigned gt code")
         }
         counter = counter + 1
     }
@@ -275,4 +252,4 @@ list_summaries = function(sentinel1_brick, polygon){
 
  # how-to-call
 # summary = list_summaries(sentinel1_brick = s1vh,
-                         # polygon = roi)
+                         # polygon = gt)

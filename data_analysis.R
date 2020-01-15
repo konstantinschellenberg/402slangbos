@@ -1,22 +1,36 @@
-# Script to call already assigned functions
+# Konstantin Schellenberg, WS 2019/20
+# University of Jena, Chair of remote sensing
+# supervisor: Dr. Marcel Urban
 
-source("import_parse.R")
+# Script to plot the aggregated pixel time series information retrieved by the functions defined in raster_functions.R.
 
+source("import.R")
 library(viridis)
-
+library(plotly)
 
 ################################################################################
 # Data digesting----------------------------------------------------------------
 ################################################################################
 
-# s1_vv_summaries
-vv = list_summaries(sentinel1_brick = s1vv,
-                    polygon = roi)
-vh = list_summaries(sentinel1_brick = s1vh,
-                    polygon = roi)
+# get the pixel based data from the raster brick and the user polygons
+if (!file.exists("data/vv.rds")) {
+    vv = list_summaries(sentinel1_brick = s1vv,
+                        polygon = gt)
+    saveRDS(vv, "data/vv.rds")
+} else {
+    vv = readRDS("data/vv.rds")
+}
+
+if (!file.exists("data/vh.rds")) {
+    vh = list_summaries(sentinel1_brick = s1vh,
+                        polygon = gt)
+    saveRDS(vh, "data/vh.rds")
+} else {
+    vh = readRDS("data/vh.rds")
+}
 
 # debug: check if different
-if(!identical(vv$plot1_1$median,
+if(identical(vv$plot1_1$median,
           vh$plot1_1$median)){
     warning("the input raster are the same")
 }
@@ -24,62 +38,52 @@ if(!identical(vv$plot1_1$median,
 ################################################################################
 # Calculations------------------------------------------------------------------
 ################################################################################
-# UNDER CONSTRUCTION
-class(vv)
-class(vv$plot1_1)
-class(vv$plot1_1$mean)
 
-
-# initialise empty dataframe, nrow
-# empty = data.frame(matrix(NA, nrow = length(sb_1$plot1_1$date)))
-
-
-
-# Function definition-----------------------------------------------------------
-summarise_roi = function(polarisation, category = "1", argument = "median"){
-
-    # function to summaries the data with the given argument (must be a col name from carve_brick. E.g mean, median, sd)
-    # http://www.endmemo.com/program/R/grepl.php ## regular expression syntax
-    roi_vv = polarisation[grepl(paste0("plot", category, "_"), namer(polarisation))]
-
-    ####
-
-    return(roi_vv)
-}
-summarise_roi(polarisation = vv,
-              category = 2,
-              argument = "median")
-
-# ------------------------------------------------------------------------------
-
-# medians transmuted
-# sb_1 = vv[grepl(paste0("plot", 1, "_"), names(vv))]
+# # Function definition-----------------------------------------------------------
+# summarise_gt = function(polarisation, category = "1", argument = "median"){
+#
+#     # function to summaries the data with the given argument (must be a col name from carve_brick. E.g mean, median, sd)
+#     # http://www.endmemo.com/program/R/grepl.php ## regular expression syntax
+#     gt_vv = polarisation[grepl(paste0("plot", category, "_"), namer(polarisation))]
 #
 #
 #
-# n = sb_1 %>%
-#     map_dfr("median") %>%
-#     mutate(date = datenames) %>%
-#     group_by(date)
+#     return(gt_vv)
+# }
+# summarise_gt(polarisation = vv,
+#               category = 2,
+#               argument = "median")
 #
-# n_2 = n %>%
-#     select(plot1_1, plot1_2) %>%
-#     summarise_all(mean)
-# n_2
+# # ------------------------------------------------------------------------------
 #
-#     summarise_at(vars(1:5), mean, rm.na = TRUE)
+# # medians transmuted
+# # sb_1 = vv[grepl(paste0("plot", 1, "_"), names(vv))]
+# #
+# #
+# #
+# # n = sb_1 %>%
+# #     map_dfr("median") %>%
+# #     mutate(date = datenames) %>%
+# #     group_by(date)
+# #
+# # n_2 = n %>%
+# #     select(plot1_1, plot1_2) %>%
+# #     summarise_all(mean)
+# # n_2
+# #
+# #     summarise_at(vars(1:5), mean, rm.na = TRUE)
+# #
+# #
+# # n_2
+# #
+# # n[grepl("plot", names(n))]
+# #
+# # plot(t(n))
+# # mutate(n, . ~mean)
 #
+# # parse datenames
 #
-# n_2
-#
-# n[grepl("plot", names(n))]
-#
-# plot(t(n))
-# mutate(n, . ~mean)
-
-# parse datenames
-
-# map(increase, mean)
+# # map(increase, mean)
 
 ################################################################################
 # Plotting----------------------------------------------------------------------
@@ -88,12 +92,12 @@ summarise_roi(polarisation = vv,
 # raster
 plot(s1vv[[1]],
      breaks = c(-25:-5),
-     col = mycolour,
+     col = viridis(20),
      axes = TRUE
 )
 
-# ROI
-plot(roi[1], main = "All ROIs", col = "red", add = TRUE)
+# gt
+plot(gt[1], main = "All gts", col = "red", border = "red", add = TRUE)
 
 ### init for plotly-------------------------------------------------------------
 # overview plots-----------------------------------------------------------------
@@ -101,12 +105,12 @@ plot(roi[1], main = "All ROIs", col = "red", add = TRUE)
 stelle = 1
 code = 1
 
-# get roi
-example = roi %>%
-    filter(roi$Name == code) %>%
+# get gt
+example = gt %>%
+    filter(gt$Name == code) %>%
     .[stelle, ]
 
-plot(example[1], main = paste0(namer(code), ": ", code, "_", stelle), col = "grey")
+plot(example[1], main = paste0(code, ": ", code, "_", stelle), col = "grey")
 
 # Plotly graphs-----------------------------------------------------------------
 
@@ -128,19 +132,6 @@ grep = function(summary = vv, stelle = 1, code = 1){
 agro = grep(summary = vh, stelle = 2, code = 4)
 incr = grep(summary = vh, stelle = 1, code = 1)
 brk = grep(summary = vh, stelle = 2, code = 12)
-
-identical(nrow(agro),nrow(incr))
-identical(nrow(agro),nrow(brk))
-
-# x_vv = vv_plot$date
-# med_vv = vv_plot$median
-# losd_vv = vv_plot$lower_sd
-# upsd_vv = vv_plot$upper_sd
-#
-# x_vh = vh_plot$date
-# med_vh = vh_plot$median
-# losd_vh = vh_plot$lower_sd
-# upsd_vh = vh_plot$upper_sd
 
 # Assignment--------------------------------------------------------------------
 
@@ -251,67 +242,9 @@ plt = plot_ly(data = agro,
                 color = I(red_background), line = list(width = 0), opacity = 0.4,
                 name = "",
                 showlegend = FALSE) %>%
-    # add_ribbons(x = x_3,
-    #             ymin = pr_losd_3$y,
-    #             ymax = pr_upsd_3$y,
-    #             color = I(black_background), line = list(width = 0), opacity = 0.4,
-    #             name = "") %>%
-
 
     add_lines(x = x_1, y = pr_1$y, line = pr_1.fmt, name = "Agriculture") %>% # median
-    add_lines(x = x_2, y = pr_2$y, line = pr_2.fmt, name = "Slangbos site") %>%
+    add_lines(x = x_2, y = pr_2$y, line = pr_2.fmt, name = "Slangbos increase site") %>%
     add_lines(x = x_3, y = pr_3$y, line = pr_3.fmt, name = "Slangbos burnt site")
 
 plt
-
-
-# plt = add_lines(plt, x = x, y = pr_losd$y, line = interval.fmt, name = "Lower standard deviation")
-# plt = add_lines(plt, x = x, y = pr_upsd$y, line = interval.fmt, name = "Upper standard deviation")
-
-
-#####################OLD add vh
-
-
-#
-# add_lines(x = x_1, y = med_1, line = line_1.fmt, name = "agro") %>% # main data
-# add_lines(x = x_2, y = med_2, line = line_2.fmt, name = "incr") %>%
-#
-# , # main data
-# type = 'scatter',
-# line = data.fmt,
-# mode = "lines"
-#
-#
-# plt = add_ribbons(plt, x = x_1, ymin = losd_1, ymax = upsd_1,
-#                   color = I("grey80"), line = list(width = 0), opacity = 0.9,
-#                   name = "VV 1 sigma standard deviation")
-# plt = add_lines(plt,
-#                 x = x_vh,
-#                 y = med_vh,
-#                 name = "VH")
-#
-# plt = add_lines(plt,
-#                 x = x_vh,
-#                 y = pr_vh$y,
-#                 line = linevh.fmt,
-#                 name = "Smooth VH")
-#
-# plt = add_ribbons(plt, x = x_vh, ymin = losd_vh, ymax = upsd_vh,
-#                   color = I("grey80"), line = list(width = 0), opacity = 0.9,
-#                   name = "VH 1 sigma standard deviation")
-#
-#
-# plt
-#
-# # exporting graphics to dst
-
-# plotly::orca(plt, "D:\\Geodaten\\#Jupiter\\GEO402\\work progress\\plotly")
-
-# plt = add_lines(plt, # median line for 1
-#                 x = x_1,
-#                 y = pr_1$y,
-#                 line = line_1.fmt,
-#                 name = "Agriculture",
-# )
-
-

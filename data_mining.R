@@ -1,45 +1,24 @@
+# Konstantin Schellenberg, WS 2019/20
+# University of Jena, Chair of remote sensing
+# supervisor: Dr. Marcel Urban
+
+# Script to run the random forest classification.
+
+
+#____________________________________________________________
 # watch the video for introduction in RF for remote sensing
 # https://www.youtube.com/watch?v=fal4Jj81uMA
 
 # for tuning
 # https://machinelearningmastery.com/tune-machine-learning-algorithms-in-r/
 
-# ------------------------------------------------------------------------------
+source("import.R")
 library(sf)
 library(rgdal)
 library(raster)
 library(caret)
 
-# ------------------------------------------------------------------------------
-training_path = "D:\\Geodaten\\#Jupiter\\GEO402\\02_features\\ROI_updated.kml"
-s1vv_path = "D:\\Geodaten\\#Jupiter\\GEO402\\01_data\\s1_data\\S1_A_D_VV_free_state_study_area_geo402"
-s1vh_path = "D:\\Geodaten\\#Jupiter\\GEO402\\01_data\\s1_data\\S1_A_D_VH_free_state_study_area_geo402"
-
-# import raster
-s1vv = brick(s1vv_path)
-s1vh = brick(s1vh_path)
-names(s1vv)
-
 # Renaming------------------------------------------------------------------------------
-
-rename_bandnames = function(raster = s1vv){
-
-    bandnames = names(raster)
-
-    # iterate for date in column-names
-    for (i in bandnames){
-        date_in_bandnames = substr(bandnames,13,20)
-    }
-
-    # convert date string into R date-time format
-    date <- c()
-    for (i in 1:length(date_in_bandnames)){
-        date <- append(date, as.POSIXct(date_in_bandnames[i], format = "%Y%m%d")) #https://www.statmethods.net/input/dates.html
-    }
-
-    names(raster) <- paste0(date) # change names to more easy
-    return(raster)
-}
 
 # remove data with little coverage of the region of interest
 raster = rename_bandnames(raster = s1vh) %>%
