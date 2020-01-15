@@ -90,14 +90,14 @@ if(identical(vv$plot1_1$median,
 ################################################################################
 
 # raster
-plot(s1vv[[1]],
-     breaks = c(-25:-5),
-     col = viridis(20),
-     axes = TRUE
-)
-
-# gt
-plot(gt[1], main = "All gts", col = "red", border = "red", add = TRUE)
+# plot(s1vv[[1]],
+#      breaks = c(-25:-5),
+#      col = viridis(20),
+#      axes = TRUE
+# )
+#
+# # gt
+# plot(gt[1], main = "All gts", col = "red", border = "red", add = TRUE)
 
 ### init for plotly-------------------------------------------------------------
 # overview plots-----------------------------------------------------------------
@@ -110,7 +110,7 @@ example = gt %>%
     filter(gt$Name == code) %>%
     .[stelle, ]
 
-plot(example[1], main = paste0(code, ": ", code, "_", stelle), col = "grey")
+# plot(example[1], main = paste0(code, ": ", code, "_", stelle), col = "grey")
 
 # Plotly graphs-----------------------------------------------------------------
 
