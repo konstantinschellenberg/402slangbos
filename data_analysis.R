@@ -4,7 +4,7 @@
 
 # Script to plot the aggregated pixel time series information retrieved by the functions defined in raster_functions.R.
 
-source("import.R")
+source("raster_funtions.R")
 library(viridis)
 library(plotly)
 
@@ -36,54 +36,15 @@ if(identical(vv$plot1_1$median,
 }
 
 ################################################################################
-# Calculations------------------------------------------------------------------
+# Data digesting 2 new function ------------------------------------------------
 ################################################################################
 
-# # Function definition-----------------------------------------------------------
-# summarise_gt = function(polarisation, category = "1", argument = "median"){
-#
-#     # function to summaries the data with the given argument (must be a col name from carve_brick. E.g mean, median, sd)
-#     # http://www.endmemo.com/program/R/grepl.php ## regular expression syntax
-#     gt_vv = polarisation[grepl(paste0("plot", category, "_"), namer(polarisation))]
-#
-#
-#
-#     return(gt_vv)
-# }
-# summarise_gt(polarisation = vv,
-#               category = 2,
-#               argument = "median")
-#
-# # ------------------------------------------------------------------------------
-#
-# # medians transmuted
-# # sb_1 = vv[grepl(paste0("plot", 1, "_"), names(vv))]
-# #
-# #
-# #
-# # n = sb_1 %>%
-# #     map_dfr("median") %>%
-# #     mutate(date = datenames) %>%
-# #     group_by(date)
-# #
-# # n_2 = n %>%
-# #     select(plot1_1, plot1_2) %>%
-# #     summarise_all(mean)
-# # n_2
-# #
-# #     summarise_at(vars(1:5), mean, rm.na = TRUE)
-# #
-# #
-# # n_2
-# #
-# # n[grepl("plot", names(n))]
-# #
-# # plot(t(n))
-# # mutate(n, . ~mean)
-#
-# # parse datenames
-#
-# # map(increase, mean)
+gt_list = readRDS("D:\\Geodaten\\#Jupiter\\GEO402\\03_develop\\rda\\training_list.rds")
+
+df1 = gt_list[[1]][[1]]
+df2 = gt_list[[1]][[2]]
+#grepl listname 1: rbind -> aggregate information
+rbind(df1, df2)
 
 ################################################################################
 # Plotting----------------------------------------------------------------------

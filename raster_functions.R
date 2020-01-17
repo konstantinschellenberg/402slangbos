@@ -6,10 +6,20 @@
 # and validation polygons (GT)
 # Functions are written to simplify the usage and enhance debugging
 #
-# 1. carve_brick:
+# 1. rename_bandnames:
+# function to retrieve the dates from the sentinel-1 scene providid by Marcel Urban.
+# Dates are subsequently written to the layer names of the raster brick.
+#
+# 2. gt_from_raster: credits to http://amsantac.co/blog/en/2015/11/28/classification-r.html
+#
+# Does the same as carve_brick & list_summaries. It output two datasets:
+# The first: "learning_input.rds", dataframe with variables as columns. Serves as input for machine learning
+# The second: "gt_list.rds", list of all the polyon information in the time stack. Stores in nested lists and dataframe
+#
+# 3. carve_brick:
 # Reads s1 and gt, extracts "carves" the polygons in the raster brick and calculates some basic stats (mean, median, stdev)
 #
-# 2. list_summaries:
+# 4. list_summaries:
 # Takes s1 and gt data, calls carve_brick and appends each retrieved dataframe-summary to a created list "summary"
 
 
@@ -24,12 +34,9 @@
 #     3 == continous persistance of slangbos
 #     4 == agricultural site
 
-# load required packages
-library(raster)
-library(dplyr)
-library(tidyverse)
-library(sf)
-library(purrr)
+# load dependency
+
+source("import.R")
 
 ################################################################################
 # Rename bandnames -------------------------------------------------------------
@@ -45,14 +52,77 @@ rename_bandnames = function(raster = s1vv){
     }
 
     # convert date string into R date-time format
-    date <- c()
+    date = c()
     for (i in 1:length(date_in_bandnames)){
-        date <- append(date, as.POSIXct(date_in_bandnames[i], format = "%Y%m%d")) #https://www.statmethods.net/input/dates.html
+        date = append(date, as.POSIXct(date_in_bandnames[i], format = "%Y%m%d")) #https://www.statmethods.net/input/dates.html
     }
-
-    names(raster) <- paste0(date) # change names to more easy
+    dates_raster <<- date # write as global variable
+    names(raster) = paste0(date) # change names to more easy
     return(raster)
 }
+
+################################################################################
+# gt_from_raster----------------------------------------------------------------
+################################################################################
+
+gt_from_raster = function(train_data = gt,
+                          repsonse_col = "Name",
+                          raster = brick){
+
+    # credits to http://amsantac.co/blog/en/2015/11/28/classification-r.html
+    df_all = data.frame(matrix(vector(), nrow = 0, ncol = length(names(raster)) + 1))
+    outest = list()
+
+    for (i in 1:length(unique(trainData[[responseCol]]))){
+
+        # get class
+        category = unique(trainData[[responseCol]])[i]
+        print(category)
+        # returns sp polygon with class i
+        categorymap = trainData[trainData[[responseCol]] == category,]
+
+        # extract pixel information
+        dataset = raster::extract(raster, categorymap)
+
+        # making dataset for machine learning-----------------------------------
+        ds = dataset[!unlist(lapply(dataset, is.null))]
+        ds = lapply(ds, function(x){cbind(x, class = as.numeric(rep(category, nrow(x))))})
+        df = do.call("rbind", ds)
+        df_all = rbind(df_all, df)
+        # ----------------------------------------------------------------------
+
+        out = list()
+
+        for (a in 1:length(dataset)){
+
+            print("inner", a)
+            t = as.data.frame(dataset[[a]]) %>%
+                t() %>%
+                as.data.frame() %>%
+                mutate(date = colnames(dataset[[1]])) %>%
+                pivot_longer(-date, names_to = "names", values_to = "values") %>%
+                group_by(date) %>%
+                summarise(mean = mean(values), # here can be put more stats information retrieved from the polygons
+                          median = median(values),
+                          sd = sd(values),
+                          "lower_sd" = mean(values) - sd(values),
+                          "upper_sd" = mean(values) + sd(values),
+                          count = n())
+
+            out = append(out, list(as.data.frame(t)))
+        }
+
+        # rename inner lists (of the categories)
+        names(out) = c(rep(category, length(dataset)))
+
+        # append to master-list (outest)
+        outest = append(outest, list(out))
+    }
+
+    saveRDS(df_all, paste0(rds_path, "learning_input.rds"))
+    saveRDS(outest, paste0(rds_path, "gt_list.rds"))
+}
+
 
 ################################################################################
 # Function definition `carve_brick`---------------------------------------------
@@ -153,14 +223,6 @@ carve_brick = function(sentinel1_brick,
     return(df_summary)
 }
 
-# how-to-call
-
-# df_summary = carve_brick(sentinel1_brick = s1vh,
-#                          polygon = gt,
-#                          code = 1,
-#                          gt_example_no = 1)
-
-
 ################################################################################
 # Developing loop for `carve_brick`---------------------------------------------
 ################################################################################
@@ -249,7 +311,3 @@ list_summaries = function(sentinel1_brick, polygon){
 
     return(summary)
 }
-
- # how-to-call
-# summary = list_summaries(sentinel1_brick = s1vh,
-                         # polygon = gt)
