@@ -10,26 +10,45 @@
 # for tuning
 # https://machinelearningmastery.com/tune-machine-learning-algorithms-in-r/
 
-source("raster_functions.R")
+source("import.R")
 
 library(sf)
 library(raster)
 library(caret)
 
 # Read in training data-----------------------------------------------------------
+
+# time consuming task!
+system.time(gt_from_raster(raster = raster_test, outfile = "_test"))
+
+learning_input = readRDS(paste0(rds_path, "learning_input_VH.rds"))
+learning_input_test = readRDS(paste0(rds_path, "learning_input_test.rds"))
+
+gt_list = readRDS(paste0(rds_path, "gt_list_test.rds"))
+
 if (!file.exists(paste0(rds_path, "learning_input.rds"))) {
-    gt_from_raster()
-    df_all = readRDS(paste0(rds_path, "learning_input.rds"))
-} else {df_all = readRDS(paste0(rds_path, "learning_input.rds"))}
+    gt_from_raster(train_data = gt, response_col = "Name", raster = s1vv)
+    sdf_all = readRDS(paste0(rds_path, "learning_input.rds"))
+} else {sdf_all = readRDS(paste0(rds_path, "learning_input.rds"))}
+
+# BAUSTELLE
+# loop to get all input variables
+# list_rasters = list(s1vv, s1vh) # and sentinel-2
+# for i in list_rasters{
+#     i = i[[seq(1, 3)]]
+#     gt_from_raster(train_data = gt, response_col = "Name", raster = i, outfile = chr(i))
+# }
+# toString(i)
 
 ################## HERE
 # ds_all returns nur eine Klasse.........
 # subsetting
+
 nsamples = 1000
 sdf_all = df_all[sample(1:nrow(df_all), nsamples), ]
 
 # train model
-modFit_rf = train(as.factor(class) ~ ., method = "rf", data = sdf_all,
+modFit_rf = train(as.factor(class) ~ X2015.03.11, method = "rf", data = sdf_all,
                    importance=TRUE,
                    trControl=trainControl(method="cv",number=5))
 

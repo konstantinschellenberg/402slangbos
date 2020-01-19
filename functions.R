@@ -11,7 +11,6 @@
 # Dates are subsequently written to the layer names of the raster brick.
 #
 # 2. gt_from_raster: credits to http://amsantac.co/blog/en/2015/11/28/classification-r.html
-#
 # Does the same as carve_brick & list_summaries. It output two datasets:
 # The first: "learning_input.rds", dataframe with variables as columns. Serves as input for machine learning
 # The second: "gt_list.rds", list of all the polyon information in the time stack. Stores in nested lists and dataframe
@@ -35,8 +34,6 @@
 #     4 == agricultural site
 
 # load dependency
-
-source("import.R")
 
 ################################################################################
 # Rename bandnames -------------------------------------------------------------
@@ -66,40 +63,35 @@ rename_bandnames = function(raster = s1vv){
 ################################################################################
 
 gt_from_raster = function(train_data = gt,
-                          repsonse_col = "Name",
-                          raster = brick){
+                          response_col = "Name",
+                          raster = s1vh,
+                          outfile = "s1vh"){
 
     # credits to http://amsantac.co/blog/en/2015/11/28/classification-r.html
+    # https://gist.github.com/amsantac/5183c0c71a8dcbc27a4f
     df_all = data.frame(matrix(vector(), nrow = 0, ncol = length(names(raster)) + 1))
     outest = list()
 
-    for (i in 1:length(unique(trainData[[responseCol]]))){
+    for (i in 1:length(unique(train_data[[response_col]]))){
 
         # get class
-        category = unique(trainData[[responseCol]])[i]
+        category = unique(train_data[[response_col]])[i]
         print(category)
         # returns sp polygon with class i
-        categorymap = trainData[trainData[[responseCol]] == category,]
+        categorymap = train_data[train_data[[response_col]] == category,]
 
         # extract pixel information
-        dataset = raster::extract(raster, categorymap)
-
-        # making dataset for machine learning-----------------------------------
-        ds = dataset[!unlist(lapply(dataset, is.null))]
-        ds = lapply(ds, function(x){cbind(x, class = as.numeric(rep(category, nrow(x))))})
-        df = do.call("rbind", ds)
-        df_all = rbind(df_all, df)
-        # ----------------------------------------------------------------------
+        dataSet = raster::extract(raster, categorymap, cellnumbers = T)
 
         out = list()
 
-        for (a in 1:length(dataset)){
+        for (a in 1:length(dataSet)){
 
             print("inner", a)
-            t = as.data.frame(dataset[[a]]) %>%
+            t = as.data.frame(dataSet[[a]]) %>%
                 t() %>%
                 as.data.frame() %>%
-                mutate(date = colnames(dataset[[1]])) %>%
+                mutate(date = colnames(dataSet[[1]])) %>%
                 pivot_longer(-date, names_to = "names", values_to = "values") %>%
                 group_by(date) %>%
                 summarise(mean = mean(values), # here can be put more stats information retrieved from the polygons
@@ -112,15 +104,24 @@ gt_from_raster = function(train_data = gt,
             out = append(out, list(as.data.frame(t)))
         }
 
+        # making dataset for machine learning-----------------------------------
+        dataSet = dataSet[!unlist(lapply(dataSet, is.null))]
+        dataSet = lapply(dataSet, function(x){cbind(x, class = as.numeric(rep(category, nrow(x))))})
+        df = do.call("rbind", dataSet)
+        df_all = rbind(df_all, df)
+        # as.factor(df_all$class)
+        # ----------------------------------------------------------------------
+
         # rename inner lists (of the categories)
-        names(out) = c(rep(category, length(dataset)))
+        names(out) = c(seq(1:nrow(categorymap)))
 
         # append to master-list (outest)
         outest = append(outest, list(out))
     }
 
-    saveRDS(df_all, paste0(rds_path, "learning_input.rds"))
-    saveRDS(outest, paste0(rds_path, "gt_list.rds"))
+    names(outest) = unique(train_data[[response_col]])
+    saveRDS(df_all, paste0(rds_path, "learning_input", outfile, ".rds"))
+    saveRDS(outest, paste0(rds_path, "gt_list", outfile, ".rds"))
 }
 
 

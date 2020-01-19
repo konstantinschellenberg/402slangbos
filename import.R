@@ -5,9 +5,11 @@
 # Script to import and clean data
 
 options(digits = 4)
+source("functions.R")
 
 library(tidyverse)
 library(raster)
+library(sf)
 
 ################################################################################
 # Import Sentinel-1 time series data--------------------------------------------
@@ -29,6 +31,9 @@ s1vv = rename_bandnames(raster = s1vv) %>%
 
 s1vh = rename_bandnames(raster = s1vh) %>%
     .[[c(-14, -17, -62)]]
+
+# test dataset
+raster_test = s1vv[[seq(1,3)]]
 
 ################################################################################
 # Import Ground Truth-----------------------------------------------------------
