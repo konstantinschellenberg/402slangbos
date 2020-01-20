@@ -18,6 +18,7 @@ library(sf)
 s1vv_path = "D:\\Geodaten\\#Jupiter\\GEO402\\01_data\\s1_data\\S1_A_D_VV_free_state_study_area_geo402"
 s1vh_path = "D:\\Geodaten\\#Jupiter\\GEO402\\01_data\\s1_data\\S1_A_D_VH_free_state_study_area_geo402"
 s2 = ""
+predication_out_path = "D:\\Geodaten\\#Jupiter\\GEO402\\04_products\\rf"
 
 # where to write rds_files:
 rds_path = "D:\\Geodaten\\#Jupiter\\GEO402\\03_develop\\rda\\"

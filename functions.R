@@ -64,8 +64,8 @@ rename_bandnames = function(raster = s1vv){
 
 gt_from_raster = function(train_data = gt,
                           response_col = "Name",
-                          raster = s1vh,
-                          outfile = "s1vh"){
+                          raster = raster_test,
+                          outfile = "test"){
 
     # credits to http://amsantac.co/blog/en/2015/11/28/classification-r.html
     # https://gist.github.com/amsantac/5183c0c71a8dcbc27a4f
@@ -82,7 +82,7 @@ gt_from_raster = function(train_data = gt,
         plot(categorymap[0])
 
         # extract pixel information
-        dataSet = raster::extract(raster, categorymap, cellnumbers = T)
+        dataSet = raster::extract(raster, categorymap, cellnumbers = TRUE)
 
         out = list()
 
@@ -95,7 +95,7 @@ gt_from_raster = function(train_data = gt,
             calcs = remove_cell %>%
                 t() %>%
                 as.data.frame() %>%
-                mutate(date = colnames(s)) %>%
+                mutate(date = colnames(remove_cell)) %>%
                 pivot_longer(-date, names_to = "names", values_to = "values") %>%
                 group_by(date) %>%
                 summarise(mean = mean(values), # here can be put more stats information retrieved from the polygons
@@ -110,6 +110,7 @@ gt_from_raster = function(train_data = gt,
 
         # making dataset for machine learning-----------------------------------
         dataSet2 = NULL
+
         for (i in dataSet){ # writing coordinates to the matrix of each gt element
             coords = coordinates(raster)[i[,1],] # getting coordinates from raster cell number
             coords_binded = cbind(i, coords) # bind them to extract output
@@ -130,8 +131,8 @@ gt_from_raster = function(train_data = gt,
         # append to master-list (outest)
         outest = append(outest, list(out))
     }
-    df_all = select(df_all, -cell)
-    df_all$class = as_factor(data_input$class)
+    df_all = df_all[, -1]
+    df_all$class = as_factor(df_all$class)
     names(outest) = unique(train_data[[response_col]])
     saveRDS(df_all, paste0(rds_path, "learning_input_", outfile, ".rds"))
     saveRDS(outest, paste0(rds_path, "gt_list_", outfile, ".rds"))

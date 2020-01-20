@@ -26,11 +26,11 @@ source("import.R")
 ######################################################################
 
 # Input of stack, which is containing training and reference data
-if (!file.exists(paste0(rds_path, "learning_input_try.rds"))) {
+if (!file.exists(paste0(rds_path, "learning_input_VH.rds"))) {
     print("file does not exist")
-    gt_from_raster(raster = raster_test, outfile = "try")
-    data_input = readRDS(paste0(rds_path, "learning_input_try.rds"))
-} else {data_input = readRDS(paste0(rds_path, "learning_input_try.rds"))}
+    gt_from_raster(raster = s1vh, outfile = "VH")
+    data_input = readRDS(paste0(rds_path, "learning_input_VH.rds"))
+} else {data_input = readRDS(paste0(rds_path, "learning_input_VH.rds"))}
 
 ######################################################################
 # Make Task
