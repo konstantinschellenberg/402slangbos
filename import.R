@@ -4,7 +4,7 @@
 
 # Script to import and clean data
 
-options(digits = 4)
+options(digits = 4, max.print = 50)
 source("functions.R")
 
 library(tidyverse)
@@ -33,7 +33,7 @@ s1vh = rename_bandnames(raster = s1vh) %>%
     .[[c(-14, -17, -62)]]
 
 # test dataset
-raster_test = s1vv[[seq(1,3)]]
+raster_test = s1vh[[seq(1,3)]]
 
 ################################################################################
 # Import Ground Truth-----------------------------------------------------------
