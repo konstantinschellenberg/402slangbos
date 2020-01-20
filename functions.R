@@ -79,6 +79,7 @@ gt_from_raster = function(train_data = gt,
         print(category)
         # returns sp polygon with class i
         categorymap = train_data[train_data[[response_col]] == category,]
+        plot(categorymap[0])
 
         # extract pixel information
         dataSet = raster::extract(raster, categorymap, cellnumbers = T)
@@ -88,10 +89,13 @@ gt_from_raster = function(train_data = gt,
         for (a in 1:length(dataSet)){
 
             print("inner", a)
-            t = as.data.frame(dataSet[[a]]) %>%
+            remove_cell = as.data.frame(dataSet[[a]]) %>%
+                .[, -1] # this removes the first column "cell" from cellnumbers
+
+            calcs = remove_cell %>%
                 t() %>%
                 as.data.frame() %>%
-                mutate(date = colnames(dataSet[[1]])) %>%
+                mutate(date = colnames(s)) %>%
                 pivot_longer(-date, names_to = "names", values_to = "values") %>%
                 group_by(date) %>%
                 summarise(mean = mean(values), # here can be put more stats information retrieved from the polygons
@@ -101,15 +105,23 @@ gt_from_raster = function(train_data = gt,
                           "upper_sd" = mean(values) + sd(values),
                           count = n())
 
-            out = append(out, list(as.data.frame(t)))
+            out = append(out, list(as.data.frame(calcs)))
         }
 
         # making dataset for machine learning-----------------------------------
-        dataSet = dataSet[!unlist(lapply(dataSet, is.null))]
-        dataSet = lapply(dataSet, function(x){cbind(x, class = as.numeric(rep(category, nrow(x))))})
-        df = do.call("rbind", dataSet)
+        dataSet2 = NULL
+        for (i in dataSet){ # writing coordinates to the matrix of each gt element
+            coords = coordinates(raster)[i[,1],] # getting coordinates from raster cell number
+            coords_binded = cbind(i, coords) # bind them to extract output
+            dataSet2 = append(dataSet2, list(coords_binded)) # make list output
+        }
+
+        dataSet3 = dataSet2[!unlist(lapply(dataSet2, is.null))] %>%
+            lapply(function(x){cbind(x, class = as.numeric(rep(category, nrow(x))))})
+
+        df = do.call("rbind", dataSet3)
         df_all = rbind(df_all, df)
-        # as.factor(df_all$class)
+
         # ----------------------------------------------------------------------
 
         # rename inner lists (of the categories)
@@ -118,10 +130,11 @@ gt_from_raster = function(train_data = gt,
         # append to master-list (outest)
         outest = append(outest, list(out))
     }
-
+    df_all = select(df_all, -cell)
+    df_all$class = as_factor(data_input$class)
     names(outest) = unique(train_data[[response_col]])
-    saveRDS(df_all, paste0(rds_path, "learning_input", outfile, ".rds"))
-    saveRDS(outest, paste0(rds_path, "gt_list", outfile, ".rds"))
+    saveRDS(df_all, paste0(rds_path, "learning_input_", outfile, ".rds"))
+    saveRDS(outest, paste0(rds_path, "gt_list_", outfile, ".rds"))
 }
 
 

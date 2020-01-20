@@ -20,31 +20,28 @@ library(parallelMap)
 library(raster)
 
 source("import.R")
+options(max.print = 50)
 
 ######################################################################
 # Data Preparation
 ######################################################################
 
 # Input of stack, which is containing training and reference data
-data_input = readRDS(paste0(rds_path, "learning_input_test.rds"))
-data_input = na.omit(data_input) # if there are NAs, remove them, potential error source
-data_input$class = as_factor(data_input$class) # assign class as factor, not numeric
-
-s1vv_re
-
-# extract coordinates ##BAUSTELLE
-new = raster(dataSet[[1]])
-coord_col = as.data.frame(coordinates(new))
-
-cbind.data.frame(dataSet[[1]], coord_col)
-
+if (!file.exists(paste0(rds_path, "learning_input_try.rds"))) {
+    print("file does not exist")
+    gt_from_raster(raster = raster_test, outfile = "try")
+    data_input = readRDS(paste0(rds_path, "learning_input_try.rds"))
+} else {data_input = readRDS(paste0(rds_path, "learning_input_try.rds"))}
 
 ######################################################################
 # Make Task
 ######################################################################
 
+coords <- as.data.frame(data_input[c("x", "y")])
+
 classif.task <- makeClassifTask(
-    id = "slangbos", data = data_input, target = "class"
+    id = "slangbos", data = data_input, target = "class",
+    coordinates = coords
 )
 
 ######################################################################
@@ -90,6 +87,8 @@ tune_rf <- tuneParams(classif.lrn,
 
 parallelStop()
 
+saveRDS(tune_rf, paste0(rds_path, "tune_rf")
+
 # (Optional) Save the Tuned Random Forest
 # saveRDS(tune_rf, "/.../.../rf_tuneGrid_results_mtry_1_2_ntrees_10_50_100_300_700_S1_16_17.rda")
 
@@ -113,7 +112,3 @@ parallelStop()
 
 # Save the Spatial Cross Validation
 saveRDS(woody_cover_spcv, "/.../.../S1_A_VH_VV_16_17_lidar_rf_cross_val_spatial_100rep.rda")
-
-######################################################################
-######################################################################
-######################################################################
