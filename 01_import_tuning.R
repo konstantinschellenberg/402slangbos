@@ -17,10 +17,9 @@
 library(mlr)
 library(data.table)
 library(parallelMap)
-library(raster)
 
 source("import.R")
-options(max.print = 50)
+
 
 ######################################################################
 # Data Preparation
@@ -37,9 +36,10 @@ if (!file.exists(paste0(rds_path, "learning_input_try.rds"))) {
 # Make Task
 ######################################################################
 
-coords <- as.data.frame(data_input[c("x", "y")])
+coords = as.data.frame(data_input[c("x", "y")])
+data_input = dplyr::select(data_input, -x, -y) # removes coordinates from variable settings
 
-classif.task <- makeClassifTask(
+classif.task = makeClassifTask(
     id = "slangbos", data = data_input, target = "class",
     coordinates = coords
 )
@@ -64,51 +64,62 @@ filterParams(getParamSet(classif.lrn), tunable = TRUE)
 # --------------------------------------------------------------------
 
 # Defining parameter set
-ps <- makeParamSet(
+ps = makeParamSet(
     makeIntegerParam("mtry", lower = 1, upper = 4),
-    makeDiscreteParam("num.trees", values = c(10,50,100,300,700))
+    makeDiscreteParam("ntree", values = c(0, 10, 50, 100, 300, 500, 700))
     # for random selection of num.trees use: makeIntegerParam("num.trees", lower = 10, upper = 700)
 )
 
 # Define the inner reampling iterations
-ctrl <- makeTuneControlGrid() # for random selection of parameters use: ctrl <- makeTuneControlRandom(maxit = 100)
-inner <- makeResampleDesc("SpCV", iters = 5)
+ctrl = makeTuneControlGrid() # for random selection of parameters use: ctrl = makeTuneControlRandom(maxit = 100)
+inner = makeResampleDesc("SpCV", iters = 10L)
+wrapper = makeTuneWrapper(classif.lrn, resampling = inner, par.set = ps,
+                          control = ctrl, show.info = TRUE,
+                          measures = list(acc, mmce))
 
 # parallization of tuning (Note: mode="multicore" for Unix, mode="socket" for
 # Windows)
 
-parallelStart(mode = "socket", level = "mlr.tuneParams", cpus = 5)
+if (!file.exists(paste0(rds_path, "tune_rf"))){
 
-# Tuning the Random Forest
-tune_rf <- tuneParams(classif.lrn,
-                      task = classif.task, resampling = inner, par.set = ps,
-                      control = ctrl, show.info = TRUE, measures = setAggregation(rmse, test.mean)
-)
+    # Tuning the Random Forest
+    parallelStart(mode = "socket", level = "mlr.tuneParams", cpus = 5, mc.set.seed = TRUE)
 
-parallelStop()
+    set.seed(27)
+    tune_rf = tuneParams(learner = classif.lrn,
+                          task = classif.task, resampling = inner, par.set = ps,
+                          control = ctrl, show.info = TRUE, measures = list(acc, mmce)) # acc = accuracy, mmce = Mean misclassification error
 
-saveRDS(tune_rf, paste0(rds_path, "tune_rf")
+    parallelStop()
 
-# (Optional) Save the Tuned Random Forest
-# saveRDS(tune_rf, "/.../.../rf_tuneGrid_results_mtry_1_2_ntrees_10_50_100_300_700_S1_16_17.rda")
+    saveRDS(tune_rf, paste0(rds_path, "tune_rf"))
 
-##### TUNING END
+} else {
 
-######################################################################
-#Spatial Cross Vaildation
-######################################################################
+    tune_rf = readRDS(paste0(rds_path, "tune_rf"))
 
-# Define the outer reampling iterations
-outer <- makeResampleDesc("SpRepCV", folds = 5, reps = 100) # add SpRepCV for spatial
+}
 
-# parallization of spatial cross validation (Note: mode="multicore"
-# for Unix, mode="socket" for Windows)
-parallelStart(mode = "multicore", level = "mlr.resample", cpus = 5)
+#assign hyperparameters to learner ----------------------------------------------
 
-# Spatial Cross Validation
-woody_cover_spcv <- mlr::resample(classif.lrn, regr.task, resampling = outer, show.info = TRUE, measures = setAggregation(rmse, test.mean))
+classif.lrn.optimised = setHyperPars(classif.lrn, mtry = tune_rf$x$mtry, ntree = tune_rf$x$ntree)
 
-parallelStop()
+# Tuning results -----------------------------------------------------------------
+tune_rf$x # best found settings
+tune_rf$y # estimated performance
+data = generateHyperParsEffectData(tune_rf)
+data$data
+plt = plotHyperParsEffect(data, x = "mtry", y = "acc.test.mean")
+plt + ggtitle("Random Forest mtry") +
+    theme_bw()
 
-# Save the Spatial Cross Validation
-saveRDS(woody_cover_spcv, "/.../.../S1_A_VH_VV_16_17_lidar_rf_cross_val_spatial_100rep.rda")
+plt = plotHyperParsEffect(data, x = "ntree", y = "acc.test.mean")
+plt + ggtitle("Random Forest ntree") +
+    theme_bw()
+
+plt = plotHyperParsEffect(data, x = "ntree", y = "mmce.test.mean")
+plt + ggtitle("ntree misclassification") +
+    theme_bw()
+
+
+
