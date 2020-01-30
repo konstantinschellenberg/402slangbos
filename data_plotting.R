@@ -41,8 +41,6 @@ if(identical(vv$plot1_1$median,
 
 gt_list = readRDS("D:\\Geodaten\\#Jupiter\\GEO402\\03_develop\\rda\\training_list.rds")
 
-for i in names(gt_list)
-
 df1 = gt_list[[1]][[1]]
 df2 = gt_list[[1]][[2]]
 #grepl listname 1: rbind -> aggregate information

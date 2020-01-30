@@ -53,4 +53,12 @@ The structural element of slangbos are likely to be recorded by C-Band signals. 
 plt
 ```
 
+# Results
+
+Reflectance:
+
+- Stable NDVI throughout the year. Grass & Forest much more seasonality
+- S2 Bands 4, 7 suitable [@Ludwig.2019]
+- low general reflectance
+
 # References

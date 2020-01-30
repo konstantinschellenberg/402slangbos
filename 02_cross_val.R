@@ -6,7 +6,7 @@
 # This script was created by Dr. Marcel Urban (marcel.urban@uni-jena.de),
 # Patrick Schratz (p.schratz@lmu.de) and Konstantin Schellenberg (konstantin.schellenberg@posteo.de)
 #
-# Step 2/4
+# Step 2/3
 # Spatial Cross Validation
 
 source("01_import_tuning.R")
@@ -21,19 +21,19 @@ outer <- makeResampleDesc("SpRepCV", folds = 5, reps = 100) # add SpRepCV for sp
 # parallization of spatial cross validation (Note: mode="multicore"
 # for Unix, mode="socket" for Windows)
 
-if (!file.exists(paste0(rds_path, "resample_rf"))){
+if (!file.exists(paste0(rds_path, "resample_VH"))){
 
-    parallelStart(mode = "socket", level = "mlr.resample", cpus = 5)
+    parallelStart(mode = "socket", level = "mlr.resample", cpus = 8)
 
     # Spatial Cross Validation
-    slangbos_spcv <- mlr::resample(wrapper, classif.task, resampling = outer, show.info = TRUE,
+    slangbos_spcv <- mlr::resample(classif.lrn.optimised, classif.task, resampling = outer, show.info = TRUE,
                                    measures = list(acc, mmce))
 
     parallelStop()
-    saveRDS(slangbos_spcv, paste0(rds_path, "resample_rf"))
+    saveRDS(slangbos_spcv, paste0(rds_path, "resample_VH"))
 
 } else {
-    slangbos_spcv = readRDS(paste0(rds_path, "resample_rf"))
+    slangbos_spcv = readRDS(paste0(rds_path, "resample_VH"))
 }
 
 
@@ -44,7 +44,7 @@ slangbos_spcv$measures.test
 
 library(cowplot)
 
-plots = createSpatialResamplingPlots(classif.task, slangbos_spcv, crs = 32735, repetitions = 1)
-
-cowplot::plot_grid(plotlist = plots[["Plots"]], ncol = 2, nrow = 3,
-          labels = plots[["Labels"]], label_size = 5)
+# plots = createSpatialResamplingPlots(classif.task, slangbos_spcv, crs = 32735, repetitions = 1)
+#
+# cowplot::plot_grid(plotlist = plots[["Plots"]], ncol = 2, nrow = 3,
+#           labels = plots[["Labels"]], label_size = 5)

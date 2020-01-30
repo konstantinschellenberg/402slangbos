@@ -6,7 +6,7 @@
 # This script was created by Dr. Marcel Urban (marcel.urban@uni-jena.de),
 # Patrick Schratz (p.schratz@lmu.de) and Konstantin Schellenberg (konstantin.schellenberg@posteo.de)
 #
-# Step 1/4
+# Step 1/3
 # Loading and tuning
 #
 
@@ -37,10 +37,10 @@ if (!file.exists(paste0(rds_path, "learning_input_VH.rds"))) {
 ######################################################################
 
 coords = as.data.frame(data_input[c("x", "y")])
-data_input = dplyr::select(data_input, -x, -y) # removes coordinates from variable settings
+data_input_coordsless = dplyr::select(data_input, -x, -y) # removes coordinates from variable settings
 
 classif.task = makeClassifTask(
-    id = "slangbos", data = data_input, target = "class",
+    id = "slangbos", data = data_input_coordsless, target = "class",
     coordinates = coords
 )
 
@@ -83,7 +83,7 @@ wrapper = makeTuneWrapper(classif.lrn, resampling = inner, par.set = ps,
 if (!file.exists(paste0(rds_path, "tune_rf"))){
 
     # Tuning the Random Forest
-    parallelStart(mode = "socket", level = "mlr.tuneParams", cpus = 5, mc.set.seed = TRUE)
+    parallelStart(mode = "socket", level = "mlr.tuneParams", cpus = 8, mc.set.seed = TRUE)
 
     set.seed(27)
     tune_rf = tuneParams(learner = classif.lrn,

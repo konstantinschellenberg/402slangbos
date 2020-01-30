@@ -18,7 +18,8 @@ library(sf)
 s1vv_path = "D:\\Geodaten\\#Jupiter\\GEO402\\01_data\\s1_data\\S1_A_D_VV_free_state_study_area_geo402"
 s1vh_path = "D:\\Geodaten\\#Jupiter\\GEO402\\01_data\\s1_data\\S1_A_D_VH_free_state_study_area_geo402"
 s2 = ""
-predication_out_path = "D:\\Geodaten\\#Jupiter\\GEO402\\04_products\\rf"
+prediction_out_path = "D:\\Geodaten\\#Jupiter\\GEO402\\04_products\\rf\\"
+path_developement = "D:\\Geodaten\\#Jupiter\\GEO402\\03_develop\\"
 
 # where to write rds_files:
 rds_path = "D:\\Geodaten\\#Jupiter\\GEO402\\03_develop\\rda\\"
@@ -26,23 +27,27 @@ rds_path = "D:\\Geodaten\\#Jupiter\\GEO402\\03_develop\\rda\\"
 s1vv = brick(s1vv_path)
 s1vh = brick(s1vh_path)
 
+s1vh_small = brick("D:\\Geodaten\\#Jupiter\\GEO402\\01_data\\s1_data\\raster_small_vh.tif")
+names(s1vh_small) = names(s1vh) # pre-rename because dataset was created in QGIS with automatic naming
+
 # Revome invalid raster (covering less than half of the area)-------------------
 s1vv = rename_bandnames(raster = s1vv) %>%
-    .[[c(-14, -17, -62)]]
+    .[[c(-14, -17, -62)]] # remove brocken files
 
 s1vh = rename_bandnames(raster = s1vh) %>%
     .[[c(-14, -17, -62)]]
 
-# test dataset
-raster_test = s1vh[[seq(1,3)]]
+s1vh_small = rename_bandnames(raster = s1vh_small) %>%
+    .[[c(-14, -17, -62)]]
+
 
 ################################################################################
 # Import Ground Truth-----------------------------------------------------------
 ################################################################################
 
-gt_path = "D:\\Geodaten\\#Jupiter\\GEO402\\02_features\\ROI_updated.kml"
+gt_path = "D:\\Geodaten\\#Jupiter\\GEO402\\02_features\\features.gpkg"
 
-gt = st_read(gt_path, quiet = TRUE) %>%  # read in
+gt = st_read(gt_path, layer = "ROI_updated", quiet = TRUE) %>%  # read in
     st_transform(st_crs(s1vv)) %>%  # set crs(gt) to the crs(s1) brick.
     st_zm(drop = TRUE)  # Remove Z-Dimension
 

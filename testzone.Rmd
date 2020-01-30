@@ -1,0 +1,38 @@
+---
+title: "Testzone"
+author: "Konstantin Schellenberg"
+date: "`r format(Sys.time(), '%B %e, %Y')`"
+output: html_document
+---
+
+
+Import needed libraries
+```{r}
+library(raster)
+```
+
+Read vector data.
+The ``system.file`` only required for R package data which is included in the demo.
+
+```{r}
+filename <- system.file("external/lux.shp", package="raster")
+filename
+
+# read
+shape = shapefile(filename)
+
+write
+outfile = "out.shp"
+shapefile(shape, outfile, overwrite = TRUE)
+
+# both with the same function
+
+```
+
+At last we are also going to plot the vector graphic.
+
+```{r}
+plot(shape)
+```
+
+
