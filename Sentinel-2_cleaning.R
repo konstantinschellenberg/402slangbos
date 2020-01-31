@@ -52,34 +52,77 @@ system.time(write_stars(s2.ndvi, dsn = paste0(development_path, "/s2/ndvi3.tif")
 s2.ndvi = system.time(calc(s, func.ndvi, filename = paste0(development_path, "/s2/ndvi3.tif")))
 
 
-# Applying cloud mask to 1 scene (then scopable) -------------------------------
-#############################
+# Applying cloud mask to 1 scene (then scopeable) -------------------------------
+# Importing #################
 
 # get one cm
 cm = stack(list.cm)
-#############################
+
+# description of cm
+cm@data@attributes[[1]]
+
+# Clound Mask cleaning----------------------------------------------------------
 
 cm.na = cellStats(is.na(cm), sum) # count the NA values in each layer
 cm.na.fraction = cm.na/ncell(cm) # fraction that is NA
 cm.na.fraction
 
+cm.filtered.out = cm[[which(cm.na.fraction>0.2)]] # filter all with na more than 20%
+names(cm.filtered.out) # return dir with NA rasters
 
-filtered.out = cm[[which(cm.na.fraction>0.2)]] # filter all with na more than 20%
-names(filtered.out)
+# remove files with NA
+file.remove(paste0(path_cm, names(cm.filtered.out), ".tif"))
 
-file.remove(paste0(path_cm, names(filtered.out), ".tif"))
+# Reflectances cleaning --------------------------------------------------------
 
-# description of cm
-cm@data@attributes[[1]]
+reflectances = brick(list.reflectance)
+reflectances.na = cellStats(is.na(reflectances), sum)
+reflectances.na.fraction = reflectances.na/ncell(reflectances)
+reflectances.na.fraction
 
+reflectances@data@attributes[[1]]
+
+refl.filtered.out = cm[[which(reflectances.na.fraction>0.2)]] # filter all with na more than 20%
+names(refl.filtered.out)
+
+# remove files with NA
+file.remove(paste0(path_cm, names(refl.filtered.out), ".tif"))
+
+# Masking ----------------------------------------------------------------------
 # mask function (for raster*)
-mask = function(x){out = x == 3 | x == 2; return(out)}
+make_mask = function(x){out = x == 2 | x == 3; return(out)}
 
 # iterating
-for (x in list.cm){
-    print(x)
+for (cm in list.cm){
+
+    out.bulk = raster()
+
+    # bulk create masks
+    out = raster(x) %>%
+        raster::calc(., fun = mask)
+    out.bulk = addLayer(out)
+    writeRaster(out.bulk, filename = paste0(path_cm, "all_masks.tif"))
 }
-cm2 = calc(cm, fun = mask)
+
+for (re in list.reflectance)
+
+raster::addLayer()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # ------------------------------------------------------------------------------
 
