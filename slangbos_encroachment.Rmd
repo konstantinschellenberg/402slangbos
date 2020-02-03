@@ -57,6 +57,10 @@ plt
 
 - Sentinel-2 scene with >20% NA deleted
 - cloud mask applied
+- cropped to area extent
+- band 4 (red): 
+- band 8 (near-infrared): true 10m resolution, bush have large contrast to vegetation
+- ndvi
 
 # Results
 

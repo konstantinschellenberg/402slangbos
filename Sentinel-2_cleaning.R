@@ -17,11 +17,12 @@ if (require(pbapply)) { # install it, if FALSE
 }
 library(doParallel)
 library(foreach)
+library(rgdal)
 
 list.reflectance_on_storage = list.files(path = "F:/geodata/geo402/s2/", pattern = "atm_20m.tif", recursive = T, full.names = TRUE)
 list.cm_on_storage = list.files(path = "F:/geodata/geo402/s2/", pattern = "CM.tif$", recursive = T, full.names = TRUE)
 
-list.reflectance = list.files(path = "D:/Geodaten/#Jupiter/GEO402/01_data/s2", pattern = "atm_20m.tif", recursive = T, full.names = TRUE)
+list.reflectance = list.files(path = "D:/Geodaten/#Jupiter/GEO402/01_data/s2", pattern = "atm_20m.tif$", recursive = T, full.names = TRUE)
 list.cm = list.files(path = "D:/Geodaten/#Jupiter/GEO402/01_data/s2/cm", pattern = "CM.tif$", recursive = T, full.names = TRUE)
 
 # stack dirs
@@ -107,55 +108,82 @@ file.exists(paste0(path_s2, "/", s2.filtered.out))
 
 ############################ NA CLEANED ########################################
 # Masking ----------------------------------------------------------------------
-# mask function (for raster*)
-make_mask = function(x){out = x == 2 | x == 3; return(out)}
 
-# iterating
-for (cm in list.cm){
+library(gdalUtils)
 
-    out.bulk = raster()
-
-    # bulk create masks
-    out = raster(x) %>%
-        raster::calc(., fun = mask)
-    out.bulk = addLayer(out)
-    writeRaster(out.bulk, filename = paste0(path_cm, "all_masks.tif"))
-}
-
-for (re in list.reflectance)
-
-raster::addLayer()
-GDALinfo(ras)
 
 # BUILD VRT --------------------------------------------------------------------
+## checkup
+path_vrt = paste0(path_developement, "s2\\", "reflectance.vrt") # vrt path
+c(st_bbox(study_area)) # our bounding box
+identical(length(list.cm), length(list.reflectance)) # same amount of layers in the folders == TRUE
+##
 
-path_vrt = paste0(path_developement, "s2\\", "reflectance.vrt")
-
-c(st_bbox(study_area))
-
-gdalUtils::gdalbuildvrt(gdalfile = list.reflectance[1:3],
-                        output.vrt = path_vrt,
-                        te = c(st_bbox(study_area)),
-                        overwrite = TRUE)
-
-GDALinfo(path_vrt)
-GDALinfo(list.reflectance[1])
+# mask function (for raster*)
+make_mask = function(x){out = x == 2 | x == 3; return(out)}
 
 cores = detectCores() - 1
 c1 = makeCluster(cores)
 registerDoParallel(c1)
+# ------------------------------------------------------------------------------
+# loop 1 (cropping S2 and band selection (4 [red], 8 [infrared]), res: 20m)
+for (i in seq_along(list.reflectance)){
+    file.remove(path_vrt)
 
-gdalUtils::gdal_translate(src_dataset = path_vrt,
-                          dst_dataset = paste0(path_developement, "s2\\out.tif"),
-                          overwrite = TRUE)
+    gdalUtils::gdalbuildvrt(gdalfile = list.reflectance[i],
+                            output.vrt = path_vrt,
+                            te = c(st_bbox(study_area)),
+                            overwrite = TRUE,
+                            a_srs = "+proj=utm +zone=35 +south +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0")
+
+    outfile.crop = substring(list.reflectance[i], first = 1, last = nchar(list.reflectance[i]) - 4) %>%
+        paste0(., "_crop.tif")
+
+    gdalUtils::gdal_translate(src_dataset = path_vrt,
+                              dst_dataset = outfile.crop,
+                              overwrite = TRUE,
+                              b = c(4,8))
+
+}
+# ------------------------------------------------------------------------------
+# loop 2 (cropping cloud mask)
+for (i in seq_along(list.cm)){
+    file.remove(path_vrt)
+
+    # crop cloud masks to area extent
+    gdalUtils::gdalbuildvrt(gdalfile = list.cm[i],
+                            output.vrt = path_vrt,
+                            te = c(st_bbox(study_area)),
+                            overwrite = TRUE,
+                            a_srs = "+proj=utm +zone=35 +south +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0")
+
+    outfile.cm = substring(list.cm[i], first = 1, last = nchar(list.cm[i]) - 4) %>%
+        paste0(., "_crop.tif")
+
+    gdalUtils::gdal_translate(src_dataset = path_vrt,
+                              dst_dataset = outfile.cm,
+                              overwrite = TRUE)
+}
+
+list.reflectance.crop = list.files(path = "D:/Geodaten/#Jupiter/GEO402/01_data/s2",
+                                   pattern = "crop.tif$", recursive = FALSE, full.names = TRUE)
+list.cm.crop = list.files(path = "D:/Geodaten/#Jupiter/GEO402/01_data/s2/cm",
+                          pattern = "crop.tif$", recursive = F, full.names = TRUE)
+
+# ------------------------------------------------------------------------------
+# loop 3 (applying cloud mask to Sentinel)
+for (i in seq_along(list.reflectance.crop)){
+
+    # load rasters
+    ras = brick(list.reflectance.crop[i])
+    cm = raster(list.cm[i]) %>%
+        make_mask() # making mask
+
+    outfile.mask = substring(list.reflectance[i], first = 1, last = nchar(list.reflectance[i]) - 4) %>%
+        paste0(., "_crop_cm.tif")
+
+    out = ras %>%
+        mask(cm, maskvalue = 1, filename = outfile.mask, overwrite = TRUE)
+}
 
 stopCluster(c1)
-
-# with gdalcubes ---------------------------------------------------------------
-library(gdalcubes)
-
-
-create_image_collection(files = list.reflectance,
-                        format = "Sentinel2_L1C",
-                        out_file = paste0(path_developement, "s2\\test.db"))
-collection_formats()
