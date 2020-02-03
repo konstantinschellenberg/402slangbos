@@ -17,7 +17,8 @@ library(sf)
 
 s1vv_path = "D:\\Geodaten\\#Jupiter\\GEO402\\01_data\\s1_data\\S1_A_D_VV_free_state_study_area_geo402"
 s1vh_path = "D:\\Geodaten\\#Jupiter\\GEO402\\01_data\\s1_data\\S1_A_D_VH_free_state_study_area_geo402"
-s2 = ""
+s2red = "D:/Geodaten/#Jupiter/01_data/01_data/s2/red.tif"
+s2nir = "D:/Geodaten/#Jupiter/01_data/01_data/s2/nir.tif"
 prediction_out_path = "D:\\Geodaten\\#Jupiter\\GEO402\\04_products\\rf\\"
 path_developement = "D:\\Geodaten\\#Jupiter\\GEO402\\03_develop\\"
 path_vrt = paste0(path_developement, "s2\\", "reflectance.vrt") # vrt path

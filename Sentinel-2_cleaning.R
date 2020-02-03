@@ -1,23 +1,21 @@
 # Script to iteratively
 # (1) search S2 scenes in 20m res and QA.
 # (2) filter on those who have NA in most of the image
-# (2) crop to region extent
-# (3) apply QA mask on S2 -> masking
-# (4) store as stacked file (brick)
+# (3) crop to region extent
+# (4) apply QA mask on S2 -> masking
+# (5) store as stacked file (brick)
 
 par(mfrow=c(5,5))
 
 source("import.R")
 
-library(raster)
 library(stars)
-library(tidyverse)
-if (require(pbapply)) { # install it, if FALSE
-    pboptions(type = "timer")
-}
-library(doParallel)
-library(foreach)
 library(rgdal)
+library(gdalUtils)
+
+
+# (1) search S2 scenes in 20m res and QA. --------------------------------------
+################################################################################
 
 list.reflectance_on_storage = list.files(path = "F:/geodata/geo402/s2/", pattern = "atm_20m.tif", recursive = T, full.names = TRUE)
 list.cm_on_storage = list.files(path = "F:/geodata/geo402/s2/", pattern = "CM.tif$", recursive = T, full.names = TRUE)
@@ -26,43 +24,20 @@ list.reflectance = list.files(path = "D:/Geodaten/#Jupiter/GEO402/01_data/s2", p
 list.cm = list.files(path = "D:/Geodaten/#Jupiter/GEO402/01_data/s2/cm", pattern = "CM.tif$", recursive = T, full.names = TRUE)
 
 # stack dirs
-dir.create(path_cm)
-dir.exists(path_cm)
+# dir.create(path_cm)
+# dir.exists(path_cm)
 
+
+# copying to SSD disc:
 # file.copy(from = list.reflectance, to = "D:/Geodaten/#Jupiter/GEO402/01_data/s2", recursive = TRUE)
 # file.copy(from = list.cm, to = "D:/Geodaten/#Jupiter/GEO402/01_data/s2/cm", recursive = TRUE)
 
 # check if there is data here:
-dir("D:/Geodaten/#Jupiter/GEO402/01_data/s2")
-
-# NDVI Test --------------------------------------------------------------------
-
-func.ndvi = function(x) (x[8] - x[4])/(x[8] + x[4])
-
-s = brick(list.reflectance[2])
-p = read_stars(list.reflectance[2], proxy = TRUE)
+dir("D:/Geodaten/#Jupiter/GEO402/01_data/s2") # what's in the directory?
 
 
-
-# tesing speed of the raster calculations in stars and raster
-# stars
-s2.ndvi = st_apply(p, c("x", "y"), func.ndvi)  #stars
-system.time(write_stars(s2.ndvi, dsn = paste0(development_path, "/s2/ndvi3.tif")))
-
-# raster
-s2.ndvi = system.time(calc(s, func.ndvi, filename = paste0(development_path, "/s2/ndvi3.tif")))
-
-
-# Applying cloud mask to 1 scene (then scopeable) -------------------------------
-# Importing #################
-
-# get all cm
-cm = stack(list.cm)
-
-# description of cm
-cm@data@attributes[[1]]
-
-# Clound Mask cleaning----------------------------------------------------------
+# (2) filter NA ----------------------------------------------------------------
+################################################################################
 
 cm.na = cellStats(is.na(cm), sum) # count the NA values in each layer
 cm.na.fraction = cm.na/ncell(cm) # fraction that is NA
@@ -75,10 +50,9 @@ names(cm.filtered.out) # return dir with NA rasters
 # cm.filtered.out = readRDS(paste0(path_developement, "rda\\cm_filtered.rds"))
 
 # remove files with NA
-file.remove(paste0(path_cm, names(cm.filtered.out), ".tif"))
+# file.remove(paste0(path_cm, names(cm.filtered.out), ".tif"))
 
-# ------------------------------------------------------------------------------
-# parsing cm file names to eradicate also atm scene with NA > 20%
+# parsing cm file names to eradicate also atm_20 scenes with NA > 20%
 
 s2.filtered.out = cm.filtered.out %>% # creating vector of characters to delete S2 scenes
     names() %>%
@@ -89,25 +63,19 @@ s2.filtered.out
 file.exists(paste0(path_s2, s2.filtered.out))
 # file.remove(paste0(path_s2, s2.filtered.out))
 
-############################ NA CLEANED ########################################
-# Masking ----------------------------------------------------------------------
+# (3) crop to region extent ----------------------------------------------------
+################################################################################
 
-library(gdalUtils)
-
-
-# BUILD VRT --------------------------------------------------------------------
 ## checkup
 c(st_bbox(study_area)) # our bounding box
 identical(length(list.cm), length(list.reflectance)) # same amount of layers in the folders == TRUE
-##
 
-# mask function (for raster*)
-
-
+# parallel
 cores = detectCores() - 1
 c1 = makeCluster(cores)
 registerDoParallel(c1)
-# ------------------------------------------------------------------------------
+
+# (3a) -------------------------------------------------------------------------
 # loop 1 (cropping S2 and band selection (4 [red], 8 [infrared]), res: 20m)
 for (i in seq_along(list.reflectance)){
     file.remove(path_vrt)
@@ -127,7 +95,8 @@ for (i in seq_along(list.reflectance)){
                               b = c(4,8))
 
 }
-# ------------------------------------------------------------------------------
+
+# (3b) -------------------------------------------------------------------------
 # loop 2 (cropping cloud mask)
 for (i in seq_along(list.cm)){
     file.remove(path_vrt)
@@ -152,8 +121,8 @@ list.reflectance.crop = list.files(path = "D:/Geodaten/#Jupiter/GEO402/01_data/s
 list.cm.crop = list.files(path = "D:/Geodaten/#Jupiter/GEO402/01_data/s2/cm",
                           pattern = "crop.tif$", recursive = F, full.names = TRUE)
 
-# ------------------------------------------------------------------------------
-# loop 3 (applying cloud mask to Sentinel)
+# (4) Applying cloud mask to Sentinel -------------------------------------------------------------------------
+
 for (i in seq_along(list.reflectance.crop)){
 
     # load rasters
@@ -170,19 +139,20 @@ for (i in seq_along(list.reflectance.crop)){
 
 stopCluster(c1)
 
-# Stacking bands ---------------------------------------------------------------
+# (5) Stacking bands -----------------------------------------------------------
+
 list.stacking = list.files(path = "D:/Geodaten/#Jupiter/GEO402/01_data/s2",
                            pattern = "crop_cm.tif$", recursive = FALSE, full.names = TRUE)
+
 single.vrt = list.files(path = "D:/Geodaten/#Jupiter/GEO402/01_data/s2", pattern = "crop_cm.tif$", recursive = FALSE) %>%
-    substring(., first = 1, last = nchar(.[i]) - 4) %>%
+    substring(., first = 1, last = nchar(.[1]) - 4) %>%
     paste0("D:\\Geodaten\\#Jupiter\\GEO402\\03_develop\\s2\\vrt\\", ., ".vrt")
 
 
 plot(read_stars(list.stacking[1:10], proxy = T))
 
-path_vrt2 = paste0(path_developement, "s2\\", "reflectance2.vrt") # vrt path
-path_merged = paste0(path_s2, "red.tif")
-
+path_merged.red = paste0(path_s2, "red.tif")
+path_merged.nir = paste0(path_s2, "nir.tif")
 bands = 1:2
 
 for (a in bands){
@@ -207,9 +177,27 @@ for (a in bands){
                             overwrite = TRUE, separate = TRUE)
 
     gdalUtils::mosaic_rasters(gdalfile = path_vrt,
-                              dst_dataset = path_merged,
+                              dst_dataset = if(a == 1){path_merged.red} else {path_merged.nir},
                               separate = TRUE)
 
 }
 
-GDALinfo(path_vrt)
+# check info
+GDALinfo(path_merged.red)
+
+# ANNEX
+# NDVI Test --------------------------------------------------------------------
+
+func.ndvi = function(x) (x[8] - x[4])/(x[8] + x[4])
+
+s = brick(list.reflectance[2])
+p = read_stars(list.reflectance[2], proxy = TRUE)
+
+# testing speed of the raster calculations in stars and raster
+# stars
+s2.ndvi = st_apply(p, c("x", "y"), func.ndvi)  #stars
+system.time(write_stars(s2.ndvi, dsn = paste0(development_path, "/s2/ndvi3.tif")))
+
+# raster
+s2.ndvi = system.time(calc(s, func.ndvi, filename = paste0(development_path, "/s2/ndvi3.tif")))
+
