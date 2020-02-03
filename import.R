@@ -20,6 +20,9 @@ s1vh_path = "D:\\Geodaten\\#Jupiter\\GEO402\\01_data\\s1_data\\S1_A_D_VH_free_st
 s2 = ""
 prediction_out_path = "D:\\Geodaten\\#Jupiter\\GEO402\\04_products\\rf\\"
 path_developement = "D:\\Geodaten\\#Jupiter\\GEO402\\03_develop\\"
+path_vrt = paste0(path_developement, "s2\\", "reflectance.vrt") # vrt path
+path_s2 = "D:/Geodaten/#Jupiter/GEO402/01_data/s2/"
+path_cm = "D:/Geodaten/#Jupiter/GEO402/01_data/s2/cm/"
 
 # where to write rds_files:
 rds_path = "D:\\Geodaten\\#Jupiter\\GEO402\\03_develop\\rda\\"

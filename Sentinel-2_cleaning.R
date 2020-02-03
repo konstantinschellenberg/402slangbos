@@ -5,7 +5,7 @@
 # (3) apply QA mask on S2 -> masking
 # (4) store as stacked file (brick)
 
-par(mfrow=c(1,1))
+par(mfrow=c(5,5))
 
 source("import.R")
 
@@ -26,8 +26,6 @@ list.reflectance = list.files(path = "D:/Geodaten/#Jupiter/GEO402/01_data/s2", p
 list.cm = list.files(path = "D:/Geodaten/#Jupiter/GEO402/01_data/s2/cm", pattern = "CM.tif$", recursive = T, full.names = TRUE)
 
 # stack dirs
-path_s2 = "D:/Geodaten/#Jupiter/GEO402/01_data/s2"
-path_cm = "D:/Geodaten/#Jupiter/GEO402/01_data/s2/cm/"
 dir.create(path_cm)
 dir.exists(path_cm)
 
@@ -79,21 +77,6 @@ names(cm.filtered.out) # return dir with NA rasters
 # remove files with NA
 file.remove(paste0(path_cm, names(cm.filtered.out), ".tif"))
 
-# Reflectances cleaning --------------------------------------------------------
-
-# reflectances = stack(list.reflectance)
-# reflectances.na = cellStats(is.na(reflectances), sum)
-# reflectances.na.fraction = reflectances.na/ncell(reflectances)
-# reflectances.na.fraction
-#
-# reflectances@data@attributes[[1]]
-#
-# refl.filtered.out = reflectances[[which(reflectances.na.fraction>0.2)]] # filter all with na more than 20%
-# names(refl.filtered.out)
-#
-# # remove files with NA
-# file.remove(paste0(path_cm, names(refl.filtered.out), ".tif"))
-
 # ------------------------------------------------------------------------------
 # parsing cm file names to eradicate also atm scene with NA > 20%
 
@@ -103,8 +86,8 @@ s2.filtered.out = cm.filtered.out %>% # creating vector of characters to delete 
     paste0("_atm_20m.tif")
 
 s2.filtered.out
-file.exists(paste0(path_s2, "/", s2.filtered.out))
-# file.remove(paste0(path_s2, "/", s2.filtered.out))
+file.exists(paste0(path_s2, s2.filtered.out))
+# file.remove(paste0(path_s2, s2.filtered.out))
 
 ############################ NA CLEANED ########################################
 # Masking ----------------------------------------------------------------------
@@ -114,13 +97,12 @@ library(gdalUtils)
 
 # BUILD VRT --------------------------------------------------------------------
 ## checkup
-path_vrt = paste0(path_developement, "s2\\", "reflectance.vrt") # vrt path
 c(st_bbox(study_area)) # our bounding box
 identical(length(list.cm), length(list.reflectance)) # same amount of layers in the folders == TRUE
 ##
 
 # mask function (for raster*)
-make_mask = function(x){out = x == 2 | x == 3; return(out)}
+
 
 cores = detectCores() - 1
 c1 = makeCluster(cores)
@@ -176,7 +158,7 @@ for (i in seq_along(list.reflectance.crop)){
 
     # load rasters
     ras = brick(list.reflectance.crop[i])
-    cm = raster(list.cm[i]) %>%
+    cm = raster(list.cm.crop[i]) %>%
         make_mask() # making mask
 
     outfile.mask = substring(list.reflectance[i], first = 1, last = nchar(list.reflectance[i]) - 4) %>%
@@ -187,3 +169,47 @@ for (i in seq_along(list.reflectance.crop)){
 }
 
 stopCluster(c1)
+
+# Stacking bands ---------------------------------------------------------------
+list.stacking = list.files(path = "D:/Geodaten/#Jupiter/GEO402/01_data/s2",
+                           pattern = "crop_cm.tif$", recursive = FALSE, full.names = TRUE)
+single.vrt = list.files(path = "D:/Geodaten/#Jupiter/GEO402/01_data/s2", pattern = "crop_cm.tif$", recursive = FALSE) %>%
+    substring(., first = 1, last = nchar(.[i]) - 4) %>%
+    paste0("D:\\Geodaten\\#Jupiter\\GEO402\\03_develop\\s2\\vrt\\", ., ".vrt")
+
+
+plot(read_stars(list.stacking[1:10], proxy = T))
+
+path_vrt2 = paste0(path_developement, "s2\\", "reflectance2.vrt") # vrt path
+path_merged = paste0(path_s2, "red.tif")
+
+bands = 1:2
+
+for (a in bands){
+
+    for (i in seq_along(list.stacking)){
+
+        file.remove(path_vrt)
+
+        gdalUtils::gdalbuildvrt(gdalfile = list.stacking[i],
+                                output.vrt = path_vrt,
+                                overwrite = TRUE)
+
+        gdalUtils::gdal_translate(src_dataset = path_vrt,
+                                  dst_dataset = single.vrt[i],
+                                  overwrite = TRUE,
+                                  b = a)
+
+    }
+
+    gdalUtils::gdalbuildvrt(gdalfile = single.vrt,
+                            output.vrt = path_vrt,
+                            overwrite = TRUE, separate = TRUE)
+
+    gdalUtils::mosaic_rasters(gdalfile = path_vrt,
+                              dst_dataset = path_merged,
+                              separate = TRUE)
+
+}
+
+GDALinfo(path_vrt)
