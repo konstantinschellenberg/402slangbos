@@ -15,6 +15,8 @@ library(tidyverse)
 if (require(pbapply)) { # install it, if FALSE
     pboptions(type = "timer")
 }
+library(doParallel)
+library(foreach)
 
 list.reflectance_on_storage = list.files(path = "F:/geodata/geo402/s2/", pattern = "atm_20m.tif", recursive = T, full.names = TRUE)
 list.cm_on_storage = list.files(path = "F:/geodata/geo402/s2/", pattern = "CM.tif$", recursive = T, full.names = TRUE)
@@ -55,7 +57,7 @@ s2.ndvi = system.time(calc(s, func.ndvi, filename = paste0(development_path, "/s
 # Applying cloud mask to 1 scene (then scopeable) -------------------------------
 # Importing #################
 
-# get one cm
+# get all cm
 cm = stack(list.cm)
 
 # description of cm
@@ -70,24 +72,40 @@ cm.na.fraction
 cm.filtered.out = cm[[which(cm.na.fraction>0.2)]] # filter all with na more than 20%
 names(cm.filtered.out) # return dir with NA rasters
 
+# saveRDS(cm.filtered.out, paste0(path_developement, "rda\\cm_filtered.rds"))
+# cm.filtered.out = readRDS(paste0(path_developement, "rda\\cm_filtered.rds"))
+
 # remove files with NA
 file.remove(paste0(path_cm, names(cm.filtered.out), ".tif"))
 
 # Reflectances cleaning --------------------------------------------------------
 
-reflectances = brick(list.reflectance)
-reflectances.na = cellStats(is.na(reflectances), sum)
-reflectances.na.fraction = reflectances.na/ncell(reflectances)
-reflectances.na.fraction
+# reflectances = stack(list.reflectance)
+# reflectances.na = cellStats(is.na(reflectances), sum)
+# reflectances.na.fraction = reflectances.na/ncell(reflectances)
+# reflectances.na.fraction
+#
+# reflectances@data@attributes[[1]]
+#
+# refl.filtered.out = reflectances[[which(reflectances.na.fraction>0.2)]] # filter all with na more than 20%
+# names(refl.filtered.out)
+#
+# # remove files with NA
+# file.remove(paste0(path_cm, names(refl.filtered.out), ".tif"))
 
-reflectances@data@attributes[[1]]
+# ------------------------------------------------------------------------------
+# parsing cm file names to eradicate also atm scene with NA > 20%
 
-refl.filtered.out = cm[[which(reflectances.na.fraction>0.2)]] # filter all with na more than 20%
-names(refl.filtered.out)
+s2.filtered.out = cm.filtered.out %>% # creating vector of characters to delete S2 scenes
+    names() %>%
+    substring(first = 1, last = nchar(.[1]) - 3) %>%
+    paste0("_atm_20m.tif")
 
-# remove files with NA
-file.remove(paste0(path_cm, names(refl.filtered.out), ".tif"))
+s2.filtered.out
+file.exists(paste0(path_s2, "/", s2.filtered.out))
+# file.remove(paste0(path_s2, "/", s2.filtered.out))
 
+############################ NA CLEANED ########################################
 # Masking ----------------------------------------------------------------------
 # mask function (for raster*)
 make_mask = function(x){out = x == 2 | x == 3; return(out)}
@@ -107,41 +125,37 @@ for (cm in list.cm){
 for (re in list.reflectance)
 
 raster::addLayer()
+GDALinfo(ras)
+
+# BUILD VRT --------------------------------------------------------------------
+
+path_vrt = paste0(path_developement, "s2\\", "reflectance.vrt")
+
+c(st_bbox(study_area))
+
+gdalUtils::gdalbuildvrt(gdalfile = list.reflectance[1:3],
+                        output.vrt = path_vrt,
+                        te = c(st_bbox(study_area)),
+                        overwrite = TRUE)
+
+GDALinfo(path_vrt)
+GDALinfo(list.reflectance[1])
+
+cores = detectCores() - 1
+c1 = makeCluster(cores)
+registerDoParallel(c1)
+
+gdalUtils::gdal_translate(src_dataset = path_vrt,
+                          dst_dataset = paste0(path_developement, "s2\\out.tif"),
+                          overwrite = TRUE)
+
+stopCluster(c1)
+
+# with gdalcubes ---------------------------------------------------------------
+library(gdalcubes)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# ------------------------------------------------------------------------------
-
-gdal_options = list(bands = 2, 3, 4)
-
-y = read_stars(a, proxy = TRUE)
-
-y %>%
-    slice("band", 2) %>%
-    plot()
-
-st_crs(ras1)
-
-ras1 = stars::read_stars(paste0(path, a[[1]]), proxy = TRUE)
-ras2 = stars::read_stars(paste0(path, a[[6]]), proxy = TRUE)
-
-ras1 %>%
-    slice("band", 2) %>%
-    plot(hist = "hist")
-
-plot(ras1)
-plot(ras2)
+create_image_collection(files = list.reflectance,
+                        format = "Sentinel2_L1C",
+                        out_file = paste0(path_developement, "s2\\test.db"))
+collection_formats()

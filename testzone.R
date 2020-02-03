@@ -87,3 +87,16 @@ set.seed(10)
 model <- train(trainDat[,predictors],trainDat$VW,
                method="rf",tuneLength=1,importance=TRUE,
                trControl=trainControl(method="cv",number=5))
+# ------------------------------------------------------------------------------
+# Import dbf
+library(foreign)
+library(tidyverse)
+
+dbf = read.csv("D:/Geodaten/#Jupiter/GEO402/03_develop/k-means/1b_stats.dbf", sep = "")
+dbf
+
+ras = read_stars("D:/Geodaten/#Jupiter/GEO402/03_develop/k-means/1b_cluster.sdat", proxy = T)
+plot(ras, col = viridis::viridis(10))
+
+ras = raster("D:/Geodaten/#Jupiter/GEO402/03_develop/k-means/1b_cluster.sdat")
+plot(ras[1])

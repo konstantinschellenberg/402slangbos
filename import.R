@@ -51,4 +51,9 @@ gt = st_read(gt_path, layer = "ROI_updated", quiet = TRUE) %>%  # read in
     st_transform(st_crs(s1vv)) %>%  # set crs(gt) to the crs(s1) brick.
     st_zm(drop = TRUE)  # Remove Z-Dimension
 
+study_area = st_read(gt_path, layer = "study_area", quiet = TRUE) %>%  # read in
+    st_transform(st_crs(s1vv)) %>%  # set crs(gt) to the crs(s1) brick.
+    st_zm(drop = TRUE)  # Remove Z-Dimension
+
+
 # check if class is sf, crs is South African projection!

@@ -53,6 +53,11 @@ The structural element of slangbos are likely to be recorded by C-Band signals. 
 plt
 ```
 
+## notes for methods
+
+- Sentinel-2 scene with >20% NA deleted
+- cloud mask applied
+
 # Results
 
 Reflectance:
