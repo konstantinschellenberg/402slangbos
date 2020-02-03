@@ -45,13 +45,22 @@ make_mask = function(x){out = x == 2 | x == 3; return(out)}
 # Rename bandnames -------------------------------------------------------------
 ################################################################################
 
-rename_bandnames = function(raster = s1vv){
+rename_bandnames = function(raster = NULL, sentinel = 1){
 
-    bandnames = names(raster)
+    if (sentinel == 1){ # S1 as provided by M. Urban (FSU Jena)
+        bandnames = names(raster)
+        seq_begin = 13L
+        seq_end = 20L
+    } else if (sentinel == 2){ # S2 as provided by A. Hirner (DLR)
+        bandnames = list.files(path = "D:/Geodaten/#Jupiter/GEO402/01_data/s2",
+                               pattern = "crop_cm.tif$", recursive = FALSE)
+        seq_begin = 12L
+        seq_end = 19L
+    } else {print("No Sentinel mode entered . . .")}
 
     # iterate for date in column-names
     for (i in bandnames){
-        date_in_bandnames = substr(bandnames,13,20)
+        date_in_bandnames = substr(bandnames,seq_begin,seq_end)
     }
 
     # convert date string into R date-time format
@@ -59,8 +68,9 @@ rename_bandnames = function(raster = s1vv){
     for (i in 1:length(date_in_bandnames)){
         date = append(date, as.POSIXct(date_in_bandnames[i], format = "%Y%m%d")) #https://www.statmethods.net/input/dates.html
     }
-    dates_raster <<- date # write as global variable
+
     names(raster) = paste0(date) # change names to more easy
+
     return(raster)
 }
 
