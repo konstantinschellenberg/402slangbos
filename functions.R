@@ -39,23 +39,37 @@
 # Make mask from QA bands ------------------------------------------------------
 ################################################################################
 
-make_mask = function(x){out = x == 2 | x == 3; return(out)}
+make_mask = function(x){
+    out = x == 2 | x == 3; return(out)
+}
+
+################################################################################
+# RVI definition ---------------------------------------------------------------
+################################################################################
+
+rvi = function(vv, vh){
+    4 * vh / (vv + vh)
+}
 
 ################################################################################
 # Rename bandnames -------------------------------------------------------------
 ################################################################################
 
-rename_bandnames = function(raster = NULL, sentinel = 1){
+rename_bandnames = function(raster = NULL, sentinel = 1, var_prefix = NULL, naming_raster = NULL){
 
     if (sentinel == 1){ # S1 as provided by M. Urban (FSU Jena)
-        bandnames = names(raster)
+        bandnames = names(naming_raster)[-c(14, 17, 62)]
         seq_begin = 13L
         seq_end = 20L
+        print("Sentinel 1")
+
     } else if (sentinel == 2){ # S2 as provided by A. Hirner (DLR)
         bandnames = list.files(path = "D:/Geodaten/#Jupiter/GEO402/01_data/s2",
                                pattern = "crop_cm.tif$", recursive = FALSE)
         seq_begin = 12L
         seq_end = 19L
+        print("Sentinel 2")
+
     } else {print("No Sentinel mode entered . . .")}
 
     # iterate for date in column-names
@@ -69,7 +83,7 @@ rename_bandnames = function(raster = NULL, sentinel = 1){
         date = append(date, as.POSIXct(date_in_bandnames[i], format = "%Y%m%d")) #https://www.statmethods.net/input/dates.html
     }
 
-    names(raster) = paste0(date) # change names to more easy
+    names(raster) = paste0(var_prefix, ".", date) # change names to more easy
 
     return(raster)
 }
@@ -78,10 +92,10 @@ rename_bandnames = function(raster = NULL, sentinel = 1){
 # gt_from_raster----------------------------------------------------------------
 ################################################################################
 
-gt_from_raster = function(train_data = gt,
-                          response_col = "Name",
-                          raster = raster_test,
-                          outfile = "test"){
+gt_from_raster = function(train_data = NULL,
+                          response_col = NULL,
+                          raster = NULL,
+                          outfile = NULL){
 
     # credits to http://amsantac.co/blog/en/2015/11/28/classification-r.html
     # https://gist.github.com/amsantac/5183c0c71a8dcbc27a4f
@@ -95,7 +109,6 @@ gt_from_raster = function(train_data = gt,
         print(category)
         # returns sp polygon with class i
         categorymap = train_data[train_data[[response_col]] == category,]
-        plot(categorymap[0])
 
         # extract pixel information
         dataSet = raster::extract(raster, categorymap, cellnumbers = TRUE)
@@ -104,7 +117,6 @@ gt_from_raster = function(train_data = gt,
 
         for (a in 1:length(dataSet)){
 
-            print("inner", a)
             remove_cell = as.data.frame(dataSet[[a]]) %>%
                 .[, -1] # this removes the first column "cell" from cellnumbers
 
@@ -127,9 +139,14 @@ gt_from_raster = function(train_data = gt,
         # making dataset for machine learning-----------------------------------
         dataSet2 = NULL
 
+        xname = paste0(outfile, "_x")
+        yname = paste0(outfile, "_y")
+
         for (i in dataSet){ # writing coordinates to the matrix of each gt element
             coords = coordinates(raster)[i[,1],] # getting coordinates from raster cell number
+            colnames(coords) = c(xname, yname)
             coords_binded = cbind(i, coords) # bind them to extract output
+
             dataSet2 = append(dataSet2, list(coords_binded)) # make list output
         }
 

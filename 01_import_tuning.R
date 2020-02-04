@@ -26,11 +26,47 @@ source("import.R")
 ######################################################################
 
 # Input of stack, which is containing training and reference data
-if (!file.exists(paste0(rds_path, "learning_input_VH.rds"))) {
+if (!file.exists(paste0(rds_path, "learning_input_vh.rds"))) {
     print("file does not exist")
-    gt_from_raster(raster = s1vh, outfile = "VH")
-    data_input = readRDS(paste0(rds_path, "learning_input_VH.rds"))
-} else {data_input = readRDS(paste0(rds_path, "learning_input_VH.rds"))}
+    gt_from_raster(raster = vh, train_data = gt, response_col = "Name", outfile = "vh")
+    vh_input = readRDS(paste0(rds_path, "learning_input_vh.rds"))
+} else {
+    vh_input = readRDS(paste0(rds_path, "learning_input_vh.rds"))}
+
+# S2 red
+if (!file.exists(paste0(rds_path, "learning_input_red.rds"))) {
+    print("file does not exist")
+    gt_from_raster(raster = red, train_data = gt, response_col = "Name", outfile = "red")
+    red_input = readRDS(paste0(rds_path, "learning_input_red.rds"))
+} else {
+    red_input = readRDS(paste0(rds_path, "learning_input_red.rds"))}
+
+# S2 nir
+if (!file.exists(paste0(rds_path, "learning_input_nir.rds"))) {
+    print("file does not exist")
+    gt_from_raster(raster = nir, train_data = gt, response_col = "Name", outfile = "nir")
+    nir_input = readRDS(paste0(rds_path, "learning_input_nir.rds"))
+} else {
+    nir_input = readRDS(paste0(rds_path, "learning_input_nir.rds"))}
+
+# deleting previous:
+if (x == 1){
+    file.remove(c(paste0(rds_path, "learning_input_vh.rds"),
+                  paste0(rds_path, "learning_input_red.rds"),
+                  paste0(rds_path, "learning_input_nir.rds")))
+}
+
+# merge matrices
+data_input = as_tibble(cbind(vh_input, red_input, nir_input), .name_repair = "unique") %>%
+   dplyr::select(-vh_x, -vh_y, -class...356, -class...557, class = class...758, -red_x, -red_y, x = nir_x, y = nir_y) %>%
+    as.data.frame()
+
+# last checks
+class(data_input)
+class(data_input$class)
+identical(data_input$vh_x,data_input$red_x,data_input$nir_x) # check if coorinates are the same
+
+tibble::enframe(names(data_input)) %>% count(value) %>% filter(n > 1) # check if columns are duplicates!
 
 ######################################################################
 # Make Task
@@ -43,6 +79,8 @@ classif.task = makeClassifTask(
     id = "slangbos", data = data_input_coordsless, target = "class",
     coordinates = coords
 )
+
+classif.task = normalizeFeatures(classif.task, method = "standardize")
 
 ######################################################################
 # Make Learner

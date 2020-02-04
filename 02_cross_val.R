@@ -21,7 +21,7 @@ outer <- makeResampleDesc("SpRepCV", folds = 5, reps = 100) # add SpRepCV for sp
 # parallization of spatial cross validation (Note: mode="multicore"
 # for Unix, mode="socket" for Windows)
 
-if (!file.exists(paste0(rds_path, "resample_VH"))){
+if (!file.exists(paste0(rds_path, "cv"))){
 
     parallelStart(mode = "socket", level = "mlr.resample", cpus = 8)
 
@@ -30,10 +30,10 @@ if (!file.exists(paste0(rds_path, "resample_VH"))){
                                    measures = list(acc, mmce))
 
     parallelStop()
-    saveRDS(slangbos_spcv, paste0(rds_path, "resample_VH"))
+    saveRDS(slangbos_spcv, paste0(rds_path, "cv"))
 
 } else {
-    slangbos_spcv = readRDS(paste0(rds_path, "resample_VH"))
+    slangbos_spcv = readRDS(paste0(rds_path, "cv"))
 }
 
 

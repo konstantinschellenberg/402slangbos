@@ -4,6 +4,7 @@
 # (3) crop to region extent
 # (4) apply QA mask on S2 -> masking
 # (5) store as stacked file (brick)
+# (6) make cloud free
 
 par(mfrow=c(5,5))
 
