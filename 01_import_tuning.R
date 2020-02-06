@@ -17,8 +17,11 @@
 library(mlr)
 library(data.table)
 library(parallelMap)
+library(stars)
 
 source("import.R")
+getOption("max.print")
+options(max.print = 1000)
 
 
 ######################################################################
@@ -56,27 +59,52 @@ if (x == 1){
                   paste0(rds_path, "learning_input_nir.rds")))
 }
 
-# merge matrices
-data_input = as_tibble(cbind(vh_input, red_input, nir_input), .name_repair = "unique") %>%
-   dplyr::select(-vh_x, -vh_y, -class...356, -class...557, class = class...758, -red_x, -red_y, x = nir_x, y = nir_y) %>%
-    as.data.frame()
+# remove NA
+
+
+# merge matrices, find out with cols are dublicates
+dt = as_tibble(cbind(vh_input, red_input, nir_input), .name_repair = "unique")
+
+
+# remove cols with x, y and class from the data frame, rename vars from the last binded data frame to x, y and class
+# e.g. -vh_x, -vh_y, -class...356, -class...557, class = class...758, -red_x, -red_y, x = nir_x, y = nir_y
+dt2 = dt %>%
+    .[,1:(length(.) - 2)] %>%
+    dplyr::select(-ends_with("x"), -ends_with("y"), -contains("class")) %>%
+    cbind(dt[,(length(dt) - 2):length(dt)]) %>%
+    dplyr::rename(x = ends_with("x"),
+                  y = ends_with("y"),
+                  class = contains("class"))
+
+# remove cols with NA (prerequisit for random forest input)
+dt = dt2 %>%
+    as.data.frame() %>%
+    .[, colSums(is.na(.)) == 0]
+
+# number of variables:
+length(names(dt))
+
+# needs to be a factor:
+if (!base::is.factor(class(dt$class))){
+    warning("needs to be a factor!")
+    }
 
 # last checks
-class(data_input)
-class(data_input$class)
-identical(data_input$vh_x,data_input$red_x,data_input$nir_x) # check if coorinates are the same
-
-tibble::enframe(names(data_input)) %>% count(value) %>% filter(n > 1) # check if columns are duplicates!
+class(dt)
+class(dt$class)
+# identical(dt$vh_x,dt$red_x,dt$nir_x) # check if coorinates are the same
+#
+# tibble::enframe(names(dt)) %>% count(value) %>% filter(n > 1) # check if columns are duplicates!
 
 ######################################################################
 # Make Task
 ######################################################################
 
-coords = as.data.frame(data_input[c("x", "y")])
-data_input_coordsless = dplyr::select(data_input, -x, -y) # removes coordinates from variable settings
+coords = as.data.frame(dt[c("x", "y")])
+dt_coordsless = dplyr::select(dt, -x, -y) # removes coordinates from variable settings
 
 classif.task = makeClassifTask(
-    id = "slangbos", data = data_input_coordsless, target = "class",
+    id = "slangbos", data = dt_coordsless, target = "class",
     coordinates = coords
 )
 
@@ -143,21 +171,21 @@ if (!file.exists(paste0(rds_path, "tune_rf"))){
 classif.lrn.optimised = setHyperPars(classif.lrn, mtry = tune_rf$x$mtry, ntree = tune_rf$x$ntree)
 
 # Tuning results -----------------------------------------------------------------
-tune_rf$x # best found settings
-tune_rf$y # estimated performance
-data = generateHyperParsEffectData(tune_rf)
-data$data
-plt = plotHyperParsEffect(data, x = "mtry", y = "acc.test.mean")
-plt + ggtitle("Random Forest mtry") +
-    theme_bw()
-
-plt = plotHyperParsEffect(data, x = "ntree", y = "acc.test.mean")
-plt + ggtitle("Random Forest ntree") +
-    theme_bw()
-
-plt = plotHyperParsEffect(data, x = "ntree", y = "mmce.test.mean")
-plt + ggtitle("ntree misclassification") +
-    theme_bw()
+# tune_rf$x # best found settings
+# tune_rf$y # estimated performance
+# data = generateHyperParsEffectData(tune_rf)
+# data$data
+# plt = plotHyperParsEffect(data, x = "mtry", y = "acc.test.mean")
+# plt + ggtitle("Random Forest mtry") +
+#     theme_bw()
+#
+# plt = plotHyperParsEffect(data, x = "ntree", y = "acc.test.mean")
+# plt + ggtitle("Random Forest ntree") +
+#     theme_bw()
+#
+# plt = plotHyperParsEffect(data, x = "ntree", y = "mmce.test.mean")
+# plt + ggtitle("ntree misclassification") +
+#     theme_bw()
 
 
 

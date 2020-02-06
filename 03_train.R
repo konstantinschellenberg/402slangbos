@@ -11,6 +11,7 @@
 
 source("02_cross_val.R")
 
+
 library(stars)
 
 # remove test file
@@ -28,12 +29,12 @@ validation.set = sample(n, size = n*0.6) # not working
 
 # Training----------------------------------------------------------------------
 
-parallelStart(mode = "socket", level = "mlr.resample", cpus = 5)
+parallelStart(mode = "socket", level = "mlr.resample", cpus = 8)
 model = train(classif.lrn.optimised, classif.task, subset = training.set)
 parallelStop()
 
-# saveRDS(model, paste0(rds_path, "model_VH"))
-model = readRDS(paste0(rds_path, "model_VH"))
+# saveRDS(model, paste0(rds_path, "model_s2"))
+model = readRDS(paste0(rds_path, "model_s2"))
 
 model$factor.levelsmodel
 model$task.desc
@@ -43,11 +44,23 @@ model$learner.model
 
 # Prediction--------------------------------------------------------------------
 
-raster_input = as.data.frame(s1vh_small, xy = TRUE)
-# saveRDS(raster_input, file = paste0(rds_path, "rf_input.rds"))
+raster_input = as.data.frame(red, xy = TRUE)
+
+raster::predict(vh, model)
+
+
+
+
+raster_input2 = raster_input %>%
+    select(names(raster_input))
+
+saveRDS(raster_input, file = paste0(rds_path, "rf_input_full_red.rds"))
+
+
+
 
 # pred.task = makeTask
-parallelStart(mode = "socket", cpus = 7)
+parallelStart(mode = "socket", cpus = 8)
 prediction = predict(model, newdata = raster_input)
 parallelStop()
 
