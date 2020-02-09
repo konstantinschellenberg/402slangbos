@@ -62,6 +62,8 @@ plt
 - band 8 (near-infrared): true 10m resolution, bush have large contrast to vegetation
 - ndvi
 
+Training a learner means fitting a model to a given data set. Subsequently, we want to predict the label for new observations. These predictions are compared to the ground truth values in order to assess the predictive performance of the model. <https://mlr3book.mlr-org.com/train-predict.html>
+
 # Results
 
 Reflectance:

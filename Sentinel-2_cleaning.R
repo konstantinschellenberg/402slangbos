@@ -202,3 +202,16 @@ system.time(write_stars(s2.ndvi, dsn = paste0(development_path, "/s2/ndvi3.tif")
 # raster
 s2.ndvi = system.time(calc(s, func.ndvi, filename = paste0(development_path, "/s2/ndvi3.tif")))
 
+# ------------------------------------------------------------------------------
+
+# creating small extents
+st_bbox(smaller_extent)
+
+gdalUtils::gdalbuildvrt(gdalfile = s1vh_path,
+                        output.vrt = path_vrt,
+                        separate = FALSE,
+                        overwrite = TRUE, te = st_bbox(smaller_extent))
+
+
+gdalUtils::gdal_translate(src_dataset = path_vrt,
+                          dst_dataset = paste0(path_s1, "vh_small.tif"),)

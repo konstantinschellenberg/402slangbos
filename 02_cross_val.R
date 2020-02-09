@@ -6,7 +6,7 @@
 # This script was created by Dr. Marcel Urban (marcel.urban@uni-jena.de),
 # Patrick Schratz (p.schratz@lmu.de) and Konstantin Schellenberg (konstantin.schellenberg@posteo.de)
 #
-# Step 2/3
+# Step 2/4
 # Spatial Cross Validation
 
 source("01_import_tuning.R")

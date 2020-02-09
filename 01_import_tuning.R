@@ -6,7 +6,7 @@
 # This script was created by Dr. Marcel Urban (marcel.urban@uni-jena.de),
 # Patrick Schratz (p.schratz@lmu.de) and Konstantin Schellenberg (konstantin.schellenberg@posteo.de)
 #
-# Step 1/3
+# Step 1/4
 # Loading and tuning
 #
 
@@ -28,50 +28,50 @@ options(max.print = 1000)
 # Data Preparation
 ######################################################################
 
-# Input of stack, which is containing training and reference data
-if (!file.exists(paste0(rds_path, "learning_input_vh.rds"))) {
-    print("file does not exist")
-    gt_from_raster(raster = vh, train_data = gt, response_col = "Name", outfile = "vh")
-    vh_input = readRDS(paste0(rds_path, "learning_input_vh.rds"))
-} else {
-    vh_input = readRDS(paste0(rds_path, "learning_input_vh.rds"))}
+# create input tables
 
-# S2 red
-if (!file.exists(paste0(rds_path, "learning_input_red.rds"))) {
-    print("file does not exist")
-    gt_from_raster(raster = red, train_data = gt, response_col = "Name", outfile = "red")
-    red_input = readRDS(paste0(rds_path, "learning_input_red.rds"))
-} else {
-    red_input = readRDS(paste0(rds_path, "learning_input_red.rds"))}
+# full
+gt_from_raster(raster = vh, train_data = gt, response_col = "Name", outfile = "vh")
+gt_from_raster(raster = red, train_data = gt, response_col = "Name", outfile = "red")
+gt_from_raster(raster = nir, train_data = gt, response_col = "Name", outfile = "nir")
+# small
+gt_from_raster(raster = vh_small, train_data = gt_smaller, response_col = "Name", outfile = "vh_sm")
+gt_from_raster(raster = red_small, train_data = gt_smaller, response_col = "Name", outfile = "red_sm")
+gt_from_raster(raster = nir_small, train_data = gt_smaller, response_col = "Name", outfile = "nir_sm")
 
-# S2 nir
-if (!file.exists(paste0(rds_path, "learning_input_nir.rds"))) {
-    print("file does not exist")
-    gt_from_raster(raster = nir, train_data = gt, response_col = "Name", outfile = "nir")
-    nir_input = readRDS(paste0(rds_path, "learning_input_nir.rds"))
-} else {
-    nir_input = readRDS(paste0(rds_path, "learning_input_nir.rds"))}
+
+# load input tables
+
+# full
+vh_input = readRDS(paste0(rds_path, "learning_input_vh.rds"))
+red_input = readRDS(paste0(rds_path, "learning_input_red.rds"))
+nir_input = readRDS(paste0(rds_path, "learning_input_nir.rds"))
+# small
+vh_input = readRDS(paste0(rds_path, "learning_input_vh_sm.rds"))
+red_input = readRDS(paste0(rds_path, "learning_input_red_sm.rds"))
+nir_input = readRDS(paste0(rds_path, "learning_input_nir_sm.rds"))
+
 
 # deleting previous:
+x = 0
 if (x == 1){
     file.remove(c(paste0(rds_path, "learning_input_vh.rds"),
                   paste0(rds_path, "learning_input_red.rds"),
                   paste0(rds_path, "learning_input_nir.rds")))
 }
 
-# remove NA
 
 
+#################### FUNCTION HERE
 # merge matrices, find out with cols are dublicates
-dt = as_tibble(cbind(vh_input, red_input, nir_input), .name_repair = "unique")
-
+dt3 = as_tibble(cbind(vh_input, red_input, nir_input), .name_repair = "unique")
 
 # remove cols with x, y and class from the data frame, rename vars from the last binded data frame to x, y and class
 # e.g. -vh_x, -vh_y, -class...356, -class...557, class = class...758, -red_x, -red_y, x = nir_x, y = nir_y
-dt2 = dt %>%
+dt2 = dt3 %>%
     .[,1:(length(.) - 2)] %>%
     dplyr::select(-ends_with("x"), -ends_with("y"), -contains("class")) %>%
-    cbind(dt[,(length(dt) - 2):length(dt)]) %>%
+    cbind(dt3[,(length(dt3) - 2):length(dt3)]) %>%
     dplyr::rename(x = ends_with("x"),
                   y = ends_with("y"),
                   class = contains("class"))
@@ -79,19 +79,21 @@ dt2 = dt %>%
 # remove cols with NA (prerequisit for random forest input)
 dt = dt2 %>%
     as.data.frame() %>%
-    .[, colSums(is.na(.)) == 0]
+    .[, colSums(is.na(.)) == 0] %>%
+    as.data.table()
 
 # number of variables:
 length(names(dt))
 
 # needs to be a factor:
-if (!base::is.factor(class(dt$class))){
+if (!class(dt$class) == "factor"){
     warning("needs to be a factor!")
     }
 
-# last checks
 class(dt)
-class(dt$class)
+names(dts)
+
+
 # identical(dt$vh_x,dt$red_x,dt$nir_x) # check if coorinates are the same
 #
 # tibble::enframe(names(dt)) %>% count(value) %>% filter(n > 1) # check if columns are duplicates!
@@ -108,7 +110,17 @@ classif.task = makeClassifTask(
     coordinates = coords
 )
 
+predict.task = NA
+
 classif.task = normalizeFeatures(classif.task, method = "standardize")
+predict.task = normalizeFeatures(classif.task, method = "standardize")
+######################################################################
+# Filter
+######################################################################
+
+parallelStartSocket(cpus = 6, level = "mlr.selectFeatures")
+fv = generateFilterValuesData(classif.task, method = "randomForest_importance")
+parallelStop()
 
 ######################################################################
 # Make Learner
