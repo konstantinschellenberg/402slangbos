@@ -1,0 +1,131 @@
+library(sinkr)
+
+# Make synthetic data field
+m <- 50
+n <- 100
+frac.gaps <- 0.5 # the fraction of data with NaNs
+N.S.ratio <- 0.1 # the Noise to Signal ratio for adding noise to data
+x <- (seq(m)*2*pi)/m
+t <- (seq(n)*2*pi)/n
+Xt <-
+    outer(sin(x), sin(t)) +
+    outer(sin(2.1*x), sin(2.1*t)) +
+    outer(sin(3.1*x), sin(3.1*t)) +
+    outer(tanh(x), cos(t)) +
+    outer(tanh(2*x), cos(2.1*t)) +
+    outer(tanh(4*x), cos(0.1*t)) +
+    outer(tanh(2.4*x), cos(1.1*t)) +
+    tanh(outer(x, t, FUN="+")) +
+    tanh(outer(x, 2*t, FUN="+")
+    )
+
+# Color palette
+pal <- colorRampPalette(c("blue", "cyan", "yellow", "red"))
+
+#  The "true" fieldd
+Xt <- t(Xt)
+
+# The "noisy" field
+set.seed(1)
+RAND <- matrix(runif(length(Xt), min=-1, max=1), nrow=nrow(Xt), ncol=ncol(Xt))
+R <- RAND * N.S.ratio * Xt
+Xp <- Xt + R
+
+# The "observed" gappy field field
+set.seed(1)
+gaps <- sample(seq(length(Xp)), frac.gaps*length(Xp))
+Xo <- replace(Xp, gaps, NaN)
+
+# The dineof "interpolated" field
+set.seed(1)
+RES <- dineof(Xo, delta.rms = 1e-02) # lower 'delta.rms' for higher resolved interpolation
+Xa <- RES$Xa
+
+# Visualization all fields
+ZLIM <- range(Xt, Xp, Xo, Xa, na.rm=TRUE)
+op <- par(mfrow=c(2,2), mar=c(3,3,3,1))
+image(z=Xt, zlim=ZLIM, main="A) True", col=pal(100), xaxt="n", yaxt="n", xlab="", ylab="")
+box()
+mtext("t", side=1, line=0.5)
+mtext("x", side=2, line=0.5)
+image(z=Xp, zlim=ZLIM, main=paste("B) True + Noise (N/S = ", N.S.ratio, ")", sep=""),
+      col=pal(100), xaxt="n", yaxt="n", xlab="", ylab="")
+box()
+mtext("t", side=1, line=0.5)
+mtext("x", side=2, line=0.5)
+box()
+image(z=Xo, zlim=ZLIM, main=paste("C) Observed (", frac.gaps*100, " % gaps)", sep=""),
+      col=pal(100), xaxt="n", yaxt="n", xlab="", ylab="")
+mtext("t", side=1, line=0.5)
+mtext("x", side=2, line=0.5)
+image(z=Xa, zlim=ZLIM, main="D) Reconstruction", col=pal(100), xaxt="n", yaxt="n",
+      xlab="", ylab="")
+box()
+mtext("t", side=1, line=0.5)
+mtext("x", side=2, line=0.5)
+par(op)
+
+
+
+
+### Example with iris dataset
+iris2 <- as.matrix(iris[,1:4]) # only use numeric morphometric data
+frac.gaps <- 0.3 # fraction NaN values
+
+# make gappy dataset
+set.seed(1)
+gaps <- sample(seq(length(iris2)), frac.gaps*length(iris2))
+iris2g <- replace(iris2, gaps, NaN)
+
+# The dineof "interpolated" field
+# irlba should produce warning due to large percentage of total singular values
+# used in interpolation
+set.seed(1)
+RES <- dineof(iris2g, delta.rms = 1e-02)
+
+# using method="svd" is better
+set.seed(1)
+RES <- dineof(iris2g, delta.rms = 1e-02, method="svd",
+              ref.pos = RES$ref.pos
+)
+
+# plot results
+op <- par(mfrow=c(1,2), mar=c(3,3,3,1))
+plot(iris2, RES$Xa,
+     col=rep(rainbow(ncol(iris2)), each=nrow(iris2)),
+     pch=as.numeric(iris$Species), main = "Imputation w/ DINEOF"
+)
+abline(0,1,col=8, lty=1)
+legend("topleft", legend=colnames(iris2), col=rainbow(ncol(iris2)), lty=1, bty = "n")
+legend("bottomright", legend=levels(iris$Species), pch=1:3, bty = "n")
+sqrt(mean((iris2[gaps] - RES$Xa[gaps])^2, na.rm=TRUE)) # root mean square error
+
+
+# Note: The use of dineof on small matrices may result in
+# an overfitted interpolation if too many reference points are used.
+# Use of eof(, recursive=TRUE) may provide better estimates - i.e. "RSEOF" method
+# Example:
+
+# EOF
+E <- eof(iris2g, recursive = TRUE)
+
+# Determine number of significant EOFs
+En <- eofNull(iris2g, recursive = TRUE, nperm = 99)
+En$n.sig
+
+# reconstruction with significant EOFs
+R <- eofRecon(E, pcs = seq(En$n.sig))
+R[-gaps] <- iris2g[-gaps] # replace non-gap values
+
+# plot interpolated values
+plot(iris2, R,
+     col=rep(rainbow(ncol(iris2)), each=nrow(iris2)),
+     pch=as.numeric(iris$Species), main = "Recon. w/ sig. EOFS only"
+)
+abline(0,1,col=8, lty=1)
+legend("topleft", legend=colnames(iris2), col=rainbow(ncol(iris2)), lty=1, bty = "n")
+legend("bottomright", legend=levels(iris$Species), pch=1:3, bty = "n")
+sqrt(mean((iris2[gaps] - R[gaps])^2, na.rm=TRUE)) # root mean square error
+
+par(op)
+

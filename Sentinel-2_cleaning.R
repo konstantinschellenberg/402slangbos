@@ -13,6 +13,7 @@ source("import.R")
 library(stars)
 library(rgdal)
 library(gdalUtils)
+library(link2GI)
 
 
 # (1) search S2 scenes in 20m res and QA. --------------------------------------
@@ -23,6 +24,11 @@ list.cm_on_storage = list.files(path = "F:/geodata/geo402/s2/", pattern = "CM.ti
 
 list.reflectance = list.files(path = "D:/Geodaten/#Jupiter/GEO402/01_data/s2", pattern = "atm_20m.tif$", recursive = T, full.names = TRUE)
 list.cm = list.files(path = "D:/Geodaten/#Jupiter/GEO402/01_data/s2/cm", pattern = "CM.tif$", recursive = T, full.names = TRUE)
+
+list.reflectance.crop = list.files(path = "D:/Geodaten/#Jupiter/GEO402/01_data/s2",
+                                   pattern = "crop.tif$", recursive = FALSE, full.names = TRUE)
+list.cm.crop = list.files(path = "D:/Geodaten/#Jupiter/GEO402/01_data/s2/cm_crop",
+                          pattern = "crop.tif$", recursive = F, full.names = TRUE)
 
 # stack dirs
 # dir.create(path_cm)
@@ -38,7 +44,7 @@ dir("D:/Geodaten/#Jupiter/GEO402/01_data/s2") # what's in the directory?
 
 
 # (2) filter NA ----------------------------------------------------------------
-################################################################################
+
 
 cm.na = cellStats(is.na(cm), sum) # count the NA values in each layer
 cm.na.fraction = cm.na/ncell(cm) # fraction that is NA
@@ -47,7 +53,7 @@ cm.na.fraction
 cm.filtered.out = cm[[which(cm.na.fraction>0.2)]] # filter all with na more than 20%
 names(cm.filtered.out) # return dir with NA rasters
 
-# saveRDS(cm.filtered.out, paste0(path_developement, "rda\\cm_filtered.rds"))
+# saveRDS(cm.filtered.out, paste0(path_developement, "rda/\cm_filtered.rds"))
 # cm.filtered.out = readRDS(paste0(path_developement, "rda\\cm_filtered.rds"))
 
 # remove files with NA
@@ -65,7 +71,7 @@ file.exists(paste0(path_s2, s2.filtered.out))
 # file.remove(paste0(path_s2, s2.filtered.out))
 
 # (3) crop to region extent ----------------------------------------------------
-################################################################################
+
 
 ## checkup
 c(st_bbox(study_area)) # our bounding box
@@ -117,10 +123,7 @@ for (i in seq_along(list.cm)){
                               overwrite = TRUE)
 }
 
-list.reflectance.crop = list.files(path = "D:/Geodaten/#Jupiter/GEO402/01_data/s2",
-                                   pattern = "crop.tif$", recursive = FALSE, full.names = TRUE)
-list.cm.crop = list.files(path = "D:/Geodaten/#Jupiter/GEO402/01_data/s2/cm",
-                          pattern = "crop.tif$", recursive = F, full.names = TRUE)
+
 
 # (4) Applying cloud mask to Sentinel -------------------------------------------------------------------------
 
@@ -202,7 +205,8 @@ system.time(write_stars(s2.ndvi, dsn = paste0(development_path, "/s2/ndvi3.tif")
 # raster
 s2.ndvi = system.time(calc(s, func.ndvi, filename = paste0(development_path, "/s2/ndvi3.tif")))
 
-# ------------------------------------------------------------------------------
+# small extent raster ----------------------------------------------------------
+
 
 # creating small extents
 st_bbox(smaller_extent)
@@ -215,3 +219,54 @@ gdalUtils::gdalbuildvrt(gdalfile = s1vh_path,
 
 gdalUtils::gdal_translate(src_dataset = path_vrt,
                           dst_dataset = paste0(path_s1, "vh_small.tif"),)
+
+# Interpolating clouds with sinkr ----------------------------------------------
+# < 5% cloud cover wants to be interpolated: Then, far more vars available
+# DINEOF
+
+t_brick = red[[1]]
+
+t = as.matrix(t_brick)
+
+set.seed(27)
+
+RES2 <- dineof(t, delta.rms = 1e-02, n.max = 2) # lower 'delta.rms' for higher resolved interpolation
+t.out <- RES2$Xa
+
+t.filled = raster(t.out)
+plot(t.filled)
+writeRaster(t.filled, paste0(path_s2, "test_data/dineof_result2.tif"))
+
+
+
+
+
+
+
+# CLOUD FILTERING --------------------------------------------------------------
+# filter for cloud coverness <20%-----------------------------------------------
+# remove where NA > 20% image:
+
+cm.clouds = cellStats(cm == 1, sum) # count class 1 (clouds)
+cm.clouds.fraction = cm.clouds/ncell(cm) # fraction that is NA
+cm.clouds.fraction
+
+cm.keep = cm[[which(cm.clouds.fraction<0.2)]] # filter all with clouds less than 20%
+names(cm.keep) # return dir with NA rasters
+
+# save
+writeRaster(cm.keep, paste0(path_s2, "cm_crop/bin_mask_less20.tif"))
+
+# write date to txt file -------------------------------------------------------
+
+s = substring(names(cm.keep), first = 4)
+n = gsub("\\.", "", s)
+
+write_csv(as.data.frame(n), path = paste0(path_s2, "bandnames_less20.txt"))
+
+# remove layers at red and nir channel------------------------------------------
+
+red_small2 = red_small[[1:10]]
+
+remove_cloud_layers(x = red, outfile = "D:/Geodaten/#Jupiter/GEO402/01_data/s2/red_less20.tif", fraction = 0.2)
+remove_cloud_layers(x = nir, outfile = "D:/Geodaten/#Jupiter/GEO402/01_data/s2/nir_less20.tif", fraction = 0.2)

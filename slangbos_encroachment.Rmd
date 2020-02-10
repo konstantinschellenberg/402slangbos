@@ -43,9 +43,11 @@ Preprocession has been done by Dr Marcel Urban (Friedrich Schiller University Je
 
 # Methods
 
-Training sample were retrieved from aerial imagery (@NGI) and Google Earth VHR data [@GoogleEarth] via a visual and manual picking approach. Ground truth information and expert knowledge has been retrieved by survey on site and a photo documentation. 
+Training sample were retrieved from aerial imagery [@NGI] and Google Earth VHR data [@GoogleEarth] via a visual and manual picking approach. Ground truth information and expert knowledge has been retrieved by survey on site and a photo documentation. 
 
-The random forest algorithm [@Breiman.2001] has been chose for classification of the dataset since it has been proven suitable for spatio-temporal applications [@Belgiu.2016]. The model is trained on the relationship of bush structure and backscatter signal to gain a sensitivity for subtle feature discrimination in hypertemporal radar data cubes. 
+The random forest algorithm [@Breiman.2001] has been chosen for classification of the dataset since it has been proven suitable for spatio-temporal applications [@Belgiu.2016]. The model is trained on the relationship of bush structure and backscatter signal to gain a sensitivity for subtle feature discrimination in hypertemporal radar data cubes. More on Sentinel 1...
+
+To enhance the sensitivity of the classification problem, further optical information was incorpated in the model to enhance the variable set. @Ludwig.2019 has shown that the NDVI supplying bands, red and near infrared (NIR) deliver highest accordance with savanna bush image patterns. As for this finding, Sentinel-2's 4th and 8th band time series was used over the entire acquisition time (2016 - )
 
 The structural element of slangbos are likely to be recorded by C-Band signals. The fraction of bush compartments are roughly of the size where C-Band waves interact the most. Additionally, the round bush geometry implies it to be a strong volume scatterer. The depolarisation leads to a large cross-pol fraction. First investigations on the reaction of slangbos in C-Band waves implies more VH backscatter with growing bush volume and bush cover density the VH [\@ref(fig:exploration-plot)].
 
@@ -69,7 +71,7 @@ Training a learner means fitting a model to a given data set. Subsequently, we w
 Reflectance:
 
 - Stable NDVI throughout the year. Grass & Forest much more seasonality
-- S2 Bands 4, 7 suitable [@Ludwig.2019]
+- S2 Bands 4, 7 suitable [@Ludwig.2019], I use 4 and 8
 - low general reflectance
 
 # References

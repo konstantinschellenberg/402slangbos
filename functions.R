@@ -27,13 +27,18 @@
 # Polygons of ground truth with the follwing column:
 # name
 # can have categories:
-#     1 == slangbos encroachment, increase
-#     12 == encroachment with cleaning/breakpoint
-#     2 == cleaning/breakpoint
-#     3 == continous persistance of slangbos
-#     4 == agricultural site
-
-# load dependency
+# Slangbos-Classes
+# 1 = Increase
+# 2 = Continuous
+# 3 = Break
+#
+# andere
+# 4 = Agriculture
+# 5 = bare soil (gibt es kaum, wahrscheinlich invalide)
+# 6 = grassland
+# 7 = forest canopy
+# 8 = urban
+# 9 = water
 
 ################################################################################
 # Make mask from QA bands ------------------------------------------------------
@@ -55,26 +60,40 @@ rvi = function(vv, vh){
 # Rename bandnames -------------------------------------------------------------
 ################################################################################
 
-rename_bandnames = function(raster = NULL, sentinel = 1, var_prefix = NULL, naming_raster = NULL){
+rename_bandnames = function(raster = NULL, option = 1, var_prefix = NULL, naming = NULL){
 
-    if (sentinel == 1){ # S1 as provided by M. Urban (FSU Jena)
-        bandnames = names(naming_raster)[-c(14, 17, 62)]
+    #' param. raster to be renames
+    #' option. 1 = Sentinel-1, 2 = Sentinel-2 according to naming table, 3 = Sentinel-2 according to naming table small
+    #' var_prefix. prefix of the raster bands
+    #' naming. Raster with header to provide band names or table.txt with layer names in rows
+
+    # Sentinel 1
+    if (option == 1){ # S1 as provided by M. Urban (FSU Jena)
+        bandnames = names(naming)[-c(14, 17, 62)]
         seq_begin = 13L
         seq_end = 20L
         print("Sentinel 1")
 
-    } else if (sentinel == 2){ # S2 as provided by A. Hirner (DLR)
-        bandnames = list.files(path = "D:/Geodaten/#Jupiter/GEO402/01_data/s2",
-                               pattern = "crop_cm.tif$", recursive = FALSE)
-        seq_begin = 12L
-        seq_end = 19L
-        print("Sentinel 2")
+        # iterate for date in column-names
+        for (i in bandnames){
+            date_in_bandnames = substr(bandnames,seq_begin,seq_end)
+        }
 
-    } else {print("No Sentinel mode entered . . .")}
 
-    # iterate for date in column-names
-    for (i in bandnames){
-        date_in_bandnames = substr(bandnames,seq_begin,seq_end)
+    } else if (option == 2){ # S2 as provided by A. Hirner (DLR)
+        date_in_bandnames = read.csv(file = naming, colClasses = "character") %>%
+            .$bandname
+        print("Sentinel 2, large raster")
+
+
+    } else if (option == 3){
+        date_in_bandnames = read.csv(file = naming, colClasses = "character") %>%
+            .$n
+        print("Sentinel 2, cloud filtered raster")
+
+
+    } else {
+        print("Unknow parsing option . . .")
     }
 
     # convert date string into R date-time format
@@ -83,8 +102,12 @@ rename_bandnames = function(raster = NULL, sentinel = 1, var_prefix = NULL, nami
         date = append(date, as.POSIXct(date_in_bandnames[i], format = "%Y%m%d")) #https://www.statmethods.net/input/dates.html
     }
 
-    names(raster) = paste0(var_prefix, ".", date) # change names to more easy
+    a = length(names(raster)) - length(date)
 
+    if (a != 0){warning("Number of raster bands does not fit the input table")}
+
+    # final tranfer
+    names(raster) = paste0(var_prefix, ".", date) # change names to more easy
     return(raster)
 }
 
@@ -417,3 +440,33 @@ if (!isGeneric("as.data.table")) {
 
 setMethod('as.data.table', signature(x='data.frame'), data.table::as.data.table)
 setMethod('as.data.table', signature(x='Raster'), as.data.table.raster)
+
+################################################################################
+# remove cloud layers from brick within the given fraction ---------------------
+################################################################################
+
+# clouds have to be masked already and have NA values.
+
+remove_cloud_layers = function(x, outfile, fraction = 0.2){
+
+    x.clouds = cellStats(is.na(x), sum) # count class 1 (clouds)
+
+    x.clouds.fraction = x.clouds/ncell(x) # fraction that is NA
+    x.clouds.fraction
+
+    cat(paste("fraction of clouds in images: ", sep = "\n"))
+    cat(sort(round(x.clouds.fraction, digits = 2), decreasing = TRUE), sep = "\n")
+
+    x.keep = x[[which(x.clouds.fraction < fraction)]] # filter all with clouds less than the given faction of cloud cover
+
+    cat(paste("Layers kept: ", sep = "\n"))
+    cat(names(x.keep))
+    cat("layers deleted:")
+    cat(length(names(x.clouds)) - length(names(x.keep)), sep = "\n")
+
+    cat("Writing raster, please be patient . . . ")
+    writeRaster(x.keep, filename = outfile, overwrite = TRUE)
+    x.keep = brick(outfile)
+
+    return(x.keep)
+}

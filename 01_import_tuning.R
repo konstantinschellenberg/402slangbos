@@ -34,6 +34,7 @@ options(max.print = 1000)
 gt_from_raster(raster = vh, train_data = gt, response_col = "Name", outfile = "vh")
 gt_from_raster(raster = red, train_data = gt, response_col = "Name", outfile = "red")
 gt_from_raster(raster = nir, train_data = gt, response_col = "Name", outfile = "nir")
+gt_from_raster(raster = vv, train_data = gt, response_col = "Name", outfile = "vv")
 # small
 gt_from_raster(raster = vh_small, train_data = gt_smaller, response_col = "Name", outfile = "vh_sm")
 gt_from_raster(raster = red_small, train_data = gt_smaller, response_col = "Name", outfile = "red_sm")
@@ -46,6 +47,7 @@ gt_from_raster(raster = nir_small, train_data = gt_smaller, response_col = "Name
 vh_input = readRDS(paste0(rds_path, "learning_input_vh.rds"))
 red_input = readRDS(paste0(rds_path, "learning_input_red.rds"))
 nir_input = readRDS(paste0(rds_path, "learning_input_nir.rds"))
+vv_input = readRDS(paste0(rds_path, "learning_input_vv.rds"))
 # small
 vh_input = readRDS(paste0(rds_path, "learning_input_vh_sm.rds"))
 red_input = readRDS(paste0(rds_path, "learning_input_red_sm.rds"))
@@ -64,7 +66,7 @@ if (x == 1){
 
 #################### FUNCTION HERE
 # merge matrices, find out with cols are dublicates
-dt3 = as_tibble(cbind(vh_input, red_input, nir_input), .name_repair = "unique")
+dt3 = as_tibble(cbind(vh_input, vv_input), .name_repair = "unique")
 
 # remove cols with x, y and class from the data frame, rename vars from the last binded data frame to x, y and class
 # e.g. -vh_x, -vh_y, -class...356, -class...557, class = class...758, -red_x, -red_y, x = nir_x, y = nir_y
