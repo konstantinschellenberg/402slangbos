@@ -20,7 +20,7 @@ always_allow_html: true
 my.packages = c("raster", "sf", "rgdal", "caret")
 lapply(my.packages, require, character.only = TRUE)
 
-source("data_analysis.R")
+source("import.R")
 ```
 
 
@@ -47,12 +47,12 @@ Training sample were retrieved from aerial imagery [@NGI] and Google Earth VHR d
 
 The random forest algorithm [@Breiman.2001] has been chosen for classification of the dataset since it has been proven suitable for spatio-temporal applications [@Belgiu.2016]. The model is trained on the relationship of bush structure and backscatter signal to gain a sensitivity for subtle feature discrimination in hypertemporal radar data cubes. More on Sentinel 1...
 
-To enhance the sensitivity of the classification problem, further optical information was incorpated in the model to enhance the variable set. @Ludwig.2019 has shown that the NDVI supplying bands, red and near infrared (NIR) deliver highest accordance with savanna bush image patterns. As for this finding, Sentinel-2's 4th and 8th band time series was used over the entire acquisition time (2016 - )
+To enhance the sensitivity of the classification problem, further optical information was incorpated in the model to enhance the variable set. @Ludwig.2019 has shown that the NDVI supplying bands, red and near infrared (NIR) deliver highest accordance with savanna bush image patterns. As for this finding, Sentinel-2's 4th and 8th band time series was used over the entire acquisition time (2016 - ). Cloud masking, gap filling by otb [@cresson etc. paper]
 
 The structural element of slangbos are likely to be recorded by C-Band signals. The fraction of bush compartments are roughly of the size where C-Band waves interact the most. Additionally, the round bush geometry implies it to be a strong volume scatterer. The depolarisation leads to a large cross-pol fraction. First investigations on the reaction of slangbos in C-Band waves implies more VH backscatter with growing bush volume and bush cover density the VH [\@ref(fig:exploration-plot)].
 
 ```{r exploration-plot, echo=FALSE, fig.cap="Median and standard deviation interval of Sentinel-1 VH time series (temporal resolution less than 7d, 354 scenes). Sites associated with slangbos (Seriphium plumosum) return a stronger signal the further the bush encroached (red, n = 564 pixels). Agricultural sites leave stronger patterns of seasonality without overall slope (blue, n = 1393 pixels). Plots being subject to slangbos control through chemical treatment, burning or manual uprooting or ploughing return significantly less signal after the operation (black, n = 105 pixels)."}
-plt
+"plt"
 ```
 
 ## notes for methods

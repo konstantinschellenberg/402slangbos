@@ -1,10 +1,4 @@
 base
-methods
-datasets
-utils
-grDevices
-graphics
-stats
 sp
 raster
 sf
@@ -23,3 +17,4 @@ forcats
 viridisLite
 viridis
 plotly
+gdalUtils

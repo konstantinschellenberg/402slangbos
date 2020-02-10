@@ -61,12 +61,8 @@ study_area = st_read(path_gt, layer = "study_area", quiet = TRUE) %>%  # read in
     st_transform(st_crs(vv)) %>%  # set crs(gt) to the crs(s1) brick.
     st_zm(drop = TRUE)  # Remove Z-Dimension
 
-extent_smaller = st_read(path_gt, layer = "smaller_extent", quiet = TRUE) %>%  # read in
-    st_transform(st_crs(vv)) %>%  # set crs(gt) to the crs(s1) brick.
-    st_zm(drop = TRUE)  # Remove Z-Dimension
-
 gt = st_read(path_gt, layer = "gt", quiet = TRUE) %>%  # read in
     st_transform(st_crs(vv)) %>%  # set crs(gt) to the crs(s1) brick.
     st_zm(drop = TRUE) # Remove Z-Dimension
 
-gt_smaller = sf::st_crop(gt, st_bbox(extent_smaller))
+# gt_smaller = sf::st_crop(gt, st_bbox(extent_smaller))

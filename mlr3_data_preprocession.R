@@ -39,6 +39,7 @@ gt_from_raster(raster = nir_small, train_data = gt_smaller, response_col = "Name
 vh_input = readRDS(paste0(rds_path, "learning_input_vh.rds"))
 red_input = readRDS(paste0(rds_path, "learning_input_red.rds"))
 nir_input = readRDS(paste0(rds_path, "learning_input_nir.rds"))
+
 vv_input = readRDS(paste0(rds_path, "learning_input_vv.rds"))
 # small
 vh_input = readRDS(paste0(rds_path, "learning_input_vh_sm.rds"))
@@ -57,40 +58,33 @@ if (x == 1){
 
 
 #################### FUNCTION HERE
-# merge matrices, find out with cols are dublicates
-dt3 = as_tibble(cbind(vh_input, vv_input), .name_repair = "unique")
+# merge data.frames, find out with cols are dublicates, coords and class column only once
 
-# remove cols with x, y and class from the data frame, rename vars from the last binded data frame to x, y and class
-# e.g. -vh_x, -vh_y, -class...356, -class...557, class = class...758, -red_x, -red_y, x = nir_x, y = nir_y
-dt2 = dt3 %>%
-    .[,1:(length(.) - 2)] %>%
-    dplyr::select(-ends_with("x"), -ends_with("y"), -contains("class")) %>%
-    cbind(dt3[,(length(dt3) - 2):length(dt3)]) %>%
-    dplyr::rename(x = ends_with("x"),
-                  y = ends_with("y"),
-                  class = contains("class"))
-
-# remove cols with NA (prerequisit for random forest input)
-dt = dt2 %>%
-    as.data.frame() %>%
-    .[, colSums(is.na(.)) == 0] %>%
-    as.data.table()
-
-# number of variables:
-length(names(dt))
-
-# needs to be a factor:
-if (!class(dt$class) == "factor"){
-    warning("needs to be a factor!")
-}
-
-class(dt)
-names(dts)
-
+input = bind_task(vh_input, red_input, nir_input)
 
 ######################################################################
 # Prediction Dataset
 ######################################################################
+
+# 4 extent instances for the prediction to fit into memory
+
+coords = st_bbox(study_area)
+x = (coords$xmax - coords$xmin) / 2 + coords$xmin
+
+xmax - ymax
+
+for (tr in coords)
+
+# warp to smaller extent (4 tiles in total)
+gdalUtils::gdalbuildvrt(gdalfile = s2red,
+                        output.vrt = path_vrt,
+                        overwrite = TRUE)
+
+gdalUtils::gdal_translate(src_dataset = path_vrt,
+                          dst_dataset = single.vrt[i],
+                          overwrite = TRUE,
+                          tr = )
+
 
 # red = as.data.table.raster(red_small, xy = TRUE)
 # nir = as.data.table.raster(nir_small, xy = TRUE)

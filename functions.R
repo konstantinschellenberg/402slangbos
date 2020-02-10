@@ -470,3 +470,53 @@ remove_cloud_layers = function(x, outfile, fraction = 0.2){
 
     return(x.keep)
 }
+
+################################################################################
+# binds together three input data.frames with coordinates and class column "class"
+################################################################################
+
+bind_task = function(input1, input2, input3){
+
+
+    # this function works only in conjuction to gt_from_raster. More functionality to be developed.
+    # get data in tibble (open functionabliy to check duplicate column names)
+
+    input = bind_cols(input1, input2, input3) %>%
+        as_tibble(.name_repair = "unique")
+
+    # remove cols with x, y and class from the data frame,
+    # rename vars from the last binded data frame to x, y and class
+    out = input %>%
+        .[,1:(length(.) - 2)] %>%
+        dplyr::select(-ends_with("x"), -ends_with("y"), -contains("class")) %>%
+        cbind(input[,(length(input) - 2):length(input)]) %>%
+        dplyr::rename(x = ends_with("x"),
+                      y = ends_with("y"),
+                      class = contains("class")) %>%
+        as.data.frame()
+
+    # warnings
+    if (sum(is.na(out)) != 0L){warning("please remove all NA from the input layers")}
+    if (!class(dt$class) == "factor"){
+        warning("class needs to be a factor!")
+    }
+
+    # identify count of NAs in data frame
+    sum(is.na(out))
+    names(out)
+
+    cat("number of variables:", "\n")
+    cat(length(names(out)))
+
+    return(out)
+
+    # remove cols with NA (prerequisit for random forest input)
+    # dt = dt2 %>%
+    #     as.data.frame() %>%
+    #     .[, colSums(is.na(.)) == 0] %>%
+    #     as.data.table()
+    # watch NA
+    # is.na(dt2)
+    # which(is.na(dt2))
+    # tibble::enframe(names(out)) %>% count(value) %>% filter(n > 1) # check if columns are duplicates!
+}
