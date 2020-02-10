@@ -2,132 +2,180 @@
 #' benfit: can handle data.tables and is thus meant to fit in the memory
 #' https://mlr3spatiotempcv.mlr-org.com/articles/mlr3spatiotempcv.html
 
-library(mlr3)
-library(mlr3viz)
-library(data.table)
-library(mlr3learners)
-library(precrec)
-library(mlr3spatiotempcv)
-library(mlr3filters)
-library(ggplot2)
-
 
 source("import.R")
 
 # DATA -------------------------------------------------------------------------
 
+# ground truthing
 plot(gt[1])
 
-data = dt
+# input table
+input
+
+# Overview ---------------------------------------------------------------------
+
+# Possible tasks
+mlr_reflections$task_types # task types available
 
 
 
 # CREATE TASK ------------------------------------------------------------------
-# data = as.data.table.raster(vh, xy = TRUE, inmem = F)
 
-?TaskClassifST
-
-task_slangbos = TaskClassifST$new(id = "slangbos", backend = data, target = "class",
+task_slangbos = TaskClassifST$new(id = "slangbos", backend = input, target = "class",
                                   coordinate_names = c("x", "y"),
                                   crs = "+proj=utm +zone=35 +south +datum=WGS84 +units=m +no_defs")
-
-
-
-# Opportunities
-mlr_reflections$task_types # task types available
 mlr_reflections$task_col_roles$classif # var roles for classification
 
-
 # inspect
-tail(task_slangbos$backend$colnames)
+task_slangbos$backend$colnames
+task_slangbos$ncol
 task_slangbos$class_names
 task_slangbos$properties
-task_slangbos$ncol
-task_slangbos$backend$colnames
+
 task_slangbos$task_type
 task_slangbos$class_names
-task_slangbos$positive
-task_slangbos$negative
 task_slangbos$coordinate_names
 
-autoplot(task_slangbos)
+autoplot(task_slangbos) # distribution of samples
+
 
 # CREATE LEARNER ---------------------------------------------------------------
 
-learner = lrn("classif.ranger", predict_type = "response")
+learner = lrn("classif.ranger", predict_type = "prob")
 
-# set hyperparameters
+# set built-in filter & hyperparameters
 learner$param_set$values = list(num.trees =500L, mtry = 4)
-# Now you can use the mlr3filters::FilterImportance class for algorithm-embedded methods to filter a Task.
+learner
+
+# optional: FILTERING
+local({
+   filter = flt("importance", learner = learner)
+filter$calculate(task_slangbos)
+a = as.data.table(filter)
+
+head(as.data.table(filter), 50)
+tail(as.data.table(filter), 50)
+
+b = substr(a$feature, start = 1,stop = 3) %>%
+    as.factor()
+
+
+plot(x = a$score, pch = 16, col = as.factor(b))
+})
 
 # RESAMPLE ---------------------------------------------------------------------
 
 future::plan("multiprocess")
 
+as.data.table(mlr_resamplings) # error
 mlr_resamplings
-resampling = rsmp("repeated-spcv-coords", folds = 10, repeats = 5)
 
-# resampling
-rr = mlr3::resample(task_slangbos, learner, resampling, store_models = T)
+# setup resampling task
+resampling = rsmp("repeated-spcv-coords", folds = 10L, repeats = 10L)
+resampling$instantiate(task_slangbos)
+resampling$iters
 
-rr$aggregate()
+# splitting task in train and test
+str(resampling$train_set(1))
+str(resampling$test_set(1))
+
+# run: TIME INTENSIVE
+rr = mlr3::resample(task_slangbos, learner, resampling, store_models = TRUE)
+
+### results
+mlr_measures
 rr$aggregate(measures = msr("classif.acc"))
-
+rr$aggregate()
 rr$score(msr("classif.acc"))
 
-pred = rr$prediction()
+### plotting resampling results
+# spatial cross-validation Brenning et al.
+autoplot(resampling, task_slangbos)
 
-pred$confusion
-
-# plotting resampling results:
+# metrics
 autoplot(rr)
-autoplot(pred)
+autoplot(rr, type = "histogram", bins = 30L)
 
-
-# TRAIN ------------------------------------------------------------------------
-learner$train(task_slangbos)
-
-
-# PREDICT ----------------------------------------------------------------------
+# PREDICT ON TEST --------------------------------------------------------------
 # learner$predict_type = "prob"
 
-p = learner$predict(task_slangbos)
-autoplot(p, type = pair)
+pred_test = rr$prediction()
 
-?autoplot.PredictionClassif()
+head(fortify(pred_test))
+
+as.data.table(pred_test)
+
+pred_test$confusion
+pred_test$prob
+pred_test$response
+
+### results
+pred_test$score(msr("classif.acc"))
+autoplot(pred_test)
+
+autoplot(pred_test)
+
+# TRAIN ------------------------------------------------------------------------
+
+learner$train(task_slangbos)
+print(learner$model)
+
+# PREDICT ----------------------------------------------------------------------
+
+# Piped version, easier:
+# pred = learner$train(task_slangbos)$predict(task_slangbos)
+
+# get data
+newdata = input
+
+pred = learner$predict_newdata(task = task_slangbos,
+                               newdata = newdata)
+pred$confusion
+pred_test$prob
+pred_test$response
 
 
-
-# FILTER -----------------------------------------------------------------------
-filter = flt("importance", learner = lrn)
-filter$calculate(task)
-head(as.data.table(filter), 3)
-
-
-learner = lrn("classif.ranger", importance = "impurity")
-# Now you can use the mlr3filters::FilterImportance class for algorithm-embedded methods to filter a Task.
-task = tsk("iris")
-filter = flt("importance", learner = lrn)
-filter$calculate(task)
-head(as.data.table(filter), 3)
+### Stats on the prediction
+autoplot(pred)
+head(as.data.table(pred))
 
 # EXPORT -----------------------------------------------------------------------
 
-result_xy = cbind(pred, raster_input$x, raster_input$y) %>%
-    as.data.frame() %>%
-    dplyr::select(x = "raster_input$x", y = "raster_input$y", class = response)
+output = data.table::as.data.table(pred)
 
-# sf for coordnate system
-out_sf = st_as_sf(result_xy, coords = c("x", "y"))
-st_crs(out_sf) = 32735
+newdata$x
+newdata$y
 
-# to sp for gridding, functionality is not yet found in sf... st_rasterize may work in `stars`
-out_sp = as(out_sf, "Spatial")
-gridded(out_sp) = TRUE
-class(out_sp)
 
-outfile = raster(out_sp) %>%
-    trim()
+exporting(output = output, input = newdata, filepath = paste0(path_prediction, "02-11_training"))
 
-writeRaster(outfile, filename = paste0(prediction_out_path, "0121_prediction_rf_crop"),
-            format="GTiff", datatype='INT1U', overwrite=TRUE, na.rm=TRUE)
+#' input needs to have coordinates stored as "x" and "y"
+#' output is data.table
+
+# not yet functioning...
+
+exporting = function(output, input, filepath){
+
+    # bind coords on data.table
+    out5 = cbind(output, x = input$x, y = input$y)
+
+    # make sf coords
+    out4 = st_as_sf(out5, coords = c("x", "y"))
+
+    # set crs
+    st_crs(out4) = 32735
+
+    # to sp for gridding, functionality is not yet found in sf... st_rasterize may work in `stars`
+    out3 = as(out4, "Spatial")
+
+    # gridding
+    gridded(out3) = TRUE
+    class(out3)
+
+    outfile = stack(out3) %>%
+        trim()
+
+    writeRaster(outfile, filename = paste0(prediction_out_path, filepath, "tif"),
+                format="GTiff", datatype='FLT4S', overwrite=TRUE, na.rm=TRUE)
+}

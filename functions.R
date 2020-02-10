@@ -433,13 +433,13 @@ as.data.table.raster <- function(x, row.names = NULL, optional = FALSE, xy=FALSE
     }
 }
 
-if (!isGeneric("as.data.table")) {
-    setGeneric("as.data.table", function(x, ...)
-        standardGeneric("as.data.table"))
-}
-
-setMethod('as.data.table', signature(x='data.frame'), data.table::as.data.table)
-setMethod('as.data.table', signature(x='Raster'), as.data.table.raster)
+# if (!isGeneric("as.data.table")) {
+#     setGeneric("as.data.table", function(x, ...)
+#         standardGeneric("as.data.table"))
+# }
+#
+# setMethod('as.data.table', signature(x='data.frame'), data.table::as.data.table)
+# setMethod('as.data.table', signature(x='Raster'), as.data.table.raster)
 
 ################################################################################
 # remove cloud layers from brick within the given fraction ---------------------
@@ -497,7 +497,7 @@ bind_task = function(input1, input2, input3){
 
     # warnings
     if (sum(is.na(out)) != 0L){warning("please remove all NA from the input layers")}
-    if (!class(dt$class) == "factor"){
+    if (!class(out$class) == "factor"){
         warning("class needs to be a factor!")
     }
 
