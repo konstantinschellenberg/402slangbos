@@ -15,21 +15,19 @@ library(gdalUtils)
 library(ggplot2)
 library(data.table)
 
-library(mlr3)
-library(mlr3viz)
-library(mlr3learners)
+library(mlr3verse)
 library(precrec)
 library(mlr3spatiotempcv)
-library(mlr3filters)
 library(parallelMap)
+
 
 ################################################################################
 # Import paths -----------------------------------------------------------------
 ################################################################################
 
 # raw data
-s1vv_path = "D:/Geodaten/#Jupiter/GEO402/01_data/s1_data/S1_A_D_VV_free_state_study_area_geo402.tif"
-s1vh_path = "D:/Geodaten/#Jupiter/GEO402/01_data/s1_data/S1_A_D_VH_free_state_study_area_geo402.tif"
+s1vv_path = "D:/Geodaten/#Jupiter/GEO402/01_data/s1_data/S1_A_D_VH_free_state_study_area_geo402.tif"
+s1vh_path = "D:/Geodaten/#Jupiter/GEO402/01_data/s1_data/S1_A_D_VH_free_state_study_area_geo402_fillna_crop.tif"
 old_s1 = "D:/Geodaten/#Jupiter/GEO402/01_data/s1_data/S1_A_D_VH_free_state_study_area_geo402" #-14, -17, -62 invalid!
 s2red = "D:/Geodaten/#Jupiter/GEO402/01_data/s2/red_less20_gapfilled_realdates_spline.tif"
 s2nir = "D:/Geodaten/#Jupiter/GEO402/01_data/s2/nir_less20_gapfilled_realdates_spline.tif"

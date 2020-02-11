@@ -2,10 +2,28 @@
 
 source("import.R")
 
-vv1 = vv[[1]]
-vh1 = vh[[1]]
+rgdal::GDALinfo(s1vh_path)
 
-ratio2 = system.time(raster::calc(vv1, fun = x - vh1))
+# fill no-data `raster`---------------------------------------------------------
+df = data.frame(id = NA, v=-30)
 
-# batch calculation
-ratio_brick = vv - vh
+# doesn't work: . . .
+# subs(vh, df, filename = paste0(path_s1, "S1_A_D_VH_free_state_study_area_geo402_filled.tif"))
+
+mean(vh[[1]])
+
+# fill no-data `gdal`-----------------------------------------------------------
+
+gdalUtils::gdalinfo(s1vh_path)
+
+gdalUtils::gdalbuildvrt(gdalfile = s1vh_path,
+                        output.vrt = path_vrt,
+                        overwrite = TRUE,
+                        a_srs = "+proj=utm +zone=35 +south +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0",
+                        srcnodata = -99,
+                        vrtnodata = -10L)
+
+gdalUtils::gdal_translate(src_dataset = path_vrt,
+                          dst_dataset = paste0(path_s1, "S1_A_D_VH_free_state_study_area_geo402_fillna.tif"),
+                          a_nodata = 0L)
+

@@ -205,21 +205,6 @@ system.time(write_stars(s2.ndvi, dsn = paste0(development_path, "/s2/ndvi3.tif")
 # raster
 s2.ndvi = system.time(calc(s, func.ndvi, filename = paste0(development_path, "/s2/ndvi3.tif")))
 
-# small extent raster ----------------------------------------------------------
-
-
-# creating small extents
-st_bbox(smaller_extent)
-
-gdalUtils::gdalbuildvrt(gdalfile = s1vh_path,
-                        output.vrt = path_vrt,
-                        separate = FALSE,
-                        overwrite = TRUE, te = st_bbox(smaller_extent))
-
-
-gdalUtils::gdal_translate(src_dataset = path_vrt,
-                          dst_dataset = paste0(path_s1, "vh_small.tif"),)
-
 # Interpolating clouds with sinkr ----------------------------------------------
 # < 5% cloud cover wants to be interpolated: Then, far more vars available
 # DINEOF
@@ -236,12 +221,6 @@ t.out <- RES2$Xa
 t.filled = raster(t.out)
 plot(t.filled)
 writeRaster(t.filled, paste0(path_s2, "test_data/dineof_result2.tif"))
-
-
-
-
-
-
 
 # CLOUD FILTERING --------------------------------------------------------------
 # filter for cloud coverness <20%-----------------------------------------------

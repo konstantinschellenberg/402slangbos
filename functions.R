@@ -566,3 +566,32 @@ warp_tiles = function(raster, extent, outname){
                               dst_dataset = paste0(path_s2, outname, ".tif"),
                               overwrite = TRUE)
 }
+
+################################################################################
+# for export of classification product
+################################################################################
+
+exporting = function(output, input, filepath){
+
+    # bind coords on data.table
+    out5 = cbind(output, x = input$x, y = input$y)
+
+    # make sf coords
+    out4 = st_as_sf(out5, coords = c("x", "y"))
+
+    # set crs
+    st_crs(out4) = 32735
+
+    # to sp for gridding, functionality is not yet found in sf... st_rasterize may work in `stars`
+    out3 = as(out4, "Spatial")
+
+    # gridding
+    gridded(out3) = TRUE
+    class(out3)
+
+    outfile = stack(out3) %>%
+        trim()
+
+    writeRaster(outfile, filename = paste0(filepath, ".tif"),
+                format="GTiff", datatype='FLT4S', overwrite=TRUE, na.rm=TRUE)
+}

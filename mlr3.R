@@ -10,15 +10,25 @@ source("import.R")
 # ground truthing
 plot(gt[1])
 
-# input table
-input
+# input tables
+input = as.data.table(readRDS(paste0(path_developement, "rda/input.rds"))) %>% dplyr::select(contains("vh"), "x", "y", "class")
+# newdata = readRDS(paste0(path_developement, "rda/newdata_datatable.rds"))
+newdata.split1 = readRDS(paste0(path_developement, "rda/newdata_split1_datatable.rds")) %>% dplyr::select(contains("vh"), "x", "y")
+newdata.split2 = readRDS(paste0(path_developement, "rda/newdata_split2_datatable.rds"))
+
 
 # Overview ---------------------------------------------------------------------
 
 # Possible tasks
 mlr_reflections$task_types # task types available
+# inspect
+task_slangbos$backend$colnames
+task_slangbos$ncol
+task_slangbos$class_names
+task_slangbos$properties
 
-
+task_slangbos$task_type
+task_slangbos$coordinate_names
 
 # CREATE TASK ------------------------------------------------------------------
 
@@ -27,48 +37,38 @@ task_slangbos = TaskClassifST$new(id = "slangbos", backend = input, target = "cl
                                   crs = "+proj=utm +zone=35 +south +datum=WGS84 +units=m +no_defs")
 mlr_reflections$task_col_roles$classif # var roles for classification
 
-# inspect
-task_slangbos$backend$colnames
-task_slangbos$ncol
-task_slangbos$class_names
-task_slangbos$properties
-
-task_slangbos$task_type
-task_slangbos$class_names
-task_slangbos$coordinate_names
-
 autoplot(task_slangbos) # distribution of samples
 
 
 # CREATE LEARNER ---------------------------------------------------------------
 
-learner = lrn("classif.ranger", predict_type = "prob")
+learner = lrn("classif.ranger", predict_type = "response")
 
 # set built-in filter & hyperparameters
-learner$param_set$values = list(num.trees =500L, mtry = 4)
+learner$param_set$values = list(num.trees =500L, mtry = 4, importance = "impurity")
 learner
 
 # optional: FILTERING
 local({
-   filter = flt("importance", learner = learner)
-filter$calculate(task_slangbos)
-a = as.data.table(filter)
+    filter = flt("importance", learner = learner)
+    filter$calculate(task_slangbos)
+    a = as.data.table(filter)
 
-head(as.data.table(filter), 50)
-tail(as.data.table(filter), 50)
+    head(as.data.table(filter), 50)
+    tail(as.data.table(filter), 50)
 
-b = substr(a$feature, start = 1,stop = 3) %>%
-    as.factor()
+    b = substr(a$feature, start = 1,stop = 3) %>%
+        as.factor()
 
 
-plot(x = a$score, pch = 16, col = as.factor(b))
+    plot(x = a$score, pch = 16, col = as.factor(b))
 })
 
 # RESAMPLE ---------------------------------------------------------------------
 
-future::plan("multiprocess")
+future::plan("multiprocess") # anmerkung: future::plan turns over order of logging in the resample algorithm! -> Patrick S sagen
 
-as.data.table(mlr_resamplings) # error
+as.data.table(mlr_resamplings) # error -> report Patrick S
 mlr_resamplings
 
 # setup resampling task
@@ -82,6 +82,13 @@ str(resampling$test_set(1))
 
 # run: TIME INTENSIVE
 rr = mlr3::resample(task_slangbos, learner, resampling, store_models = TRUE)
+
+# save result:
+c = 0
+if (c == 1) {
+    write_rds(rr, paste0(path_developement, "rda/ResamplingResult.rds"))
+    rr_vh = readRDS("D:/Geodaten/#Jupiter/GEO402/03_develop/rf_acc/ResamplingResultVH.rds")
+}
 
 ### results
 mlr_measures
@@ -114,8 +121,6 @@ pred_test$response
 pred_test$score(msr("classif.acc"))
 autoplot(pred_test)
 
-autoplot(pred_test)
-
 # TRAIN ------------------------------------------------------------------------
 
 learner$train(task_slangbos)
@@ -126,12 +131,9 @@ print(learner$model)
 # Piped version, easier:
 # pred = learner$train(task_slangbos)$predict(task_slangbos)
 
-# get data
-newdata = newdata
-
-
 pred = learner$predict_newdata(task = task_slangbos,
-                               newdata = newdata)
+                               newdata = newdata.split1)
+
 pred$confusion
 pred_test$prob
 pred_test$response
@@ -143,40 +145,10 @@ head(as.data.table(pred))
 
 # EXPORT -----------------------------------------------------------------------
 
-output = data.table::as.data.table(pred)
+output = data.table::as.data.table(pred_test)
 
 newdata$x
 newdata$y
 
 
-exporting(output = output, input = newdata, filepath = paste0(path_prediction, "02-11_training"))
-
-#' input needs to have coordinates stored as "x" and "y"
-#' output is data.table
-
-# not yet functioning...
-
-exporting = function(output, input, filepath){
-
-    # bind coords on data.table
-    out5 = cbind(output, x = input$x, y = input$y)
-
-    # make sf coords
-    out4 = st_as_sf(out5, coords = c("x", "y"))
-
-    # set crs
-    st_crs(out4) = 32735
-
-    # to sp for gridding, functionality is not yet found in sf... st_rasterize may work in `stars`
-    out3 = as(out4, "Spatial")
-
-    # gridding
-    gridded(out3) = TRUE
-    class(out3)
-
-    outfile = stack(out3) %>%
-        trim()
-
-    writeRaster(outfile, filename = paste0(prediction_out_path, filepath, "tif"),
-                format="GTiff", datatype='FLT4S', overwrite=TRUE, na.rm=TRUE)
-}
+exporting(output = output, input = input, filepath = paste0(path_prediction, "02-11_rr_vh"))

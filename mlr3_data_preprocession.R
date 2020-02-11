@@ -10,7 +10,6 @@ source("import.R")
 getOption("max.print")
 options(max.print = 1000)
 
-
 ######################################################################
 # Training Dataset
 ######################################################################
@@ -55,6 +54,9 @@ nir_input = readRDS(paste0(rds_path, "learning_input_nir.rds"))
 # merge data.frames, find out with cols are dublicates, coords and class column only once
 
 input = bind_task(vh_input, red_input, nir_input)
+write_rds(input, path = paste0(path_developement, "rda/input.rds"))
+
+input = readRDS(paste0(path_developement, "rda/input.rds"))
 
 ######################################################################
 # Prediction Dataset
@@ -91,8 +93,11 @@ tr4
 
 tr = list(tr1, tr2, tr3, tr4)
 
+## Wrapper for gdal translate:
+# params: raster, extent(tr=list of extents in format: xmin, ymin, xmax, ymax), filename
+
 # batch processing, run with b = 1
-b = 0
+b = 1
 
 if (b ==1){
     for (i in seq_along(tr)){
@@ -116,4 +121,62 @@ lb_vh = as.data.table.raster(lb_vh.in, xy = TRUE, inmem = FALSE)
 lb_red = as.data.table.raster(lb_red.in, xy = TRUE, inmem = FALSE)
 lb_nir = as.data.table.raster(lb_nir.in, xy = TRUE, inmem = FALSE)
 
-newdata = bind_newdata(lb_vh, lb_red, lb_nir)
+write_rds(lb_vh, path = paste0(path_developement, "rda/vh_datatable.rds"))
+write_rds(lb_red, path = paste0(path_developement, "rda/red_datatable.rds"))
+write_rds(lb_nir, path = paste0(path_developement, "rda/nir_datatable.rds"))
+
+input1 = readRDS(paste0(path_developement, "rda/vh_datatable.rds"))
+input2 = readRDS(paste0(path_developement, "rda/red_datatable.rds"))
+input3 = readRDS(paste0(path_developement, "rda/nir_datatable.rds"))
+
+newdata = as.data.table(bind_newdata(input1, input2, input3))
+
+write_rds(newdata, path = paste0(path_developement, "rda/newdata_datatable.rds"))
+
+
+
+# loading and subsetting newdata -----------------------------------------------
+newdata = readRDS(paste0(path_developement, "rda/newdata_datatable.rds"))
+class(newdata)
+
+a = as.data.table(newdata)
+
+begin = 1
+half = length(rownames(a))/2
+end = length(rownames(a))
+
+newdata.split1 = a[half:end,]
+newdata.split2 = a[begin:half,]
+
+write_rds(newdata.split1, path = paste0(path_developement, "rda/newdata_split1_datatable.rds"))
+write_rds(newdata.split2, path = paste0(path_developement, "rda/newdata_split2_datatable.rds"))
+
+### read
+newdata.split1 = readRDS(paste0(path_developement, "rda/newdata_split1_datatable.rds"))
+newdata.split2 = readRDS(paste0(path_developement, "rda/newdata_split2_datatable.rds"))
+
+
+# double-check variables (columns) with input ----------------------------------
+
+a = colnames(newdata.split1)
+b = colnames(newdata.split2)
+i = colnames(input)
+
+# check NA
+if (sum(is.na(input)) != 0L){warning("please remove all NA from the input layers")}
+
+# get differetiating cols
+unique(i[!i %in% a])
+
+# check if identical when class is omitted
+identical(a, i[1:length(i)-1])
+
+
+# originally from mlr3.R
+input = as.data.table(readRDS(paste0(path_developement, "rda/input.rds"))) %>% dplyr::select(contains("vh"), "x", "y", "class")
+# newdata = readRDS(paste0(path_developement, "rda/newdata_datatable.rds"))
+newdata.split1 = readRDS(paste0(path_developement, "rda/newdata_split1_datatable.rds")) %>% dplyr::select(contains("vh"), "x", "y")
+newdata.split2 = readRDS(paste0(path_developement, "rda/newdata_split2_datatable.rds"))
+
+length(input)
+length(newdata.split1)
