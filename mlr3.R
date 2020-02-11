@@ -127,7 +127,8 @@ print(learner$model)
 # pred = learner$train(task_slangbos)$predict(task_slangbos)
 
 # get data
-newdata = input
+newdata = newdata
+
 
 pred = learner$predict_newdata(task = task_slangbos,
                                newdata = newdata)

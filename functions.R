@@ -520,3 +520,49 @@ bind_task = function(input1, input2, input3){
     # which(is.na(dt2))
     # tibble::enframe(names(out)) %>% count(value) %>% filter(n > 1) # check if columns are duplicates!
 }
+
+################################################################################
+# similar to bind_task but can coerce newdata tasks with data.tables
+################################################################################
+
+bind_newdata = function(input1, input2, input3){
+
+    # keep coords
+    coords = input1 %>%
+        transmute(x, y)
+
+    out = bind_cols(input1, input2, input3) %>%
+        dplyr::select(-contains("x"), -contains("y")) %>%
+        mutate(., x = coords$x, y = coords$y) # add them again
+
+    # warnings
+    if (!is.numeric(out$y)){
+        warning("add a coordinate column!")
+    }
+
+    # identify count of NAs in data frame
+    sum(is.na(out))
+
+    cat("number of variables:", "\n")
+    cat(length(names(out)))
+
+    return(out)
+}
+
+################################################################################
+# warps rasters to chunks which are easier to process
+################################################################################
+
+warp_tiles = function(raster, extent, outname){
+
+    # warp to smaller extent (4 tiles in total)
+    gdalUtils::gdalbuildvrt(gdalfile = raster,
+                            output.vrt = path_vrt,
+                            overwrite = TRUE,
+                            te = extent,
+                            a_srs = "+proj=utm +zone=35 +south +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0")
+
+    gdalUtils::gdal_translate(src_dataset = path_vrt,
+                              dst_dataset = paste0(path_s2, outname, ".tif"),
+                              overwrite = TRUE)
+}

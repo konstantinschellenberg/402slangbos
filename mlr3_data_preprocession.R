@@ -64,48 +64,56 @@ input = bind_task(vh_input, red_input, nir_input)
 # 4 extent instances for the prediction to fit into memory
 
 coords = st_bbox(study_area)
-x = (coords$xmax - coords$xmin) / 2 + coords$xmin
 
-xmax - ymax
+width = (coords$xmax - coords$xmin) / 2
+height = (coords$ymax - coords$ymin) / 2
 
-for (tr in coords)
-
-# warp to smaller extent (4 tiles in total)
-gdalUtils::gdalbuildvrt(gdalfile = s2red,
-                        output.vrt = path_vrt,
-                        overwrite = TRUE)
-
-gdalUtils::gdal_translate(src_dataset = path_vrt,
-                          dst_dataset = single.vrt[i],
-                          overwrite = TRUE,
-                          tr = )
+xmin = coords$xmin
+ymin = coords$ymin
+xmax = width + coords$xmin
+ymax = height + coords$ymin
 
 
-# red = as.data.table.raster(red_small, xy = TRUE)
-# nir = as.data.table.raster(nir_small, xy = TRUE)
+tr = cbind(xmin, ymin, xmax, ymax)
+tr2 = cbind(xmin = tr[,1], ymin = tr[,2] + height, xmax = tr[,3], ymax = tr[,4] + height)
+tr3 = cbind(xmin = tr[,1] + width, ymin = tr[,2], xmax = tr[,3] + width, ymax = tr[,4])
+tr4 = cbind(xmin = tr[,1] + width, ymin = tr[,2] + height, xmax = tr[,3] + width, ymax = tr[,4] + height)
 
-vh.in = as.data.table.raster(vh, xy = TRUE, inmem = FALSE)
-vv.in = as.data.table.raster(vv, xy = TRUE, inmem = FALSE)
+tr1 = c(tr)
+tr2 = c(tr2)
+tr3 = c(tr3)
+tr4 = c(tr4)
 
-#################### FUNCTION HERE
-# merge matrices, find out with cols are dublicates
-dts3 = as_tibble(cbind(vh.in, vv.in), .name_repair = "unique")
+tr1
+tr2
+tr3
+tr4
 
-# remove cols with x, y and class from the data frame, rename vars from the last binded data frame to x, y and class
-# e.g. -vh_x, -vh_y, -class...356, -class...557, class = class...758, -red_x, -red_y, x = nir_x, y = nir_y
-dts2 = dts3 %>%
-    .[,3:(length(.))] %>%
-    dplyr::select(-starts_with("x"), -starts_with("y")) %>%
-    cbind(dts3[,1:2]) %>%
-    dplyr::rename(x = starts_with("x"),
-                  y = starts_with("y"))
+tr = list(tr1, tr2, tr3, tr4)
 
-# remove cols with NA (prerequisit for random forest input)
-dts = dts2 %>%
-    as.data.frame() %>%
-    .[, colSums(is.na(.)) == 0] %>%
-    as.data.table()
+# batch processing, run with b = 1
+b = 0
 
-# number of variables:
-length(names(dts))
-class(dts)
+if (b ==1){
+    for (i in seq_along(tr)){
+
+        if(i==1){outname = "vh_leftbottom"} else if (i==2){outname = "vh_lefttop"}
+        else if (i==3){outname = "vh_rightbottom"} else if (i==4){outname = "vh_righttop"} else {warning("fail")}
+
+        warp_tiles(raster = s1vh_path, extent = tr[[i]], outname = outname)
+        print(i)
+        print(outname)
+        print(tr[[i]])
+    }
+}
+
+
+lb_vh.in = brick(paste0(path_s2, "vh_leftbottom.tif")) %>% rename_bandnames(option = 1, var_prefix = "vh", naming = olds1)
+lb_red.in = brick(paste0(path_s2, "red_leftbottom.tif")) %>% rename_bandnames(option = 3, var_prefix = "red", naming = paste0(path_s2, "bandnames_less20.txt"))
+lb_nir.in = brick(paste0(path_s2, "nir_leftbottom.tif")) %>% rename_bandnames(option = 3, var_prefix = "nir", naming = paste0(path_s2, "bandnames_less20.txt"))
+
+lb_vh = as.data.table.raster(lb_vh.in, xy = TRUE, inmem = FALSE)
+lb_red = as.data.table.raster(lb_red.in, xy = TRUE, inmem = FALSE)
+lb_nir = as.data.table.raster(lb_nir.in, xy = TRUE, inmem = FALSE)
+
+newdata = bind_newdata(lb_vh, lb_red, lb_nir)

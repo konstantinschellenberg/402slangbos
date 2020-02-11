@@ -43,6 +43,7 @@ path_vrt = paste0(path_developement, "s2/", "reflectance.vrt") # vrt path
 path_s2 = "D:/Geodaten/#Jupiter/GEO402/01_data/s2/"
 path_s1 = "D:/Geodaten/#Jupiter/GEO402/01_data/s1_data/"
 path_cm = "D:/Geodaten/#Jupiter/GEO402/01_data/s2/cm_crop/bin_mask_less20.tif"
+path_naming = paste0(path_s2, "bandnames_less20.txt")
 
 ################################################################################
 # Import and rename data -------------------------------------------------------
