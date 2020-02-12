@@ -12,56 +12,21 @@ library(plotly)
 # Data digesting----------------------------------------------------------------
 ################################################################################
 
-# get the pixel based data from the raster brick and the user polygons
-if (!file.exists("data/vv.rds")) {
-    vv = list_summaries(sentinel1_brick = s1vv,
-                        polygon = gt)
-    saveRDS(vv, "data/vv.rds")
-} else {
-    vv = readRDS("data/vv.rds")
-}
+vh.all = readRDS(paste0(path_rds, "gt_list_vh.rds"))
+vh.all
+plot(vh.all[["1"]][["1"]]$median)
 
-if (!file.exists("data/vh.rds")) {
-    vh = list_summaries(sentinel1_brick = s1vh,
-                        polygon = gt)
-    saveRDS(vh, "data/vh.rds")
-} else {
-    vh = readRDS("data/vh.rds")
-}
-
-# debug: check if different
-if(identical(vv$plot1_1$median,
-          vh$plot1_1$median)){
-    warning("the input raster are the same")
-}
-
-# violinplot
-rasterVis::bwplot(vh[[1:5]])
-
-################################################################################
-# Data digesting 2 new function ------------------------------------------------
-################################################################################
-
-gt_list = readRDS("D:\\Geodaten\\#Jupiter\\GEO402\\03_develop\\rda\\training_list.rds")
-
-df1 = gt_list[[1]][[1]]
-df2 = gt_list[[1]][[2]]
-#grepl listname 1: rbind -> aggregate information
-rbind(df1, df2)
+# substitude dates
+vh.all[["1"]][["1"]]$date %<>%
+    substr(start = 4, stop = 13) %>%
+    as.POSIXct(format = "%Y.%m.%d")
 
 ################################################################################
 # Plotting----------------------------------------------------------------------
 ################################################################################
 
-# raster
-# plot(s1vv[[1]],
-#      breaks = c(-25:-5),
-#      col = viridis(20),
-#      axes = TRUE
-# )
-#
-# # gt
-# plot(gt[1], main = "All gts", col = "red", border = "red", add = TRUE)
+plot(y = vh.all[["1"]][["1"]]$median, x = vh.all[["1"]][["1"]]$date)
+
 
 ### init for plotly-------------------------------------------------------------
 # overview plots-----------------------------------------------------------------

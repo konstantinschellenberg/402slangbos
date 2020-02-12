@@ -245,7 +245,5 @@ write_csv(as.data.frame(n), path = paste0(path_s2, "bandnames_less20.txt"))
 
 # remove layers at red and nir channel------------------------------------------
 
-red_small2 = red_small[[1:10]]
-
 remove_cloud_layers(x = red, outfile = "D:/Geodaten/#Jupiter/GEO402/01_data/s2/red_less20.tif", fraction = 0.2)
 remove_cloud_layers(x = nir, outfile = "D:/Geodaten/#Jupiter/GEO402/01_data/s2/nir_less20.tif", fraction = 0.2)

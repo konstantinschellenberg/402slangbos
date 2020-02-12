@@ -364,7 +364,7 @@ summary {
 
 <h1 class="title toc-ignore">Slangbos encroachment - Mini Paper</h1>
 <h4 class="author">Konstantin Schellenberg</h4>
-<h4 class="date">Februar 10, 2020</h4>
+<h4 class="date">Februar 12, 2020</h4>
 
 </div>
 
@@ -391,12 +391,13 @@ Preprocession has been done by Dr Marcel Urban (Friedrich Schiller University Je
 <div id="notes-for-methods" class="section level2">
 <h2><span class="header-section-number">2.1</span> notes for methods</h2>
 <ul>
-<li>Sentinel-2 scene with &gt;20% NA deleted</li>
-<li>cloud mask applied</li>
-<li>cropped to area extent</li>
-<li>band 4 (red):</li>
-<li>band 8 (near-infrared): true 10m resolution, bush have large contrast to vegetation</li>
-<li>ndvi</li>
+<li><p>Sentinel-2 scene with &gt;20% NA deleted</p></li>
+<li><p>cloud mask applied</p></li>
+<li><p>cropped to area extent</p></li>
+<li><p>band 4 (red):</p></li>
+<li><p>band 8 (near-infrared): true 10m resolution, bush have large contrast to vegetation</p></li>
+<li><p>ndvi</p></li>
+<li><p>Intelligent cloud gap filling performed via OTB::ImageTimeSeriesGapFilling<span class="citation">(Inglada 2016)</span>. Here, missing information of a cloud covered scene is been substitute by interpolated image response of the respective neighbor in time, 1 before and 1 after the acquisition.</p></li>
 </ul>
 <p>Training a learner means fitting a model to a given data set. Subsequently, we want to predict the label for new observations. These predictions are compared to the ground truth values in order to assess the predictive performance of the model. <a href="https://mlr3book.mlr-org.com/train-predict.html" class="uri">https://mlr3book.mlr-org.com/train-predict.html</a></p>
 </div>
@@ -421,6 +422,9 @@ Preprocession has been done by Dr Marcel Urban (Friedrich Schiller University Je
 </div>
 <div id="ref-Eldridge.2011">
 <p>Eldridge, David J., Matthew A. Bowker, Fernando T. Maestre, Erin Roger, James F. Reynolds, and Walter G. Whitford. 2011. “Impacts of Shrub Encroachment on Ecosystem Structure and Functioning: Towards a Global Synthesis.” <em>Ecology Letters</em> 14 (7): 709–22. <a href="https://doi.org/10.1111/j.1461-0248.2011.01630.x">https://doi.org/10.1111/j.1461-0248.2011.01630.x</a>.</p>
+</div>
+<div id="ref-otbgapfilling.2016">
+<p>Inglada, Jordi. 2016. “OTB Gapfilling, a Temporal Gapfilling for Image Time Series Library.” <a href="https://doi.org/10.5281/zenodo.45572">https://doi.org/10.5281/zenodo.45572</a>.</p>
 </div>
 <div id="ref-Ludwig.2019">
 <p>Ludwig, Marvin, Theunis Morgenthal, Florian Detsch, Thomas P. Higginbottom, Maite Lezama Valdes, Thomas Nauß, and Hanna Meyer. 2019. “Machine Learning and Multi-Sensor Based Modelling of Woody Vegetation in the Molopo Area, South Africa.” <em>Remote Sensing of Environment</em> 222: 195–203. <a href="https://doi.org/10.1016/J.RSE.2018.12.019">https://doi.org/10.1016/J.RSE.2018.12.019</a>.</p>

@@ -65,36 +65,29 @@ rename_bandnames = function(raster = NULL, option = 1, var_prefix = NULL, naming
     #' param. raster to be renames
     #' option. 1 = Sentinel-1, 2 = Sentinel-2 according to naming table, 3 = Sentinel-2 according to naming table small
     #' var_prefix. prefix of the raster bands
-    #' naming. Raster with header to provide band names or table.txt with layer names in rows
+    #' naming. table.txt with layer names in rows
 
     # Sentinel 1
     if (option == 1){ # S1 as provided by M. Urban (FSU Jena)
-        bandnames = names(naming)[-c(14, 17, 62)]
-        seq_begin = 13L
-        seq_end = 20L
-        print("Sentinel 1")
 
-        # iterate for date in column-names
-        for (i in bandnames){
-            date_in_bandnames = substr(bandnames,seq_begin,seq_end)
-        }
-
-
-    } else if (option == 2){ # S2 as provided by A. Hirner (DLR)
         date_in_bandnames = read.csv(file = naming, colClasses = "character") %>%
             .$bandname
-        print("Sentinel 2, large raster")
+        print("Sentinel 1")
+        }
 
+    else if (option == 2){ # S2 as provided by A. Hirner (DLR)
+        date_in_bandnames = read.csv(file = naming, colClasses = "character") %>%
+            .$bandname
+        print("Sentinel 2, with clouds")
+        }
 
-    } else if (option == 3){
+    else if (option == 3){
         date_in_bandnames = read.csv(file = naming, colClasses = "character") %>%
             .$n
         print("Sentinel 2, cloud filtered raster")
 
 
-    } else {
-        print("Unknow parsing option . . .")
-    }
+    } else {warning("Unknow parsing option . . .")}
 
     # convert date string into R date-time format
     date = c()
@@ -190,8 +183,8 @@ gt_from_raster = function(train_data = NULL,
     df_all = df_all[, -1]
     df_all$class = as_factor(df_all$class)
     names(outest) = unique(train_data[[response_col]])
-    saveRDS(df_all, paste0(rds_path, "learning_input_", outfile, ".rds"))
-    saveRDS(outest, paste0(rds_path, "gt_list_", outfile, ".rds"))
+    saveRDS(df_all, paste0(path_rds, "learning_input_", outfile, ".rds"))
+    saveRDS(outest, paste0(path_rds, "gt_list_", outfile, ".rds"))
 }
 
 
@@ -594,4 +587,17 @@ exporting = function(output, input, filepath){
 
     writeRaster(outfile, filename = paste0(filepath, ".tif"),
                 format="GTiff", datatype='FLT4S', overwrite=TRUE, na.rm=TRUE)
+}
+
+################################################################################
+# easy making chunks a dataframe and store on disk
+################################################################################
+
+save_chunk_to_dataframe = function(x, outfile, option, var_prefix, naming){
+
+    brick(x) %>%
+    rename_bandnames(option, var_prefix, naming) %>%
+    as.data.table.raster(xy = TRUE, inmem = FALSE) %>%
+    write_rds(path = outfile)
+
 }

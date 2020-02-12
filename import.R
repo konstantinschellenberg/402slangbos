@@ -4,7 +4,8 @@
 
 # Script to import and clean data
 
-options(digits = 4, max.print = 300)
+getOption("max.print")
+options(digits = 4, max.print = 1000)
 source("functions.R")
 
 library(tidyverse)
@@ -41,26 +42,20 @@ path_vrt = paste0(path_developement, "s2/", "reflectance.vrt") # vrt path
 path_s2 = "D:/Geodaten/#Jupiter/GEO402/01_data/s2/"
 path_s1 = "D:/Geodaten/#Jupiter/GEO402/01_data/s1_data/"
 path_cm = "D:/Geodaten/#Jupiter/GEO402/01_data/s2/cm_crop/bin_mask_less20.tif"
-path_naming = paste0(path_s2, "bandnames_less20.txt")
+path_naming_s2 = paste0(path_s2, "bandnames_less20.txt")
+path_naming_s1 = paste0(path_s1, "s1_bandnames.txt")
+path_rds = "D:/Geodaten/#Jupiter/GEO402/03_develop/rda/"
 
 ################################################################################
 # Import and rename data -------------------------------------------------------
 ################################################################################
 
-# where to write rds_files:
-rds_path = "D:/Geodaten/#Jupiter/GEO402/03_develop/rda/"
+vv = brick(s1vv_path) %>% rename_bandnames(option = 1, var_prefix = "vv", naming = path_naming_s1) # careful, not cloud cleaned!
+vh = brick(s1vh_path) %>% rename_bandnames(option = 1, var_prefix = "vh", naming = path_naming_s1)
 
-olds1 = brick(old_s1)
-vv = brick(s1vv_path) %>% rename_bandnames(option = 1, var_prefix = "vv", naming = olds1)
-vh = brick(s1vh_path) %>% rename_bandnames(option = 1, var_prefix = "vh", naming = olds1)
-
-red = brick(s2red) %>% rename_bandnames(option = 3, var_prefix = "red", naming = paste0(path_s2, "bandnames_less20.txt"))
-nir = brick(s2nir) %>% rename_bandnames(option = 3, var_prefix = "nir", naming = paste0(path_s2, "bandnames_less20.txt"))
-cm = brick(path_cm) %>%  rename_bandnames(option = 3, var_prefix = "cm", naming = paste0(path_s2, "bandnames_less20.txt"))
-
-# vh_small = brick(paste0(path_s1, "vh_small.tif")) %>% rename_bandnames(option = 2, var_prefix = "vh", naming = olds1)
-# red_small = brick(paste0(path_s2, "red_small.tif")) %>% rename_bandnames(option = 2, var_prefix = "red", naming = paste0(path_s2, "bandnames.txt"))
-# nir_small = brick(paste0(path_s2, "nir_small.tif")) %>% rename_bandnames(option = 2, var_prefix = "nir", naming = paste0(path_s2, "bandnames.txt"))
+red = brick(s2red) %>% rename_bandnames(option = 3, var_prefix = "red", naming = path_naming_s2)
+nir = brick(s2nir) %>% rename_bandnames(option = 3, var_prefix = "nir", naming = path_naming_s2)
+# cm = brick(path_cm) %>%  rename_bandnames(option = 3, var_prefix = "cm", naming = path_naming_s2)
 
 ################################################################################
 # Import Ground Truth-----------------------------------------------------------
@@ -73,5 +68,3 @@ study_area = st_read(path_gt, layer = "study_area", quiet = TRUE) %>%  # read in
 gt = st_read(path_gt, layer = "gt", quiet = TRUE) %>%  # read in
     st_transform(st_crs(vv)) %>%  # set crs(gt) to the crs(s1) brick.
     st_zm(drop = TRUE) # Remove Z-Dimension
-
-# gt_smaller = sf::st_crop(gt, st_bbox(extent_smaller))

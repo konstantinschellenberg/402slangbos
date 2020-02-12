@@ -1,5 +1,5 @@
 #' mlr3 version of slangbos classifiction
-#' benfit: can handle data.tables and is thus meant to fit in the memory
+#' benefit: can handle data.tables and is thus meant to fit in the memory
 #' https://mlr3spatiotempcv.mlr-org.com/articles/mlr3spatiotempcv.html
 
 
@@ -11,10 +11,22 @@ source("import.R")
 plot(gt[1])
 
 # input tables
-input = as.data.table(readRDS(paste0(path_developement, "rda/input.rds"))) %>% dplyr::select(contains("vh"), "x", "y", "class")
-# newdata = readRDS(paste0(path_developement, "rda/newdata_datatable.rds"))
-newdata.split1 = readRDS(paste0(path_developement, "rda/newdata_split1_datatable.rds")) %>% dplyr::select(contains("vh"), "x", "y")
-newdata.split2 = readRDS(paste0(path_developement, "rda/newdata_split2_datatable.rds"))
+input = as.data.table(readRDS(paste0(path_rds, "input.rds"))) %>%
+    dplyr::select(contains("red"), "x", "y", "class") %>%
+    dplyr::select(sort(names(.)))
+
+newdata.split1 = as.data.table(readRDS(paste0(path_rds, "newdata_split1_datatable.rds"))) %>%
+    dplyr::select(contains("red"), "x", "y") %>%
+    dplyr::select(sort(names(.)))
+
+newdata.split2 = readRDS(paste0(path_rds, "newdata_split2_datatable.rds")) %>%
+    dplyr::select(contains("vh"), "x", "y") %>%
+    dplyr::select(sort(names(.)))
+
+ncol(newdata.split1)
+ncol(input)
+
+task_slangbos$backend
 
 
 # Overview ---------------------------------------------------------------------
@@ -23,46 +35,48 @@ newdata.split2 = readRDS(paste0(path_developement, "rda/newdata_split2_datatable
 mlr_reflections$task_types # task types available
 # inspect
 task_slangbos$backend$colnames
-task_slangbos$ncol
+
 task_slangbos$class_names
 task_slangbos$properties
 
 task_slangbos$task_type
 task_slangbos$coordinate_names
 
+mlr_reflections$task_col_roles$classif # var roles for classification
+learner$param_set$ids()
+
+autoplot(task_slangbos) # distribution of samples
+
 # CREATE TASK ------------------------------------------------------------------
 
 task_slangbos = TaskClassifST$new(id = "slangbos", backend = input, target = "class",
                                   coordinate_names = c("x", "y"),
                                   crs = "+proj=utm +zone=35 +south +datum=WGS84 +units=m +no_defs")
-mlr_reflections$task_col_roles$classif # var roles for classification
-
-autoplot(task_slangbos) # distribution of samples
 
 
 # CREATE LEARNER ---------------------------------------------------------------
 
-learner = lrn("classif.ranger", predict_type = "response")
+learner = lrn("classif.ranger", predict_type = "prob")
 
 # set built-in filter & hyperparameters
-learner$param_set$values = list(num.trees =500L, mtry = 4, importance = "impurity")
-learner
+learner$param_set$values = list(num.trees =500L, mtry = 4)
 
-# optional: FILTERING
-local({
-    filter = flt("importance", learner = learner)
-    filter$calculate(task_slangbos)
-    a = as.data.table(filter)
+# optional: FILTERING ----------------------------------------------------------
 
-    head(as.data.table(filter), 50)
-    tail(as.data.table(filter), 50)
-
-    b = substr(a$feature, start = 1,stop = 3) %>%
-        as.factor()
-
-
-    plot(x = a$score, pch = 16, col = as.factor(b))
-})
+# local({
+#     filter = flt("importance", learner = learner)
+#     filter$calculate(task_slangbos)
+#     a = as.data.table(filter)
+#
+#     head(as.data.table(filter), 50)
+#     tail(as.data.table(filter), 50)
+#
+#     b = substr(a$feature, start = 1,stop = 3) %>%
+#         as.factor()
+#
+#
+#     plot(x = a$score, pch = 16, col = as.factor(b))
+# })
 
 # RESAMPLE ---------------------------------------------------------------------
 
@@ -128,15 +142,24 @@ print(learner$model)
 
 # PREDICT ----------------------------------------------------------------------
 
-# Piped version, easier:
-# pred = learner$train(task_slangbos)$predict(task_slangbos)
+#' * `predict_newdata(newdata, task = NULL)`\cr
+#'   (`data.frame()`, [Task]) -> [Prediction]\cr
+#'   Uses the model fitted during `$train()` in to create a new [Prediction] based on the new data in `newdata`.
+#'   Object `task` is the task used during `$train()` and required for conversions of `newdata`.
+#'   If the learner's `$train()` method has been called, there is a (size reduced) version of the training task stored in the learner.
+#'   If the learner has been fitted via [resample()] or [benchmark()], you need to pass the corresponding task stored
+#'   in the [ResampleResult] or [BenchmarkResult], respectively.
 
-pred = learner$predict_newdata(task = task_slangbos,
-                               newdata = newdata.split1)
+# Piped version, easier:
+# pred = learner$train(task_slangbos)$predict_newdata(newdata = newdata.split1)
+
+pred = learner$predict_newdata(newdata.split1)
+
+learner$help()
 
 pred$confusion
-pred_test$prob
-pred_test$response
+pred$prob
+pred$response
 
 
 ### Stats on the prediction
@@ -145,10 +168,10 @@ head(as.data.table(pred))
 
 # EXPORT -----------------------------------------------------------------------
 
-output = data.table::as.data.table(pred_test)
+output = data.table::as.data.table(pred)
 
 newdata$x
 newdata$y
 
 
-exporting(output = output, input = input, filepath = paste0(path_prediction, "02-11_rr_vh"))
+exporting(output = output, input = newdata.split1, filepath = paste0(path_prediction, "02-12_red"))
