@@ -71,7 +71,7 @@ rename_bandnames = function(raster = NULL, option = 1, var_prefix = NULL, naming
     if (option == 1){ # S1 as provided by M. Urban (FSU Jena)
 
         date_in_bandnames = read.csv(file = naming, colClasses = "character") %>%
-            .$bandname
+            .$.
         print("Sentinel 1")
         }
 

@@ -12,29 +12,30 @@ plot(gt[1])
 
 # input tables
 input = as.data.table(readRDS(paste0(path_rds, "input.rds"))) %>%
-    dplyr::select(contains("red"), "x", "y", "class") %>%
+    dplyr::select(contains(c("vh", "red", "nir")), "x", "y", "class") %>%
     dplyr::select(sort(names(.)))
 
-newdata.split1 = as.data.table(readRDS(paste0(path_rds, "newdata_split1_datatable.rds"))) %>%
-    dplyr::select(contains("red"), "x", "y") %>%
+newdata.split1 = as.data.table(readRDS(paste0(path_rds, file_descriptor, "_split1.rds"))) %>%
+    dplyr::select(contains(c("vh", "red", "nir")), "x", "y") %>%
     dplyr::select(sort(names(.)))
 
-newdata.split2 = readRDS(paste0(path_rds, "newdata_split2_datatable.rds")) %>%
-    dplyr::select(contains("vh"), "x", "y") %>%
+newdata.split2 = as.data.table(readRDS(paste0(path_rds, file_descriptor, "_split2.rds"))) %>%
+    dplyr::select(contains(c("vh", "red", "nir")), "x", "y") %>%
     dplyr::select(sort(names(.)))
 
-ncol(newdata.split1)
+ncol(newdata)
 ncol(input)
 
-task_slangbos$backend
-
-
-# Overview ---------------------------------------------------------------------
-
-# Possible tasks
+# CREATE TASK ------------------------------------------------------------------
 mlr_reflections$task_types # task types available
-# inspect
+task_slangbos = TaskClassifST$new(id = "slangbos", backend = input, target = "class",
+                                  coordinate_names = c("x", "y"),
+                                  crs = "+proj=utm +zone=35 +south +datum=WGS84 +units=m +no_defs")
+
+# inspect task -----------------------------------------------------------------
+
 task_slangbos$backend$colnames
+task_slangbos$backend
 
 task_slangbos$class_names
 task_slangbos$properties
@@ -46,37 +47,31 @@ mlr_reflections$task_col_roles$classif # var roles for classification
 learner$param_set$ids()
 
 autoplot(task_slangbos) # distribution of samples
-
-# CREATE TASK ------------------------------------------------------------------
-
-task_slangbos = TaskClassifST$new(id = "slangbos", backend = input, target = "class",
-                                  coordinate_names = c("x", "y"),
-                                  crs = "+proj=utm +zone=35 +south +datum=WGS84 +units=m +no_defs")
-
-
 # CREATE LEARNER ---------------------------------------------------------------
 
-learner = lrn("classif.ranger", predict_type = "prob")
+learner = lrn("classif.ranger", predict_type = "response")
 
 # set built-in filter & hyperparameters
-learner$param_set$values = list(num.trees =500L, mtry = 4)
+learner$param_set$values = list(num.trees =500L, mtry = 4, importance = "impurity")
+learner
 
 # optional: FILTERING ----------------------------------------------------------
 
-# local({
-#     filter = flt("importance", learner = learner)
-#     filter$calculate(task_slangbos)
-#     a = as.data.table(filter)
-#
-#     head(as.data.table(filter), 50)
-#     tail(as.data.table(filter), 50)
-#
-#     b = substr(a$feature, start = 1,stop = 3) %>%
-#         as.factor()
-#
-#
-#     plot(x = a$score, pch = 16, col = as.factor(b))
-# })
+local({
+
+    filter = flt("importance", learner = learner)
+    filter$calculate(task_slangbos)
+
+
+    head(as.data.table(filter), 50)
+    tail(as.data.table(filter), 50)
+
+    a = as.data.table(filter)
+    b = substr(a$feature, start = 1,stop = 3) %>%
+        as.factor()
+
+    plot(x = a$score, pch = 16, col = as.factor(b))
+})
 
 # RESAMPLE ---------------------------------------------------------------------
 
@@ -86,9 +81,10 @@ as.data.table(mlr_resamplings) # error -> report Patrick S
 mlr_resamplings
 
 # setup resampling task
-resampling = rsmp("repeated-spcv-coords", folds = 10L, repeats = 10L)
+resampling = rsmp("repeated-spcv-coords", folds = 6L, repeats = 10L)
 resampling$instantiate(task_slangbos)
 resampling$iters
+resampling$
 
 # splitting task in train and test
 str(resampling$train_set(1))
@@ -100,8 +96,8 @@ rr = mlr3::resample(task_slangbos, learner, resampling, store_models = TRUE)
 # save result:
 c = 0
 if (c == 1) {
-    write_rds(rr, paste0(path_developement, "rda/ResamplingResult.rds"))
-    rr_vh = readRDS("D:/Geodaten/#Jupiter/GEO402/03_develop/rf_acc/ResamplingResultVH.rds")
+    write_rds(rr, paste0(path_developement, "rf_acc/ResamplingResult_vrn.rds"))
+    rr_vh = readRDS(paste0(path_developement, "rf_acc/ResamplingResult_vrn.rds"))
 }
 
 ### results
@@ -118,9 +114,8 @@ autoplot(resampling, task_slangbos)
 autoplot(rr)
 autoplot(rr, type = "histogram", bins = 30L)
 
-# PREDICT ON TEST --------------------------------------------------------------
-# learner$predict_type = "prob"
 
+# PREDICT ON TEST --------------------------------------------------------------
 pred_test = rr$prediction()
 
 head(fortify(pred_test))
@@ -152,10 +147,10 @@ print(learner$model)
 
 # Piped version, easier:
 # pred = learner$train(task_slangbos)$predict_newdata(newdata = newdata.split1)
+# ------------------------------------------------------------------------------
 
-pred = learner$predict_newdata(newdata.split1)
 
-learner$help()
+pred = learner$predict_newdata(task = task_slangbos, newdata = newdata)
 
 pred$confusion
 pred$prob
@@ -170,8 +165,4 @@ head(as.data.table(pred))
 
 output = data.table::as.data.table(pred)
 
-newdata$x
-newdata$y
-
-
-exporting(output = output, input = newdata.split1, filepath = paste0(path_prediction, "02-12_red"))
+exporting(output = output, input = newdata.split2, filepath = paste0(path_prediction, "02-12_rightbottom_split1_red_nir_vh"))

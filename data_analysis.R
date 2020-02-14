@@ -1,41 +1,36 @@
+# test set for calculation
+
+
+source("import.R")
+
+file = vh
+
 ###########################################################
 # Calculation of 5th and 95th Percentiles
 ###########################################################
 
-library(stars)
+func_5th_perc = function(x, na.rm = TRUE) {
+    quantile(x, probs = .05, na.rm=TRUE)
+}
 
-file = vh
 
-# calculation of 5th percentile of data stack
-# define function to calculate 5th percentile
-func_5th_perc = function(x, na.rm=TRUE) {quantile(x, probs = c(.05), na.rm=TRUE)}
+
+func_95th_perc = function(x, na.rm = TRUE) {
+    quantile(x, probs = .95, na.rm=TRUE)
+}
+
 
 # calulate 5th percentile
-perc_5 <- calc(file, fun=func_5th_perc, na.rm=TRUE)
-
-# calculation of 95th percentile of data stack
-# define function to calculate 95th percentile
-func_95th_perc = function(x, na.rm=TRUE) {quantile(x, probs = c(.95), na.rm=TRUE)}
+perc_5 = calc(file, fun=func_5th_perc, na.rm=TRUE)
+writeRaster(perc_5, paste0(path_developement, "multitemp/perc_5_test.tif"), overwrite = TRUE)
 
 # calulate 95th percentile
-perc_95 <- calc(file, fun=func_95th_perc, na.rm=TRUE)
-
-
-# calc action
-test = brick(vh[[1:5]])
-test_stack = vh[[1:5]]
-
-raster::inMemory(test)
-
-perc_5 <- calc(test, fun=func_5th_perc, na.rm=TRUE)
-plot(perc_5)
-writeRaster(perc_5, paste0(path_developement, "multitemp/perc_5_test.tif"))
+perc_95 = calc(file, fun=func_95th_perc, na.rm=TRUE)
+writeRaster(perc_95, paste0(path_developement, "multitemp/perc_95_test.tif"), overwrite = TRUE)
 
 ###########################################################
 # Calculation of slope and intercept in time series
 ###########################################################
-
-
 ### A much (> 100 times) faster approach is to directly use
 ### linear algebra and pre-compute some constants
 
@@ -52,6 +47,30 @@ quickfun <- function(y) (invXtX %*% y)
 
 # where [1] is intercept and [2] is slope
 out <- calc(file, quickfun)
+writeRaster(out, paste0(path_developement, "/multitemp/intercept_vh.tif"))
 
 plot(out[[1]], main = "intercept")
 
+# other regression models (slower)
+
+subset = vh[[1:4]]
+
+instances = 1:nlayers(subset)
+fun = function(x) {
+    lm(x ~ instances)
+}
+
+out = calc(subset, fun)
+
+
+# SAR Index --------------------------------------------------------------------
+
+# σ0 (dB) = 10*log10 (abs (σ0))
+# Umkehrung: linear = 10^db
+
+a = vv
+b = vh
+
+# ratio1 = log10(10^a / 10^b)
+ratio = a - b
+writeRaster(ratio, filename = paste0(path_s1, "vv_vh_ratio"), format = "ENVI", overwrite = T)

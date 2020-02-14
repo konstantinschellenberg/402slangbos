@@ -20,6 +20,7 @@ library(mlr3verse)
 library(precrec)
 library(mlr3spatiotempcv)
 library(parallelMap)
+library(rasterVis)
 
 
 ################################################################################
@@ -27,8 +28,8 @@ library(parallelMap)
 ################################################################################
 
 # raw data
-s1vv_path = "D:/Geodaten/#Jupiter/GEO402/01_data/s1_data/S1_A_D_VH_free_state_study_area_geo402.tif"
-s1vh_path = "D:/Geodaten/#Jupiter/GEO402/01_data/s1_data/S1_A_D_VH_free_state_study_area_geo402_fillna_crop.tif"
+s1vv_path = "D:/Geodaten/#Jupiter/GEO402/01_data/s1_data/S1_A_D_VV_free_state_study_area_geo402_fillna_crop"
+s1vh_path = "D:/Geodaten/#Jupiter/GEO402/01_data/s1_data/S1_A_D_VH_free_state_study_area_geo402_fillna_crop"
 old_s1 = "D:/Geodaten/#Jupiter/GEO402/01_data/s1_data/S1_A_D_VH_free_state_study_area_geo402" #-14, -17, -62 invalid!
 s2red = "D:/Geodaten/#Jupiter/GEO402/01_data/s2/red_less20_gapfilled_realdates_spline.tif"
 s2nir = "D:/Geodaten/#Jupiter/GEO402/01_data/s2/nir_less20_gapfilled_realdates_spline.tif"
@@ -50,7 +51,7 @@ path_rds = "D:/Geodaten/#Jupiter/GEO402/03_develop/rda/"
 # Import and rename data -------------------------------------------------------
 ################################################################################
 
-vv = brick(s1vv_path) %>% rename_bandnames(option = 1, var_prefix = "vv", naming = path_naming_s1) # careful, not cloud cleaned!
+vv = brick(s1vv_path) %>% rename_bandnames(option = 1, var_prefix = "vv", naming = path_naming_s1)
 vh = brick(s1vh_path) %>% rename_bandnames(option = 1, var_prefix = "vh", naming = path_naming_s1)
 
 red = brick(s2red) %>% rename_bandnames(option = 3, var_prefix = "red", naming = path_naming_s2)
