@@ -10,20 +10,22 @@ source("import.R")
 # ground truthing
 plot(gt[1])
 
+file_descriptor = "lefttop_split1"
+
 # input tables
 input = as.data.table(readRDS(paste0(path_rds, "input.rds"))) %>%
     dplyr::select(contains(c("vh", "red", "nir")), "x", "y", "class") %>%
     dplyr::select(sort(names(.)))
 
-newdata.split1 = as.data.table(readRDS(paste0(path_rds, file_descriptor, "_split1.rds"))) %>%
+newdata.split1 = as.data.table(readRDS(paste0(path_rds, "splits/", file_descriptor, ".rds"))) %>%
     dplyr::select(contains(c("vh", "red", "nir")), "x", "y") %>%
     dplyr::select(sort(names(.)))
 
-newdata.split2 = as.data.table(readRDS(paste0(path_rds, file_descriptor, "_split2.rds"))) %>%
-    dplyr::select(contains(c("vh", "red", "nir")), "x", "y") %>%
-    dplyr::select(sort(names(.)))
+# newdata.split2 = as.data.table(readRDS(paste0(path_rds, "splits/", file_descriptor, ".rds"))) %>%
+#     dplyr::select(contains(c("vh", "red", "nir")), "x", "y") %>%
+#     dplyr::select(sort(names(.)))
 
-ncol(newdata)
+ncol(newdata.split1)
 ncol(input)
 
 # CREATE TASK ------------------------------------------------------------------
@@ -49,11 +51,12 @@ learner$param_set$ids()
 autoplot(task_slangbos) # distribution of samples
 # CREATE LEARNER ---------------------------------------------------------------
 
-learner = lrn("classif.ranger", predict_type = "response")
+learner = lrn("classif.ranger", predict_type = "prob")
 
 # set built-in filter & hyperparameters
 learner$param_set$values = list(num.trees =500L, mtry = 4, importance = "impurity")
-learner
+
+
 
 # optional: FILTERING ----------------------------------------------------------
 
@@ -72,6 +75,52 @@ local({
 
     plot(x = a$score, pch = 16, col = as.factor(b))
 })
+
+
+# TUNING seperately ------------------------------------------------------------
+
+tune = ParamSet$new(list(
+    ParamInt$new("num.trees", lower = 1, upper = 500),
+    ParamInt$new("mtry", lower = 1, upper = 4)
+))
+
+measures = msr("classif.ce")
+terminator = term("evals", n_evals = 20)
+tuner = tnr("grid_search", resolution = 5)
+resampling = rsmp("repeated-spcv-coords", folds = 6L, repeats = 10L)
+
+
+instance = TuningInstance$new(
+    task = task_slangbos,
+    learner = learner,
+    resampling = resampling,
+    measures = measures,
+    param_set = tune,
+    terminator = term
+)
+
+result = tuner$tune(instance)
+
+# results:
+instance$archive(unnest = "params")[, c("num.trees", "mtry", "classif.ce")]
+
+# TUNING automatically ---------------------------------------------------------
+
+at = AutoTuner$new(
+    learner = learner,
+    resampling = resampling,
+    measures = measures,
+    tune_ps = tune,
+    terminator = terminator,
+    tuner = tuner
+)
+at$train(task_slangbos)
+
+saveRDS(at, paste0(path_rds, "automatedTunedLearner_eval20.rds"))
+
+at = readRDS(paste0(path_rds, "automatedTunedLearner_eval20.rds"))
+
+at$predict(task_slangbos)
 
 # RESAMPLE ---------------------------------------------------------------------
 
@@ -134,6 +183,9 @@ autoplot(pred_test)
 
 learner$train(task_slangbos)
 print(learner$model)
+
+# save model:
+saveRDS(learner, paste0(path_rds, "Learner.rds"))
 
 # PREDICT ----------------------------------------------------------------------
 

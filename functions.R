@@ -601,3 +601,83 @@ save_chunk_to_dataframe = function(x, outfile, option, var_prefix, naming){
     write_rds(path = outfile)
 
 }
+
+################################################################################
+# Wrapper for classifiction (making model every time)
+################################################################################
+
+# deprecated
+classif_default = function(newdata, outfile){
+
+    # make task
+    task_slangbos = TaskClassifST$new(id = "slangbos", backend = input, target = "class",
+                                      coordinate_names = c("x", "y"),
+                                      crs = "+proj=utm +zone=35 +south +datum=WGS84 +units=m +no_defs")
+
+    # define learner
+    learner = lrn("classif.ranger", predict_type = "prob")
+
+    # set built-in filter & hyperparameters
+    learner$param_set$values = list(num.trees =375L, mtry = 2L)
+
+    # multicore application
+    future::plan("multiprocess") # anmerkung: future::plan turns over order of logging in the resample algorithm! -> Patrick S sagen
+
+    # train
+    learner$train(task_slangbos)
+
+    # prediction
+    pred = learner$predict_newdata(task = task_slangbos, newdata = newdata)
+
+    output = data.table::as.data.table(pred)
+    exporting(output = output, input = newdata, filepath = paste0(path_prediction, outfile))
+
+}
+
+################################################################################
+# Wrapper for classifiction (loading model)
+################################################################################
+
+classif = function(newdata, path_model, outfile){
+
+    # load trained model:
+    learner = readRDS(path_model)
+
+    cat("Model: ", sep = "\n")
+    print(learner)
+    future::plan("multiprocess") # anmerkung: future::plan turns over order of logging in the resample algorithm! -> Patrick S sagen
+
+    # prediction
+    cat("predicting . . .", sep = "\n")
+    pred = learner$predict_newdata(newdata = newdata)
+
+    output = data.table::as.data.table(pred)
+    exporting(output = output, input = newdata, filepath = paste0(path_prediction, outfile))
+
+}
+
+################################################################################
+# Beautiful theme
+################################################################################
+
+## map themes for ggplot (https://timogrossenbacher.ch/2016/12/beautiful-thematic-maps-with-ggplot2-only/)
+theme_map <- function(...) {
+    theme_minimal() +
+        theme(
+            text = element_text(family = "Ubuntu Regular", color = "#22211d"),
+            axis.line = element_blank(),
+            axis.text.x = element_blank(),
+            axis.text.y = element_blank(),
+            axis.ticks = element_blank(),
+            axis.title.x = element_blank(),
+            axis.title.y = element_blank(),
+            # panel.grid.minor = element_line(color = "#ebebe5", size = 0.2),
+            panel.grid.major = element_line(color = "#ebebe5", size = 0.2),
+            panel.grid.minor = element_blank(),
+            plot.background = element_rect(fill = "#f5f5f2", color = NA),
+            panel.background = element_rect(fill = "#f5f5f2", color = NA),
+            legend.background = element_rect(fill = "#f5f5f2", color = NA),
+            panel.border = element_blank(),
+            ...
+        )
+}

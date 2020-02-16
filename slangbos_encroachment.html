@@ -364,7 +364,7 @@ summary {
 
 <h1 class="title toc-ignore">Slangbos encroachment - Mini Paper</h1>
 <h4 class="author">Konstantin Schellenberg</h4>
-<h4 class="date">Februar 12, 2020</h4>
+<h4 class="date">Februar 15, 2020</h4>
 
 </div>
 
@@ -377,19 +377,44 @@ summary {
 <div id="introduction" class="section level1">
 <h1><span class="header-section-number">1</span> Introduction</h1>
 <p>The increase of woody covers in the semi-arid and arid enviornments have especially pulled consequences for the savannas on the African continent <span class="citation">(Eldridge et al. 2011)</span>. <span class="citation">Stevens et al. (2016)</span> have shown that woody cover has increased throughout the South African savannas within a 70 years period. Both, local and global drivers are suspected to drive continous encroachment. The local extinction of large herbivore herds and the increase of global CO2 in the atmosphere are likely to be the main indicators for the expansion of woody biomass increase. While the cursors for the gradual expansion of woody elements combating mostly grassy landscapes still remain subject to a broad academic discussion the consequences are well visible.</p>
+<p>S. plumosum is a woody dwarf shrub that thrives during summer rainfall of approximately 620-
+750 mm (Snyman, 2009), thus dominant in mesic and semiarid grasslands <span class="citation">(<span class="citeproc-not-found" data-reference-id="Mashalane"><strong>???</strong></span> master thesis)</span> for more information</p>
+<p>Jordaan (2009) notes that the encroachment of
+S. plumosum in the natural veld, grasslands and cultivated pastures is a serious problem in the
+North West, Mpumalanga, Gauteng, Free State and Eastern Cape provinces of South Africa. <span class="citation">(<span class="citeproc-not-found" data-reference-id="Mashalane"><strong>???</strong></span> master thesis)</span></p>
 <p>In the case of the grassy plains of Freestate/South Africa slangbos (Seriphium plumosum, bankrupt bush) communities increasingly drive out the prevalent open and grassy landscapes. The rapid change of the land’s botanic composition pose great challenges for the local ecological dynamics on the one, and for livestock breeders and shepherds (<span class="citation">Paul Avenant (2015)</span>) on the other hand. Common livestock species avoid ingesting the hard structure of the bush which hence poses bigger pressure on the existing open lands leading to overgrazing and land degradation. A national survey by the Department of Agriculture, Forestry &amp; Fisheries (DAFF) of the Republic of South Africa set the expansion of the bush under scrutiny <span class="citation">(Paul Avenant 2015)</span>. In order to discriminate the drivers and to assess the consequences of how bush encroachment will change the savanna biom, large datasets are needed. Due to the large area investigated for the retrieveal of bush coverage remote sensing in conjuction with machine learning models have already led to good results <span class="citation">(Ludwig et al. 2019)</span>.</p>
 <p>This study aims to use primarily SAR (Synthetic Aperture Radar) time series data in order to measure bush encroachment on the both, the spatial and the temporal scale. Five years of Sentinel-1 C-Band data available.
-Preprocession has been done by Dr Marcel Urban (Friedrich Schiller University Jena).</p>
+Preprocessing of the Sentinel-1 data has been done by Dr Marcel Urban (Friedrich Schiller University Jena). Hirner (DLR) is responsible for the Sentinel-2 pre-processing chain.</p>
+</div>
+<div id="data" class="section level1">
+<h1><span class="header-section-number">2</span> Data</h1>
+<p>sentinel-2 granule
+sentinel-1 product and pre-processing</p>
+</div>
+<div id="literature-review" class="section level1">
+<h1><span class="header-section-number">3</span> literature review</h1>
+<p>Summaries their conclusions!</p>
+<ul>
+<li>Synman 2012</li>
+<li>Morgenthal</li>
+<li>Ludwig et al. 2019</li>
+<li>Mashalane Master thesis 2016</li>
+</ul>
 </div>
 <div id="methods" class="section level1">
-<h1><span class="header-section-number">2</span> Methods</h1>
+<h1><span class="header-section-number">4</span> Methods</h1>
 <p>Training sample were retrieved from aerial imagery <span class="citation">(<span class="citeproc-not-found" data-reference-id="NGI"><strong>???</strong></span>)</span> and Google Earth VHR data <span class="citation">(<span class="citeproc-not-found" data-reference-id="GoogleEarth"><strong>???</strong></span>)</span> via a visual and manual picking approach. Ground truth information and expert knowledge has been retrieved by survey on site and a photo documentation.</p>
 <p>The random forest algorithm <span class="citation">(Breiman 2001)</span> has been chosen for classification of the dataset since it has been proven suitable for spatio-temporal applications <span class="citation">(Belgiu and Drăguţ 2016)</span>. The model is trained on the relationship of bush structure and backscatter signal to gain a sensitivity for subtle feature discrimination in hypertemporal radar data cubes. More on Sentinel 1…</p>
-<p>To enhance the sensitivity of the classification problem, further optical information was incorpated in the model to enhance the variable set. <span class="citation">Ludwig et al. (2019)</span> has shown that the NDVI supplying bands, red and near infrared (NIR) deliver highest accordance with savanna bush image patterns. As for this finding, Sentinel-2’s 4th and 8th band time series was used over the entire acquisition time (2016 - ). Cloud masking, gap filling by otb <span class="citation">(<span class="citeproc-not-found" data-reference-id="cresson"><strong>???</strong></span> etc. paper)</span></p>
+<p>To enhance the sensitivity of the classification problem, further optical information was incorpated in the model to enhance the variable set. <span class="citation">Ludwig et al. (2019)</span> has shown that the NDVI supplying bands, red and near infrared (NIR) deliver highest accordance with savanna bush image patterns. As for this finding, Sentinel-2’s 4th and 8th band time series was used over the entire acquisition time (2016 - ). Cloud masking, gap filling via OTB::ImageTimeSeriesGapFilling<span class="citation">(Inglada 2016)</span>. Gap filling was necessary as classification algorithms do not expect NA information as input dataset. Hence, to hold a large optical data source, gap filling with &lt; 20% cloud covered scenes seems appropriate</p>
 <p>The structural element of slangbos are likely to be recorded by C-Band signals. The fraction of bush compartments are roughly of the size where C-Band waves interact the most. Additionally, the round bush geometry implies it to be a strong volume scatterer. The depolarisation leads to a large cross-pol fraction. First investigations on the reaction of slangbos in C-Band waves implies more VH backscatter with growing bush volume and bush cover density the VH [<a href="#fig:exploration-plot"><strong>??</strong></a>].</p>
+<div id="characteristics-of-seriphium-plumosum" class="section level3">
+<h3><span class="header-section-number">4.0.1</span> Characteristics of Seriphium plumosum</h3>
+<p>wet conditions, perennial and transient water tables, overly high soil pH, clay content, high soil fertility (organic matter and phosphate) and sodium chloride. The deeper the soil profile, the more favourable the habitat for S. plumosum. <span class="citation">(<span class="citeproc-not-found" data-reference-id="snyman.2012"><strong>???</strong></span>)</span></p>
+<p><span class="citation">(<span class="citeproc-not-found" data-reference-id="morgenthal.2018"><strong>???</strong></span>)</span></p>
 <pre><code>## [1] &quot;plt&quot;</code></pre>
+</div>
 <div id="notes-for-methods" class="section level2">
-<h2><span class="header-section-number">2.1</span> notes for methods</h2>
+<h2><span class="header-section-number">4.1</span> notes for methods</h2>
 <ul>
 <li><p>Sentinel-2 scene with &gt;20% NA deleted</p></li>
 <li><p>cloud mask applied</p></li>
@@ -397,13 +422,19 @@ Preprocession has been done by Dr Marcel Urban (Friedrich Schiller University Je
 <li><p>band 4 (red):</p></li>
 <li><p>band 8 (near-infrared): true 10m resolution, bush have large contrast to vegetation</p></li>
 <li><p>ndvi</p></li>
-<li><p>Intelligent cloud gap filling performed via OTB::ImageTimeSeriesGapFilling<span class="citation">(Inglada 2016)</span>. Here, missing information of a cloud covered scene is been substitute by interpolated image response of the respective neighbor in time, 1 before and 1 after the acquisition.</p></li>
+<li><p>Intelligent cloud gap filling performed via OTB::ImageTimeSeriesGapFilling<span class="citation">(Inglada 2016)</span>. Here, missing information of a cloud covered scene is been substitute by interpolated image response of the respective neighbor in time, 1 before and 1 after the acquisition. The DINEOF algorithm did not work. Too coarse…</p></li>
 </ul>
 <p>Training a learner means fitting a model to a given data set. Subsequently, we want to predict the label for new observations. These predictions are compared to the ground truth values in order to assess the predictive performance of the model. <a href="https://mlr3book.mlr-org.com/train-predict.html" class="uri">https://mlr3book.mlr-org.com/train-predict.html</a></p>
 </div>
 </div>
 <div id="results" class="section level1">
-<h1><span class="header-section-number">3</span> Results</h1>
+<h1><span class="header-section-number">5</span> Results</h1>
+</div>
+<div id="discussion" class="section level1">
+<h1><span class="header-section-number">6</span> Discussion</h1>
+<p>This large error can be attributed to canopy
+spacing which, within an image, increases the reflectance of other vegetation and soil in the
+neighbourhood of S. plumosum, reducing reflectance purity of the S. plumosum canopy <span class="citation">(<span class="citeproc-not-found" data-reference-id="Mashanale.2016"><strong>???</strong></span>)</span></p>
 <p>Reflectance:</p>
 <ul>
 <li>Stable NDVI throughout the year. Grass &amp; Forest much more seasonality</li>

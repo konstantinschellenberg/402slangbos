@@ -36,10 +36,42 @@ knitr::opts_chunk$set(fig.align = "center")
 
 The increase of woody covers in the semi-arid and arid enviornments have especially pulled consequences for the savannas on the African continent [@Eldridge.2011]. @Stevens.2016 have shown that woody cover has increased throughout the South African savannas within a 70 years period. Both, local and global drivers are suspected to drive continous encroachment. The local extinction of large herbivore herds and the increase of global CO2 in the atmosphere are likely to be the main indicators for the expansion of woody biomass increase. While the cursors for the gradual expansion of woody elements combating mostly grassy landscapes still remain subject to a broad academic discussion the consequences are well visible. 
 
+S. plumosum is a woody dwarf shrub that thrives during summer rainfall of approximately 620-
+750 mm (Snyman, 2009), thus dominant in mesic and semiarid grasslands [@Mashalane master thesis] for more information
+
+Jordaan (2009) notes that the encroachment of
+S. plumosum in the natural veld, grasslands and cultivated pastures is a serious problem in the
+North West, Mpumalanga, Gauteng, Free State and Eastern Cape provinces of South Africa. [@Mashalane master thesis]
+
+S. plumosum is the major encroacher in grassland and savannas in the eastern savanna biomes of South Africa [@morgenthal.2018]
+Grass production loss with significant relationship to encroachment (Snyman, 2012) 
+-> decrease in phytomass production
+Root compete successfully with grass
+
+high biomass production [@snyman.2016]
+
 In the case of the grassy plains of Freestate/South Africa slangbos (Seriphium plumosum, bankrupt bush) communities increasingly drive out the prevalent open and grassy landscapes. The rapid change of the land's botanic composition pose great challenges for the local ecological dynamics on the one, and for livestock breeders and shepherds (@PaulAvenant.2015) on the other hand. Common livestock species avoid ingesting the hard structure of the bush which hence poses bigger pressure on the existing open lands leading to overgrazing and land degradation. A national survey by the Department of Agriculture, Forestry & Fisheries (DAFF) of the Republic of South Africa set the expansion of the bush under scrutiny [@PaulAvenant.2015]. In order to discriminate the drivers and to assess the consequences of how bush encroachment will change the savanna biom, large datasets are needed. Due to the large area investigated for the retrieveal of bush coverage remote sensing in conjuction with machine learning models have already led to good results [@Ludwig.2019].
 
 This study aims to use primarily SAR (Synthetic Aperture Radar) time series data in order to measure bush encroachment on the both, the spatial and the temporal scale. Five years of Sentinel-1 C-Band data available.
-Preprocession has been done by Dr Marcel Urban (Friedrich Schiller University Jena). 
+Preprocessing of the Sentinel-1 data has been done by Dr Marcel Urban (Friedrich Schiller University Jena). Hirner (DLR) is responsible for the Sentinel-2 pre-processing chain. 
+
+# Data
+
+sentinel-2 granule
+sentinel-1 product and pre-processing
+
+# literature review
+
+[morgenthal.2016] feature selection of S1 and S2
+
+Summaries their conclusions!
+
+- Synman 2012
+- Morgenthal presentation
+- Ludwig et al. 2019
+- Mashalane Master thesis 2016
+
+Yet, none of the studys have taken coherences into account, neither time series of SAR data.
 
 # Methods
 
@@ -50,6 +82,12 @@ The random forest algorithm [@Breiman.2001] has been chosen for classification o
 To enhance the sensitivity of the classification problem, further optical information was incorpated in the model to enhance the variable set. @Ludwig.2019 has shown that the NDVI supplying bands, red and near infrared (NIR) deliver highest accordance with savanna bush image patterns. As for this finding, Sentinel-2's 4th and 8th band time series was used over the entire acquisition time (2016 - ). Cloud masking, gap filling via OTB::ImageTimeSeriesGapFilling[@otbgapfilling.2016]. Gap filling was necessary as classification algorithms do not expect NA information as input dataset. Hence, to hold a large optical data source, gap filling with < 20% cloud covered scenes seems appropriate 
 
 The structural element of slangbos are likely to be recorded by C-Band signals. The fraction of bush compartments are roughly of the size where C-Band waves interact the most. Additionally, the round bush geometry implies it to be a strong volume scatterer. The depolarisation leads to a large cross-pol fraction. First investigations on the reaction of slangbos in C-Band waves implies more VH backscatter with growing bush volume and bush cover density the VH [\@ref(fig:exploration-plot)].
+
+### Characteristics of Seriphium plumosum
+ wet conditions, perennial and transient water tables, overly high soil pH, clay content, high soil fertility (organic matter and phosphate) and sodium chloride. The deeper the soil profile, the more favourable the habitat for S. plumosum. [@snyman.2012]
+
+[@morgenthal.2018]
+
 
 ```{r exploration-plot, echo=FALSE, fig.cap="Median and standard deviation interval of Sentinel-1 VH time series (temporal resolution less than 7d, 354 scenes). Sites associated with slangbos (Seriphium plumosum) return a stronger signal the further the bush encroached (red, n = 564 pixels). Agricultural sites leave stronger patterns of seasonality without overall slope (blue, n = 1393 pixels). Plots being subject to slangbos control through chemical treatment, burning or manual uprooting or ploughing return significantly less signal after the operation (black, n = 105 pixels)."}
 "plt"
@@ -69,6 +107,12 @@ The structural element of slangbos are likely to be recorded by C-Band signals. 
 Training a learner means fitting a model to a given data set. Subsequently, we want to predict the label for new observations. These predictions are compared to the ground truth values in order to assess the predictive performance of the model. <https://mlr3book.mlr-org.com/train-predict.html>
 
 # Results
+
+# Discussion
+
+This large error can be attributed to canopy
+spacing which, within an image, increases the reflectance of other vegetation and soil in the
+neighbourhood of S. plumosum, reducing reflectance purity of the S. plumosum canopy [@Mashanale.2016]
 
 Reflectance:
 

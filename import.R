@@ -9,6 +9,7 @@ options(digits = 4, max.print = 1000)
 source("functions.R")
 
 library(tidyverse)
+library(tidytable)
 library(raster)
 library(sf)
 library(rgdal)
@@ -16,12 +17,18 @@ library(gdalUtils)
 library(ggplot2)
 library(data.table)
 
+library(plotly)
+library(leaflet)
+library(processx)
+
 library(mlr3verse)
 library(precrec)
 library(mlr3spatiotempcv)
 library(parallelMap)
 library(rasterVis)
-
+library(RColorBrewer)
+library(paradox)
+library(mlr3tuning)
 
 ################################################################################
 # Import paths -----------------------------------------------------------------
@@ -68,4 +75,8 @@ study_area = st_read(path_gt, layer = "study_area", quiet = TRUE) %>%  # read in
 
 gt = st_read(path_gt, layer = "gt", quiet = TRUE) %>%  # read in
     st_transform(st_crs(vv)) %>%  # set crs(gt) to the crs(s1) brick.
-    st_zm(drop = TRUE) # Remove Z-Dimension
+    st_zm(drop = TRUE) %>% # Remove Z-Dimension
+    dplyr::group_by(Name) %>%
+    mutate(number = row_number()) # adding row numbers to classes
+
+

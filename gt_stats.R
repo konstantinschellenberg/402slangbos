@@ -18,7 +18,7 @@ gt.sum = gt.stats %>%
 
 mypal = colorNumeric(
     palette = "YlOrRd",
-    domain = gt.stats$area
+    domain = gt.stats$Name
 )
 
 mypopup = paste0("ID: ", gt.stats$Name, "<br>", "size: ", round(gt.stats$area,0))

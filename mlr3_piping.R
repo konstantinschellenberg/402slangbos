@@ -3,77 +3,48 @@
 #' Konstantin Schellenberg, 14.02.2020
 
 source("import.R")
-library(RColorBrewer)
 
-# file_descriptor = "lefttop"
-#
-#
-# # input tables
-# input = as.data.table(readRDS(paste0(path_rds, "input.rds"))) %>%
-#     dplyr::select(contains(c("vh", "red", "nir")), "x", "y", "class") %>%
-#     dplyr::select(sort(names(.)))
-#
-# newdata.split1 = as.data.table(readRDS(paste0(path_rds, "splits/", file_descriptor, "_split1.rds"))) %>%
-#     dplyr::select(contains(c("vh", "red", "nir")), "x", "y") %>%
-#     dplyr::select(sort(names(.)))
-#
-# newdata.split2 = as.data.table(readRDS(paste0(path_rds, "splits/", file_descriptor, "_split2.rds"))) %>%
-#     dplyr::select(contains(c("vh", "red", "nir")), "x", "y") %>%
-#     dplyr::select(sort(names(.)))
+# for tuned model:
+# at = readRDS(paste0(path_rds, "automatedTunedLearner_eval20"))
 
 
-classif = function(input, newdata, outfile){
+# speed check for new tidytable package
+# system.time(as_dt(readRDS(paste0(path_rds, "splits/", file_descriptor, "_split1.rds"))))
+# system.time(as.data.table(readRDS(paste0(path_rds, "splits/", file_descriptor, "_split1.rds"))))
 
-    # make task
-    task_slangbos = TaskClassifST$new(id = "slangbos", backend = input, target = "class",
-                                      coordinate_names = c("x", "y"),
-                                      crs = "+proj=utm +zone=35 +south +datum=WGS84 +units=m +no_defs")
 
-    # define learner
-    learner = lrn("classif.ranger", predict_type = "prob")
-
-    # set built-in filter & hyperparameters
-    learner$param_set$values = list(num.trees =500L, mtry = 4)
-
-    # multicore application
-    future::plan("multiprocess") # anmerkung: future::plan turns over order of logging in the resample algorithm! -> Patrick S sagen
-
-    # train
-    learner$train(task_slangbos)
-
-    # prediction
-    pred = learner$predict_newdata(task = task_slangbos, newdata = newdata)
-
-    output = data.table::as.data.table(pred)
-    exporting(output = output, input = newdata, filepath = paste0(path_prediction, outfile))
-
-}
-
-# Iterate of the splite------------------------------------------------------------------------------
-
+# Iterate to classify all splits------------------------------------------------------------------------------
 input_splits = list.files(paste0(path_rds, "splits"))
-
 for (i in input_splits){
 
+    source("import.R")
+    input_splits = list.files(paste0(path_rds, "splits"))
+
+    input = as_dt(readRDS(paste0(path_rds, "input.rds"))) %>%
+        dplyr::select(contains(c("vh", "red", "nir")), "x", "y", "class") %>%
+        dplyr::select(sort(names(.)))
 
     # concat strings
     name = substr(i, start = 1, stop = nchar(i) - 4)
     output = paste0("predict_vrn_", name)
 
     # load data
-    split = as.data.table(readRDS(paste0(path_rds, "splits/", i))) %>%
+    split = as_dt(readRDS(paste0(path_rds, "splits/", i))) %>%
         dplyr::select(contains(c("vh", "red", "nir")), "x", "y") %>%
         dplyr::select(sort(names(.)))
 
     # print information
-    cat("predicting on ", name)
+    cat("predicting on", name, sep = "\n")
 
     # prediction with helper function classif {global-env} -> functions.R
-    classif(input = input, newdata = split, outfile =  paste0("predict_vrn_", substr(i, start = 1, stop = nchar(i) - 4)))
+    classif(newdata = split, path_model = paste0(path_rds, "Learner.rds"),
+            outfile =  paste0("predict_vrn_test", substr(i, start = 1, stop = nchar(i) - 4)))
+
+    # now clearing environment
+    rm(list = ls(all.names = TRUE)) #will clear all objects includes hidden objects.
+    gc() #free up memrory and report the memory usage.
 
 }
-
-classif(input = input, newdata = newdata.split2, outfile =  "predict_vrn_lefttop_split2")
 
 
 # measure of resampling
