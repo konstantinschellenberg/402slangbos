@@ -49,25 +49,40 @@ for (i in input_splits){
 
 # measure of resampling
 # load measures
-rr_vh = readRDS(paste0(path_developement, "rf_acc/ResamplingResult_vrn.rds"))
+inner = readRDS(paste0(path_developement, "rf_acc/ResamplingResult_vrn.rds"))
 
 # accuracies
-rr_vh$aggregate(measures = msr("classif.acc"))
-rr_vh$aggregate()
+inner$aggregate(measures = msr("classif.acc"))
+inner$aggregate()
 
 autoplot(resampling, task_slangbos)
-autoplot(rr_vh, type = "histogram", bins = 20L)
+autoplot(inner, type = "histogram", bins = 20L)
 
 # predict
-pred = rr_vh$prediction()
+pred = inner$prediction()
 
 autoplot(pred)
 
 # make confusion scaled --------------------------------------------------------
 
-confusion = pred$confusion
+inner.confus = pred$confusion
 
-normalise = scale(confusion, center=FALSE, scale=colSums(a)) * 100
+inner.confus.norm = scale(inner.confus, center=FALSE, scale=colSums(a)) * 100
+
+# plot
+ggplot(data = as.data.frame(normalise), mapping = aes(x = truth, y = response)) +
+    geom_tile(aes(fill = Freq), colour = "grey") +
+    geom_text(aes(label = sprintf("%.1f", Freq)), vjust = 1)+
+    scale_fill_gradientn(colours = brewer.pal(9, name = "YlOrRd"))
+
+
+# Outer Confusion --------------------------------------------------------------
+
+outer.confus = read.csv(file = "D:/Geodaten/#Jupiter/GEO402/04_products/performance/outer_confusion.csv", sep = " ", header = T)
+outer.confus = outer.confus[1:9,1:9]
+colnames(outer.confus) = c(1:9)
+
+outer.confus.norm = scale(outer.confus, center=FALSE, scale=colSums(a)) * 100
 
 # plot
 ggplot(data = as.data.frame(normalise), mapping = aes(x = truth, y = response)) +

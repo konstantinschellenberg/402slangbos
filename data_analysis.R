@@ -74,3 +74,6 @@ b = vh
 # ratio1 = log10(10^a / 10^b)
 ratio = a - b
 writeRaster(ratio, filename = paste0(path_s1, "vv_vh_ratio"), format = "ENVI", overwrite = T)
+
+# Class stats ------------------------------------------------------------------
+all_increase = grep2(gt_vh, 1)

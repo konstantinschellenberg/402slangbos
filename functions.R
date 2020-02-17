@@ -57,6 +57,12 @@ rvi = function(vv, vh){
 }
 
 ################################################################################
+# NDVI definition ---------------------------------------------------------------
+################################################################################
+
+fun.ndvi = function(r, n){(n-r)/(n+r)}
+
+################################################################################
 # Rename bandnames -------------------------------------------------------------
 ################################################################################
 
@@ -681,3 +687,77 @@ theme_map <- function(...) {
             ...
         )
 }
+
+################################################################################
+# Get data of one gt element
+################################################################################
+
+grep2 = function(source, class, number = NULL){
+
+    # if there is no number given -> return the whole class
+    if (is.null(number)){
+
+        cls = as.character(class)
+        table = source[[cls]] # indexing task
+
+        cat("Count of list items (Class instances):", length(table))
+        cat("Ground truth set: ", deparse(substitute(source)), cls, sep = "\n")
+
+        for (n in 1:length(table)){
+            str = table[[n]]$date
+
+            table[[n]]$date = as.POSIXct(substr(table[[n]]$date, start = nchar(table[[n]]$date) -9,
+                                                stop = nchar(table[[n]]$date)),
+                                         format = "%Y.%m.%d", tz = "")
+        }
+
+
+    } else {
+
+        # if there is a number given -> return just one
+
+        cls = as.character(class) # convert to string (list headers are strings not int)
+        num = as.character(number) # same here
+        cat("Ground truth set: ", deparse(substitute(source)), cls, num, sep = "\n") # tidy print
+        table = source[[cls]][[num]] # indexing task
+
+        # convert date to POSTix
+        table$date = as.POSIXct(substr(table$date, start = nchar(table$date) -9, stop = nchar(table$date)),
+                                format = "%Y.%m.%d", tz = "")
+    }
+
+    if (is.null(table)){stop("This number doesn't exist")}
+
+    return(table)
+}
+
+################################################################################
+# filter position out
+################################################################################
+
+position = function(class, number = Null){
+    gt %>%
+        filter(Name == class) %>%
+        .[number, ] %>%
+        st_transform(4326)
+}
+
+################################################################################
+# scale data from gt
+################################################################################
+
+scale_custom = function(x, fun = NULL, center = FALSE){
+    m = as.matrix(x[2:6])
+    m = scale(m, center=center)
+
+    # # main scale function
+    # if (is.null(fun)){m = scale(m, center=center)
+    # } else if (!is.null(fun)){m = scale(m, center=center}
+
+    out = as.data.frame(m) %>%
+        mutate(date = x$date, count = x$count)
+    cat("data normalised!")
+    return(out)
+} # scaling the parameters
+
+#, scale=colSums(m)
