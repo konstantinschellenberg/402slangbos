@@ -32,9 +32,9 @@ gt_nir = readRDS(gt.files[grep(x = gt.files, "nir")])
 cat("Do you need the data normalised or not?", "Append `scale_custom` on the grep2 call if needed", sep = "\n")
 
 # load plot components
-one = grep2(gt_vh, 1, 26)
-two = grep2(gt_vh, 2, 3)
-thr = grep2(gt_vh, 3, 13)
+one = grep2(gt_vh, 1, 7)
+two = grep2(gt_vh, 2, 1)
+thr = grep2(gt_vh, 3, 4)
 # one = grep2(gt_vh, 4, 4)
 # two = grep2(gt_vh, 5, 3)
 # thr = grep2(gt_vh, 6, 3)
@@ -210,14 +210,14 @@ x_axis <- list(
 )
 
 y_axis <- list(
-    title = "standard deviation [sigma]",
+    title = "VH backscatter [db]",
     titlefont = f2,
     tickfont = f1,
     showticklabels = TRUE,
     exponentformat = "E",
-    # range = c(-25L, -12)
+    range = c(-25L, -12)
     # range = c(min(two$median), max(two$median))
-    range = c(-3, 3)
+    # range = c(-3, 3)
 )
 vrn_y_axis <- list(
     title = "Reflectance [W/m²]",
@@ -250,31 +250,31 @@ plt = plot_ly(data = one,
                 ymin = pr_losd_1$y,
                 ymax = pr_upsd_1$y,
                 color = I(blue_backgroud), line = list(width = 0), opacity = 0.4,
-                name = "",
+                name = "SB: Increase",
                 showlegend = FALSE) %>%
 
-    add_ribbons(x = pr_losd_2$x,
-                ymin = pr_losd_2$y,
-                ymax = pr_upsd_2$y,
-                color = I(red_background), line = list(width = 0), opacity = 0.4,
-                name = "",
-                showlegend = FALSE) %>%
+    # add_ribbons(x = pr_losd_2$x,
+    #             ymin = pr_losd_2$y,
+    #             ymax = pr_upsd_2$y,
+    #             color = I(green_background), line = list(width = 0), opacity = 0.3,
+    #             name = "SB: Continuous",
+    #             showlegend = FALSE) %>%
 
     add_ribbons(x = pr_losd_3$x,
                 ymin = pr_losd_3$y,
                 ymax = pr_upsd_3$y,
-                color = I(green_background), line = list(width = 0), opacity = 0.2,
-                name = "",
+                color = I(red_background), line = list(width = 0), opacity = 0.2,
+                name = "SB: Breakpoint",
                 showlegend = FALSE) %>%
-    add_lines(x = x_1, y = pr_1$y, line = pr_1.fmt, name = "(1)") %>%
-    add_lines(x = x_2, y = pr_2$y, line = pr_2.fmt, name = "(2)") %>%
-    add_lines(x = x_3, y = pr_3$y, line = pr_3.fmt, name = "(3)") %>%
+    add_lines(x = x_1, y = pr_1$y, line = pr_1.fmt, name = "(1) SB: Increase") %>%
+    # add_lines(x = x_2, y = pr_2$y, line = pr_3.fmt, name = "(2) SB: Continuous") %>%
+    add_lines(x = x_3, y = pr_3$y, line = pr_2.fmt, name = "(3) SB: Breakpoint") %>%
 
 
 print(plt)
 
 # export of image -> has to be in the project directory!
-# plotly::orca(plt, file = "data/plottest.png")
+plotly::orca(plt, file = "data/plot13.svg")
 
 
 # PLot for S1 vs S2 plots ------------------------------------------------------
@@ -343,15 +343,15 @@ plotly::orca(plt, file = "data/plot_vrn_cls4_4.svg")
 # Plot all of one class: -------------------------------------------------------
 
 # get the data
-all = grep2(gt_vh, 1)
+all = grep2(gt_vh, 4)
 
 # init plot
 plt = plot_ly(width = 600, height = 600) %>%
 
     layout(xaxis = x_axis,
            yaxis = y_axis,
-           title = "Water",
-           showlegend = T)
+           title = "Agriculture",
+           showlegend = F)
 
 counter = 1
 for (n in all){
@@ -382,4 +382,4 @@ for (n in all){
 
 plt
 
-# plotly::orca(plt, file = "data/massplt_cls9.svg")
+plotly::orca(plt, file = "data/massplt_cls4.svg")

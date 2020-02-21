@@ -73,7 +73,8 @@ local({
     b = substr(a$feature, start = 1,stop = 3) %>%
         as.factor()
 
-    plot(x = a$score, pch = 16, col = as.factor(b))
+    plot(x = a$score, pch = 16, col = as.factor(b), main = "Predicting layers in RF Model",
+         xlab = "layer", ylab = "score")
 })
 
 
@@ -146,7 +147,7 @@ rr = mlr3::resample(task_slangbos, learner, resampling, store_models = TRUE)
 c = 0
 if (c == 1) {
     write_rds(rr, paste0(path_developement, "rf_acc/ResamplingResult_vrn.rds"))
-    rr_vh = readRDS(paste0(path_developement, "rf_acc/ResamplingResult_vrn.rds"))
+    rr = readRDS(paste0(path_developement, "rf_acc/ResamplingResult_vrn.rds"))
 }
 
 ### results
