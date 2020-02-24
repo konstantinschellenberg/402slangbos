@@ -32,21 +32,22 @@ gt_nir = readRDS(gt.files[grep(x = gt.files, "nir")])
 cat("Do you need the data normalised or not?", "Append `scale_custom` on the grep2 call if needed", sep = "\n")
 
 # load plot components
-one = grep2(gt_vh, 1, 7)
-two = grep2(gt_vh, 2, 1)
-thr = grep2(gt_vh, 3, 4)
-# one = grep2(gt_vh, 4, 4)
+one = grep2(gt_vv, 1, 7)
+# two = grep2(gt_vh, 2, 1)
+thr = grep2(gt_vv, 3, 4)
+two = grep2(gt_vv, 4, 4)
 # two = grep2(gt_vh, 5, 3)
 # thr = grep2(gt_vh, 6, 3)
 # one = grep2(gt_vh, 7, 5)
 # two = grep2(gt_vh, 8, 3)
+
+c = 1
+n = 7
+
 # thr = grep2(gt_vh, 9, 1)
+sf = position(c, n)
 
-c = 4
-n = 4
-
-# gettin bulk data
-
+# getting bulk data
 for (i in 1){
     one = grep2(gt_vh, c, n) %>% scale_custom(center = T)
     two = grep2(gt_red, c, n) %>% scale_custom(center = T)
@@ -112,8 +113,8 @@ mymap
 
 ggplot()+
     geom_line(one, mapping = aes(x = date, y = median), color = "red") +
-    # geom_line(two, mapping = aes(x = date, y = median), color = "blue") +
-    # geom_line(thr, mapping = aes(x = date, y = median), color = "darkgreen")+
+    geom_line(two, mapping = aes(x = date, y = median), color = "blue") +
+    geom_line(thr, mapping = aes(x = date, y = median), color = "darkgreen")
     geom_line(ndvi, mapping = aes(x = X1, y = X2), color = "black")
 
 
@@ -201,6 +202,19 @@ f2 <- list(
     color = "grey90"
 )
 
+# bigger: for papers to be able to read still
+f3 = list(
+    family = "Times New Roman",
+    size = 18,
+    color = "black"
+)
+
+f4= list(
+    family = "Times New Roman",
+    size = 22,
+    color = "black"
+)
+
 x_axis <- list(
     title = "Date",
     titlefont = f2,
@@ -210,7 +224,7 @@ x_axis <- list(
 )
 
 y_axis <- list(
-    title = "VH backscatter [db]",
+    title = "VH backscatter [dB]",
     titlefont = f2,
     tickfont = f1,
     showticklabels = TRUE,
@@ -219,6 +233,26 @@ y_axis <- list(
     # range = c(min(two$median), max(two$median))
     # range = c(-3, 3)
 )
+
+x_axis_big <- list(
+    title = "Date",
+    titlefont = f4,
+    tickfont = f3,
+    showticklabels = TRUE,
+    range = c(min(x_1), max(x_1))
+)
+y_axis_big <- list(
+    title = "VH backscatter [dB]",
+    titlefont = f4,
+    tickfont = f3,
+    showticklabels = TRUE,
+    exponentformat = "E",
+    # range = c(-18L, -6L)
+    range = c(-25L, -15)
+    # range = c(min(two$median), max(two$median))
+    # range = c(-3, 3)
+)
+
 vrn_y_axis <- list(
     title = "Reflectance [W/m²]",
     titlefont = f2,
@@ -234,47 +268,47 @@ vrn_y_axis <- list(
 1
 # PLOTLY--------------------------------------------------------------------------
 
-plt = plot_ly(data = one,
-              x = ~date,
-              y = ~median,
-              width = 700,
-              height = 400) %>%
+plt = plot_ly(width = 400,
+              height = 300) %>%
 
     layout(title = "",
-           yaxis = y_axis,
-           xaxis = x_axis,
-           legend = list(font = f1, traceorder = "reversed", yanchor = "bottom",
-                         xanchor = "right")) %>%
+           yaxis = y_axis_big,
+           xaxis = x_axis_big,
+           showlegend = F) %>%
+               # list(font = f3, yanchor = "bottom",
+                         # xanchor = "right")) %>%
 
     add_ribbons(x = pr_losd_1$x,
                 ymin = pr_losd_1$y,
                 ymax = pr_upsd_1$y,
                 color = I(blue_backgroud), line = list(width = 0), opacity = 0.4,
-                name = "SB: Increase",
+                name = "SP: Increase",
                 showlegend = FALSE) %>%
-
-    # add_ribbons(x = pr_losd_2$x,
-    #             ymin = pr_losd_2$y,
-    #             ymax = pr_upsd_2$y,
-    #             color = I(green_background), line = list(width = 0), opacity = 0.3,
-    #             name = "SB: Continuous",
+    #
+    # add_ribbons(x = pr_losd_3$x,
+    #             ymin = pr_losd_3$y,
+    #             ymax = pr_upsd_3$y,
+    #             color = I(red_background), line = list(width = 0), opacity = 0.2,
+    #             name = "SP: Breakpoint",
     #             showlegend = FALSE) %>%
 
-    add_ribbons(x = pr_losd_3$x,
-                ymin = pr_losd_3$y,
-                ymax = pr_upsd_3$y,
-                color = I(red_background), line = list(width = 0), opacity = 0.2,
-                name = "SB: Breakpoint",
+    add_ribbons(x = pr_losd_2$x,
+                ymin = pr_losd_2$y,
+                ymax = pr_upsd_2$y,
+                color = I(green_background), line = list(width = 0), opacity = 0.3,
+                name = "Agriculture",
                 showlegend = FALSE) %>%
+
     add_lines(x = x_1, y = pr_1$y, line = pr_1.fmt, name = "(1) SB: Increase") %>%
-    # add_lines(x = x_2, y = pr_2$y, line = pr_3.fmt, name = "(2) SB: Continuous") %>%
     add_lines(x = x_3, y = pr_3$y, line = pr_2.fmt, name = "(3) SB: Breakpoint") %>%
+    add_lines(x = x_2, y = pr_2$y, line = pr_3.fmt, name = "(4) Agriculture") %>%
+
 
 
 print(plt)
 
 # export of image -> has to be in the project directory!
-plotly::orca(plt, file = "data/plot13.svg")
+plotly::orca(plt, file = "data/exploration_1b.svg")
 
 
 # PLot for S1 vs S2 plots ------------------------------------------------------
@@ -284,23 +318,24 @@ plotly::orca(plt, file = "data/plot13.svg")
 # pr_3 = supsmu(x_3, med_3, span = 0.1)
 # pr_4 = supsmu(x_4, med_4, span = 0.1)
 
-plt = plot_ly(width = 700,
-              height = 600) %>%
+plt = plot_ly(width = 400,
+              height = 350) %>%
 
-    layout(title = "Comparison of Sentinel signals to Slangbos",
-           yaxis = y_axis,
-           xaxis = x_axis,
-           legend = list(font = f1, orientation = "v")) %>%
+    layout(title = "",
+           yaxis = y_axis_big,
+           xaxis = x_axis_big,
+           legend = list(font = f3, orientation = "h", xanchor = "center"),
+           showlegend = F) %>%
 
-    add_annotations(text = "Agriculture (Class 4)",
-                    x = 0.5,
-                    y = 1,
-                    yref = "paper",
-                    xref = "paper",
-                    xanchor = "middle",
-                    yanchor = "top",
-                    showarrow = FALSE,
-                    font = list(size = 15)) %>%
+    # add_annotations(text = "Agriculture (Class 4)",
+    #                 x = 0.5,
+    #                 y = 1,
+    #                 yref = "paper",
+    #                 xref = "paper",
+    #                 xanchor = "middle",
+    #                 yanchor = "top",
+    #                 showarrow = FALSE,
+    #                 font = list(size = 15)) %>%
 
     add_trace(x = x_1,
               y = med_1,
@@ -335,22 +370,23 @@ plt = plot_ly(width = 700,
     add_ribbons(x = x_1, ymin = -1, ymax = 1,
                 color = I(grey_background), line = list(width = 0), opacity = 0.2,
                 name = "",
-                showlegend = FALSE)
+                showlegend = FALSE) %>%
 
-plt
-plotly::orca(plt, file = "data/plot_vrn_cls4_4.svg")
+print()
+
+plotly::orca(plt, file = "data/exploration_2a2.svg")
 
 # Plot all of one class: -------------------------------------------------------
 
 # get the data
-all = grep2(gt_vh, 4)
+all = grep2(gt_vh, 6)
 
 # init plot
-plt = plot_ly(width = 600, height = 600) %>%
+plt = plot_ly(width = 300, height = 400) %>%
 
-    layout(xaxis = x_axis,
-           yaxis = y_axis,
-           title = "Agriculture",
+    layout(xaxis = x_axis_big,
+           yaxis = y_axis_big,
+           title = "",
            showlegend = F)
 
 counter = 1
@@ -382,4 +418,4 @@ for (n in all){
 
 plt
 
-plotly::orca(plt, file = "data/massplt_cls4.svg")
+plotly::orca(plt, file = "data/exploration_3_2c.svg")

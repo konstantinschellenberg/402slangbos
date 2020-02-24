@@ -38,3 +38,13 @@ mymap = leaflet() %>%
               title = "Size",
               labFormat = labelFormat(suffix = " m²"))
 mymap
+
+# aggregated stats -------------------------------------------------------------
+
+calc = all_gt %>%
+    group_by(Name) %>%
+    summarise(area_at_class = round(sum(area), digits = 1), count = n()) %>%
+    as.data.frame() %>%
+    select(-geom)
+
+write_excel_csv(calc, path = "D:/Geodaten/#Jupiter/GEO402/02_features/class_stats.csv", col_names = TRUE)

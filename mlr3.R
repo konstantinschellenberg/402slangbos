@@ -14,11 +14,11 @@ file_descriptor = "lefttop_split1"
 
 # input tables
 input = as.data.table(readRDS(paste0(path_rds, "input.rds"))) %>%
-    dplyr::select(contains(c("vh", "red", "nir")), "x", "y", "class") %>%
+    dplyr::select(contains(c("red", "nir")), "x", "y", "class") %>%
     dplyr::select(sort(names(.)))
 
 newdata.split1 = as.data.table(readRDS(paste0(path_rds, "splits/", file_descriptor, ".rds"))) %>%
-    dplyr::select(contains(c("vh", "red", "nir")), "x", "y") %>%
+    dplyr::select(contains(c("vh")), "x", "y") %>%
     dplyr::select(sort(names(.)))
 
 # newdata.split2 = as.data.table(readRDS(paste0(path_rds, "splits/", file_descriptor, ".rds"))) %>%
@@ -132,9 +132,10 @@ mlr_resamplings
 
 # setup resampling task
 resampling = rsmp("repeated-spcv-coords", folds = 6L, repeats = 10L)
+
 resampling$instantiate(task_slangbos)
 resampling$iters
-resampling$
+resampling
 
 # splitting task in train and test
 str(resampling$train_set(1))
@@ -144,10 +145,10 @@ str(resampling$test_set(1))
 rr = mlr3::resample(task_slangbos, learner, resampling, store_models = TRUE)
 
 # save result:
-c = 0
+c = 1
 if (c == 1) {
-    write_rds(rr, paste0(path_developement, "rf_acc/ResamplingResult_vrn.rds"))
-    rr = readRDS(paste0(path_developement, "rf_acc/ResamplingResult_vrn.rds"))
+    write_rds(rr, paste0(path_developement, "rf_acc/ResamplingResult_v.rds"))
+    rr = readRDS(paste0(path_developement, "rf_acc/ResamplingResult_rn.rds"))
 }
 
 ### results
@@ -172,7 +173,9 @@ head(fortify(pred_test))
 
 as.data.table(pred_test)
 
-pred_test$confusion
+a = pred_test$confusion
+print(a)
+write_rds(a, path = paste0(path_developement, "confusion_rn.rda"))
 pred_test$prob
 pred_test$response
 

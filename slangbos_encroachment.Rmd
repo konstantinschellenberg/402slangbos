@@ -17,7 +17,7 @@ always_allow_html: true
 
 ```{r, echo=FALSE, results='hide', message=FALSE, warning=FALSE, cache=TRUE}
 
-my.packages = c("raster", "sf", "rgdal", "caret")
+my.packages = c("raster", "sf", "rgdal", "caret", "mlr3", "mlr3spatiotempcv")
 lapply(my.packages, require, character.only = TRUE)
 
 source("import.R")
@@ -45,7 +45,7 @@ Also, Common livestock species avoid ingesting the hard and bitter-oily structur
 
 Mapping the scope and speed of encroachment patterns is of crucial value for managing this large scale biome change. Remote Sensing time series have proven to be an effective source for ecological change mapping. With growing availability of freely available optical and SAR satellite data analyses are cheap, fast and reproducible. The ESA's Sentinel-1/2 provide freely accessible high resolution time series of weekly (and less) coverage are seen to be the new working horse of land surface interpretation.
 
-Bush encroachment mapping has been tackled by recent studies [@Ludwig.2019; @Morgenthal.2016; @Morgenthal.2018; @Marshalane.2018] and is closely related to land cover analyses [@ngi; ...] and woody cover mapping [@Urban.2020; @Naidoo.2014]. 
+Bush encroachment mapping has been tackled by recent studies [@Ludwig.2019; @Morgenthal.2016; @Morgenthal.2018; @Marshalane.2016] and is closely related to land cover analyses [@ngi; ...] and woody cover mapping [@Urban.2020; @Naidoo.2014]. 
 
 Integrated use of radar (Sentinel-1) and optical (Sentinel-2) signal in moderate spatial and high temporal resolution has already returned promising results [@Steinhausen.2018; @Urban.2018; @Zhang.2019; @Laurin.2018] resulting in higher accuracies than single with single use. This is due to the different surface properties they are sensitive to. 
 

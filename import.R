@@ -79,4 +79,6 @@ gt = st_read(path_gt, layer = "gt", quiet = TRUE) %>%  # read in
     dplyr::group_by(Name) %>%
     mutate(number = row_number()) # adding row numbers to classes
 
-
+all_gt = read_sf(path_gt, layer = "gt_total") %>%
+    st_zm() %>%
+    st_transform(st_crs(vv))

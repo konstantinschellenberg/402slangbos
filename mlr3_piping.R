@@ -63,37 +63,43 @@ pred = inner$prediction()
 
 autoplot(pred)
 
-# --------------------------------------------------------
+# CONFUSION MATRIX -------------------------------------------------------------
+# read in
+confus = readRDS(paste0(path_developement, "rf_acc/confusion_outer.rda"))
 
 # coloums and rows:
 nm = c("Increase", "Continuous", "Breakpoint", "Agriculture", "Bare Soil",
        "Grassveld", "Forest", "Urban", "Water")
 
-colfunc2 <- colorRampPalette(c("white", "#009900"))
-colfunc2(20)
+# inner.confus = pred$confusion
+# inner.confus.norm = scale(inner.confus, center=FALSE, scale=colSums(inner.confus)) * 100
 
-# plot confusion matrix after scaling ------------------------------------------
-# INNER
-
-inner.confus = pred$confusion
-inner.confus.norm = scale(inner.confus, center=FALSE, scale=colSums(inner.confus)) * 100
-
-rownames(inner.confus.norm) = nm
-colnames(inner.confus.norm) = nm
-
+rownames(confus) = nm
+colnames(confus) = nm
+inp = as.data.frame(confus)
 
 # plot
-ggplot(data = as.data.frame(inner.confus.norm), mapping = aes(x = truth, y = response)) +
+ggplot(data = as.data.frame(inp), mapping = aes(x = inp[,1], y = rev(inp[,2])))+
     geom_tile(aes(fill = Freq)) +
     geom_text(aes(label = sprintf("%.0f", Freq)), vjust = 0.5, colour = "black")+
-    scale_fill_gradientn(colours = brewer.pal(7, "Oranges"))+
+    scale_fill_gradientn(colours = rev(viridis::inferno(8, begin = 0.45)))+
     xlab("Truth/Reference")+
     ylab("Response")+
-    labs(fill = "Response on truth [%]")+
-    theme(axis.text.x = element_text(face="bold", color="black",
-                                     size=9, angle=30),
-          axis.text.y = element_text(face="bold", color="black",
-                                     size=9, angle=30))
+    labs(fill = "Response [%]")+
+    scale_y_discrete(labels = rev(nm))+
+    theme(axis.text.x = element_text(family = "serif", face="bold", color="grey20",
+                                     size=8, angle=90),
+          axis.text.y = element_text(family = "serif", face="bold", color="grey20",
+                                     size=8, angle=0),
+          axis.title.x = element_text(family = "serif", face="bold", color="black",
+                                      size=10, angle=0),
+          axis.title.y = element_text(family = "serif", face="bold", color="black",
+                                      size=10, angle=90),
+          aspect.ratio = 1,
+          legend.position = "")
+)
+
+
 
 
 # plot confusion matrix after scaling ------------------------------------------
