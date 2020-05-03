@@ -6,7 +6,7 @@ source("import.R")
 file = vh
 
 ###########################################################
-# Calculation of 5th and 95th Percentiles
+# Calculation of 5th and 95th Percentiles and median
 ###########################################################
 
 func_5th_perc = function(x, na.rm = TRUE) {
@@ -14,11 +14,11 @@ func_5th_perc = function(x, na.rm = TRUE) {
 }
 
 
-
 func_95th_perc = function(x, na.rm = TRUE) {
     quantile(x, probs = .95, na.rm=TRUE)
 }
 
+func_median = function(x, na.rm = TRUE){median(x, na.rm = TRUE)}
 
 # calulate 5th percentile
 perc_5 = calc(file, fun=func_5th_perc, na.rm=TRUE)
@@ -27,6 +27,10 @@ writeRaster(perc_5, paste0(path_developement, "multitemp/perc_5_test.tif"), over
 # calulate 95th percentile
 perc_95 = calc(file, fun=func_95th_perc, na.rm=TRUE)
 writeRaster(perc_95, paste0(path_developement, "multitemp/perc_95_test.tif"), overwrite = TRUE)
+
+# calculate median
+med = calc(file, fun = func_median, na.rm = TRUE)
+writeRaster(med, paste0(path_developement, "multitemp/vh_med.tif"), overwrite = TRUE)
 
 ###########################################################
 # Calculation of slope and intercept in time series

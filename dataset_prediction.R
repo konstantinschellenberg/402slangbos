@@ -1,58 +1,7 @@
-# Script for pre-procession and harmonisation of S2 and S1 data
+# Script for pre-procession and harmonisation of S2, S1 backscatter and S1 coherences
 # Konstantin Schellenberg
 
 source("import.R")
-
-######################################################################
-# Training Dataset
-######################################################################
-
-# create input tables
-
-# full
-x = 1
-if (x == 1){
-
-    # remove files
-    file.remove(c(paste0(path_rds, "learning_input_vh.rds"),
-                  paste0(path_rds, "learning_input_red.rds"),
-                  paste0(path_rds, "learning_input_nir.rds")))
-
-    # make new ground truth tables
-    gt_from_raster(raster = vh, train_data = gt, response_col = "Name", outfile = "vh")
-    gt_from_raster(raster = red, train_data = gt, response_col = "Name", outfile = "red")
-    gt_from_raster(raster = nir, train_data = gt, response_col = "Name", outfile = "nir")
-
-    # read in
-    vh_input = readRDS(paste0(path_rds, "learning_input_vh.rds"))
-    red_input = readRDS(paste0(path_rds, "learning_input_red.rds"))
-    nir_input = readRDS(paste0(path_rds, "learning_input_nir.rds"))
-
-} else {
-
-    # read in
-    vh_input = readRDS(paste0(path_rds, "learning_input_vh.rds"))
-    red_input = readRDS(paste0(path_rds, "learning_input_red.rds"))
-    nir_input = readRDS(paste0(path_rds, "learning_input_nir.rds"))
-
-}
-
-input1 = vh_input ############### 20 Pixels missing!!!!!!!!!
-input2 = red_input
-input3 = nir_input
-
-nrow(input1)
-nrow(input2)
-nrow(input3)
-
-# merge data.frames, find out with cols are dublicates, coords and class column only once
-input = bind_task(vh_input, red_input, nir_input)
-
-# write to disk
-write_rds(input, path = paste0(path_developement, "rda/input.rds"))
-
-# read in
-input = readRDS(paste0(path_developement, "rda/input.rds"))
 
 
 ######################################################################
@@ -60,8 +9,6 @@ input = readRDS(paste0(path_developement, "rda/input.rds"))
 ######################################################################
 
 file_descriptor = "righttop"
-
-
 prefix = "nir"
 option = 3
 naming = path_naming_s2

@@ -14,7 +14,7 @@ file_descriptor = "lefttop_split1"
 
 # input tables
 input = as.data.table(readRDS(paste0(path_rds, "input.rds"))) %>%
-    dplyr::select(contains(c("red", "nir")), "x", "y", "class") %>%
+    dplyr::select(contains(c("vh", "red", "nir")), "x", "y", "class") %>%
     dplyr::select(sort(names(.)))
 
 newdata.split1 = as.data.table(readRDS(paste0(path_rds, "splits/", file_descriptor, ".rds"))) %>%
@@ -27,7 +27,9 @@ newdata.split1 = as.data.table(readRDS(paste0(path_rds, "splits/", file_descript
 
 ncol(newdata.split1)
 ncol(input)
-
+ncol(red)
+ncol(nir)
+ncol(vh)
 # CREATE TASK ------------------------------------------------------------------
 mlr_reflections$task_types # task types available
 task_slangbos = TaskClassifST$new(id = "slangbos", backend = input, target = "class",

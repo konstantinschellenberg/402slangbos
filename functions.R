@@ -91,9 +91,23 @@ rename_bandnames = function(raster = NULL, option = 1, var_prefix = NULL, naming
         date_in_bandnames = read.csv(file = naming, colClasses = "character") %>%
             .$n
         print("Sentinel 2, cloud filtered raster")
+    }
+
+    else if (option == 4){
+        date_in_bandnames = read.csv(file = naming, colClasses = "character") %>%
+            .$x
+        print("Sentinel 1 coherences")
+    }
+
+    else if (option == 5){
+        date_in_bandnames = read.csv(file = naming, colClasses = "character") %>%
+            .$x
+        print("Sentinel 1 coherences with scenes having a large number of nulls")
+    }
+
+    else {warning("Unknown parsing option . . .")}
 
 
-    } else {warning("Unknow parsing option . . .")}
 
     # convert date string into R date-time format
     date = c()
@@ -474,13 +488,15 @@ remove_cloud_layers = function(x, outfile, fraction = 0.2){
 # binds together three input data.frames with coordinates and class column "class"
 ################################################################################
 
-bind_task = function(input1, input2, input3){
+bind_task = function(list){
 
+    #' @param list: list of dataframes containing pixels(observations) in rows and date in columns.
+    #' Requires a form from gt_from_raster call
+    #'
+    #' this function works only in conjuction to gt_from_raster. More functionality to be developed.
+    #' get data in tibble (open functionabliy to check duplicate column names)
 
-    # this function works only in conjuction to gt_from_raster. More functionality to be developed.
-    # get data in tibble (open functionabliy to check duplicate column names)
-
-    input = bind_cols(input1, input2, input3) %>%
+    input = bind_cols(list) %>%
         as_tibble(.name_repair = "unique")
 
     # remove cols with x, y and class from the data frame,
@@ -524,14 +540,14 @@ bind_task = function(input1, input2, input3){
 # similar to bind_task but can coerce newdata tasks with data.tables
 ################################################################################
 
-bind_newdata = function(input1, input2, input3){
+bind_newdata = function(list){
 
-    # keep coords
-    coords = input1 %>%
-        transmute(x, y)
+    # save coords
+    coords = list[[1]] %>%
+        select(ends_with("x") | ends_with("y"))
 
-    out = bind_cols(input1, input2, input3) %>%
-        dplyr::select(-contains("x"), -contains("y")) %>%
+    out = bind_cols(list) %>%
+        dplyr::select(-contains("x"), -contains("y"), -contains("class")) %>%
         mutate(., x = coords$x, y = coords$y) # add them again
 
     # warnings
@@ -700,8 +716,8 @@ grep2 = function(source, class, number = NULL){
         cls = as.character(class)
         table = source[[cls]] # indexing task
 
-        cat("Count of list items (Class instances):", length(table))
-        cat("Ground truth set: ", deparse(substitute(source)), cls, sep = "\n")
+        # cat("Count of list items (Class instances):", length(table))
+        # cat("Ground truth set: ", deparse(substitute(source)), cls, sep = "\n")
 
         for (n in 1:length(table)){
             str = table[[n]]$date
@@ -718,7 +734,7 @@ grep2 = function(source, class, number = NULL){
 
         cls = as.character(class) # convert to string (list headers are strings not int)
         num = as.character(number) # same here
-        cat("Ground truth set: ", deparse(substitute(source)), cls, num, sep = "\n") # tidy print
+        # cat("Ground truth set: ", deparse(substitute(source)), cls, num, sep = "\n") # tidy print
         table = source[[cls]][[num]] # indexing task
 
         # convert date to POSTix
@@ -761,3 +777,61 @@ scale_custom = function(x, fun = NULL, center = FALSE){
 } # scaling the parameters
 
 #, scale=colSums(m)
+
+################################################################################
+# Extracting stats of the ground truth elements and applies smoothing
+################################################################################
+
+stats = function(list.dataframes, c, n, coherence_smoothing = FALSE){
+    #' function to warp data of a ground truth segment of choice in readable lists
+    #' digestable for plotting
+    #' "all" within the list's name indicated exclusion from the smoothing calculation
+    #' due to NA values in the table
+
+    # get names of the dataframes
+    names = list.names(list.dataframes)
+
+    # initialise list
+    list = list()
+    for(i in list.dataframes){
+        new = list(grep2(i, c, n))
+        list = append(list, new)
+    }
+
+    # set names of the new dataframes list
+    names(list) = names
+
+    # add median smoothed column
+    if (coherence_smoothing == FALSE){
+        list2 = list[!grepl(pattern = "all", x = names(list))]
+        all = list[grepl(pattern = "all", x = names(list))]
+
+        list2 = lapply(list2, function (x) drop_na(x))
+        list2 = lapply(list2, function (x) mutate(x, med_smooth = supsmu(x$date, x$median)$y))
+        list2 = lapply(list2, function (x) mutate(x, losd_smooth = supsmu(x$date, x$lower_sd)$y))
+        list2 = lapply(list2, function (x) mutate(x, upsd_smooth = supsmu(x$date, x$upper_sd)$y))
+        names(list2)
+        names(all)
+        list = append(list2, all)
+        names(list)
+    } else {
+        list = lapply(list, function (x) mutate(x, med_smooth = supsmu(x$date, x$median)$y))
+        list = lapply(list, function (x) mutate(x, losd_smooth = supsmu(x$date, x$lower_sd)$y))
+        list = lapply(list, function (x) mutate(x, upsd_smooth = supsmu(x$date, x$upper_sd)$y))
+    }
+
+    # calc NDVI
+    ndvi.pre.red = grep2(gt_red, c, n)
+    ndvi.pre.nir = grep2(gt_nir, c, n)
+
+    ndvi = data.frame(matrix(nrow = nrow(list$nir), ncol = 2))
+    ndvi$X2 = fun.ndvi(list$red$median, list$nir$median)
+    ndvi$X1 = list$red$date
+    names(ndvi) = c("date", "ndvi")
+
+    # optional scaling of the ndvi (only for comparison purposes, scale on stdev)
+    # ndvi$X2 = scale(ndvi$X2, center = T) %>% as.vector()
+
+    list = list.append(list, ndvi = ndvi)
+    return(list)
+}

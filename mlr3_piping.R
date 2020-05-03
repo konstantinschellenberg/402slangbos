@@ -65,7 +65,9 @@ autoplot(pred)
 
 # CONFUSION MATRIX -------------------------------------------------------------
 # read in
-confus = readRDS(paste0(path_developement, "rf_acc/confusion_outer.rda"))
+filename = "confusion_outer"
+
+confus = readRDS(paste0(path_developement, "rf_acc/", filename, ".rda"))
 
 # coloums and rows:
 nm = c("Increase", "Continuous", "Breakpoint", "Agriculture", "Bare Soil",
@@ -79,12 +81,12 @@ colnames(confus) = nm
 inp = as.data.frame(confus)
 
 # plot
-ggplot(data = as.data.frame(inp), mapping = aes(x = inp[,1], y = rev(inp[,2])))+
+g = ggplot(data = as.data.frame(inp), mapping = aes(x = inp[,1], y = rev(inp[,2])))+
     geom_tile(aes(fill = Freq)) +
     geom_text(aes(label = sprintf("%.0f", Freq)), vjust = 0.5, colour = "black")+
     scale_fill_gradientn(colours = rev(viridis::inferno(8, begin = 0.45)))+
-    xlab("Truth/Reference")+
-    ylab("Response")+
+    xlab("Prediction")+
+    ylab("Reference")+
     labs(fill = "Response [%]")+
     scale_y_discrete(labels = rev(nm))+
     theme(axis.text.x = element_text(family = "serif", face="bold", color="grey20",
@@ -97,35 +99,7 @@ ggplot(data = as.data.frame(inp), mapping = aes(x = inp[,1], y = rev(inp[,2])))+
                                       size=10, angle=90),
           aspect.ratio = 1,
           legend.position = "")
-)
-
-
-
-
-# plot confusion matrix after scaling ------------------------------------------
-# OUTER
-
-outer.confus = read.csv(file = "D:/Geodaten/#Jupiter/GEO402/04_products/performance/outer_confusion.csv", sep = " ", header = T)
-outer.confus = outer.confus[1:9,1:9]
-colnames(outer.confus) = c(1:9)
-
-outer.confus.norm = scale(outer.confus, center=FALSE, scale=colSums(outer.confus)) * 100
-outer.confus.norm = as.table(outer.confus.norm)
-
-rownames(outer.confus.norm) = nm
-colnames(outer.confus.norm) = nm
-outer.confus.norm
-
-
-# plot
-ggplot(data = as.data.frame(outer.confus.norm), mapping = aes(x = Var2, y = Var1)) +
-    geom_tile(aes(fill = Freq)) +
-    geom_text(aes(label = sprintf("%.0f", Freq)), vjust = 0.5, colour = "black")+
-    scale_fill_gradientn(colours = colfunc(8))+
-    xlab("Truth/Reference")+
-    ylab("Response")+
-    labs(fill = "Response on truth [%]")+
-    theme(axis.text.x = element_text(face="bold", color="black",
-                                             size=9, angle=30),
-                  axis.text.y = element_text(face="bold", color="black",
-                                             size=9, angle=30))
+g
+ggsave(g, filename = paste0("D:/Dokumente/1_Studium/11_Semester/GEO_402_Landoberflächenparameter/figures minipaper/", filename, ".svg"), device = "svg",
+       width = 4,
+       height = 4)

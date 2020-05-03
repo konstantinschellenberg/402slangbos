@@ -1,0 +1,436 @@
+#' Revisited version of plotting, simplified
+#' Konstantin Schellenberg, 1.4.2020
+#'
+#' Example plots:
+#' 1,7
+#' 1,16
+#' 1,26
+#' 1,32
+#'
+#' 2,3
+#' 2,10
+#'
+#' 3,2
+#' 3,4
+#'
+#' 4,4
+#' 4,2
+#'
+#' 7,9
+#' 7,5
+#'
+
+# Import sources ---------------------------------------------------------------
+
+setwd("D:/Geodaten/Master/projects/402slangbos")
+env = getwd()
+
+source("import.R")
+source("fonts.R")
+
+library(htmlwidgets)
+
+
+# Import files -----------------------------------------------------------------
+# create these file in script mlr3_preprocessing
+
+# files in directory
+gt.files = list.files(path_rds, pattern = "gt_", full.names = TRUE)
+
+# load files
+gt_vv = readRDS(gt.files[grep(x = gt.files, "_vv")])
+gt_vh = readRDS(gt.files[grep(x = gt.files, "_vh")])
+gt_red = readRDS(gt.files[grep(x = gt.files, "red")])
+gt_nir = readRDS(gt.files[grep(x = gt.files, "nir")])
+gt_covh = readRDS(gt.files[grep(x = gt.files, "covh.rds")])
+gt_covv = readRDS(gt.files[grep(x = gt.files, "covv.rds")])
+gt_covh_all = readRDS(gt.files[grep(x = gt.files, "covh_all")])
+gt_covv_all = readRDS(gt.files[grep(x = gt.files, "covv_all")])
+
+list.dataframes = list(vv = gt_vv,
+                       vh = gt_vh,
+                       red = gt_red,
+                       nir = gt_nir,
+                       covh = gt_covh,
+                       covv = gt_covv,
+                       covh_all = gt_covh_all,
+                       covv_all = gt_covv_all)
+
+# number of gt elements
+elements = lapply(list.dataframes[[1]], length) %>%
+    as.data.frame()
+elements = gt %>% group_by(Name) %>%
+    summarise(count = n()) %>%
+    .$count
+
+# example stats
+a = stats(list.dataframes, 1, 3, coherence_smoothing = F)
+
+
+# User choice (which filed to be analysed --------------------------------------
+
+# class, number
+c = 4
+n = 2
+
+# Map --------------------------------------------------------------------------
+
+# read in QGIS palette
+get_qgis_palette = function(csv){
+    q_pal.in = read.csv(csv, header = F, sep = " ")
+    q_pal = q_pal.in[,2:4]
+    pal = c()
+    for (i in 1:dim(q_pal)[1]){ # row length
+        pal = append(pal, values = rgb(red = q_pal[i,1], green = q_pal[i,2], blue = q_pal[i,3], maxColorValue = 255))
+    }
+    return(pal)
+}
+
+
+map = function(c, n){
+    # load classificatin palette
+    qgis_pal = get_qgis_palette("D:/Geodaten/#Jupiter/GEO402/layout/classification_palette.csv")
+
+    # get geographical position and identify of reference plot
+    sf = position(c, n)
+
+    description = data.frame(asdf = "Increase", "Continuous", "Breakpoint", "Agriculture", "Bare Soil", "Grassland", "Forest", "Urban", "Water")
+
+    # aggregate overview median raster
+    r = raster::aggregate(vh_med, fact = 2, fun = mean)
+
+    # optional: classification
+    # pred.classif = pred[[3]]
+    # pred.classif = raster::aggregate(pred.classif, fact = 2, fun = modal)
+    # pred.classif = pred[[3]]
+    # vrn = raster::aggregate(pred[[3]], fact = 2, fun = max)
+
+    mypopup = paste0("ID: ", gt$descrip, "<br>", "Number: ", gt$number, "<br> Area: ",
+                     round(st_area(gt)), " m²")
+
+    rasterpal = colorNumeric(c("black", "white"), values(r), na.color = "transparent")
+    factpal = colorFactor(palette = qgis_pal, domain = gt$Name)
+    # classifpal = colorFactor(palette = qgis_pal, domain = 1:9, na.color = "transparent")
+
+    # if zoomed to gt example
+    lon = st_bbox(st_centroid(sf))[1] %>% as.vector()
+    lat = st_bbox(st_centroid(sf))[2] %>% as.vector()
+
+    mymap = leaflet() %>%
+        addProviderTiles("Esri.WorldImagery") %>%
+        addRasterImage(x = r, opacity = 0.9, colors = rasterpal, group = "VH Median") %>%
+        # addRasterImage(x = pred.classif, opacity = 0.9, colors = classifpal, group = "Classification") %>%
+        setView(lon, lat, zoom = 17) %>%
+        addPolygons(data = st_transform(study_area, 4326),
+                    fillOpacity = 0,
+                    weight = 3,
+                    color = "black") %>%
+        addPolygons(data = st_transform(gt, 4326),
+                    fillColor = ~factpal(Name),
+                    color = ~factpal(Name), # you need to use hex colors
+                    fillOpacity = 0,
+                    weight = 3,
+                    smoothFactor = 0.1,
+                    popup = mypopup, group = "Reference plots") %>%
+        # addLegend(position = "bottomright", pal = rasterpal, values = values(r), title = "S-1 VH backscatter,<br><sub>5-year median</sub>",
+        #           labFormat = labelFormat(suffix = " [db]")) %>%
+        addLegend(position = "bottomright", colors = qgis_pal, values = gt$Name, title = "Classes",
+                  labels = c("Increase", "Continuous", "Breakpoint", "Agriculture", "Bare Soil", "Grassland", "Forest", "Urban", "Water")) %>%
+        addLayersControl(
+            overlayGroups = c("VH Median", "Reference plots"),
+            options = layersControlOptions(collapsed = FALSE)) %>%
+        hideGroup(c("VH Median"))
+    return(mymap)
+}
+
+map(c, n)
+
+# save leaflets
+# mapview::mapshot(map(a, i), file = paste0("hiwi/", a, "/map_", a, "-", i, ".png"), remove_controls = c("zoomControl", "layersControl"))
+
+
+# Plot 1 ------------------------------------------------------------------------
+# Comparison VH backscatter, VV coherence, NDVI
+
+plt1 = function(a, all = TRUE, title = NULL){
+
+    # save map
+
+    if (all == TRUE){
+        co_data = a$covv_all
+    } else {
+        co_data = a$covv
+        }
+
+    plt = plot_ly(width = 700, height = 500) %>%
+
+        ### LINES ------------------------------------------------------------------
+    # VH
+    add_lines(data = a$vh, x = ~date, y = ~med_smooth,
+              yaxis = "y1", name = "S-1 VH backscatter smoothed", line = vh.fmt) %>%
+
+    # VV coherence
+    add_lines(data = co_data, x = ~date, y = ~med_smooth,
+              yaxis = "y2", name = "S-1 VV coherence smoothed (2-weeks interval)", line = red.fmt,
+              connectgaps = F) %>%
+
+    # NDVI
+    # add_lines(data = a$ndvi, x = ~date, y = ~ndvi,
+    #           yaxis = "y3", name = "NDVI", line = ndvi.fmt) %>%
+
+        ### MARKERS-----------------------------------------------------------------
+
+    add_lines(data = a$covv_all, x = ~date, y = ~median,
+              yaxis = "y2", name = "S-1 VV coherence (2-weeks interval)",
+              marker = list(size = 3, color = "orange"), line = red2.fmt,
+              connectgaps = F) %>%
+
+        ### RIBBONS ----------------------------------------------------------------
+    add_ribbons(data = a$vh, x = ~date, ymin = ~losd_smooth, ymax = ~upsd_smooth,
+                yaxis = "y1", name = "S-1 VH standard deviation range (1 sigma)",
+                color = I(blue_background), line = list(width = 1), opacity = 0.3,
+                showlegend = T) %>%
+
+    add_ribbons(data = co_data, x = ~date, ymin = ~losd_smooth, ymax = ~upsd_smooth,
+                yaxis = "y2", name = "S-1 VV coherence standard deviation range (1 sigma)",
+                color = I(grey_background), line = list(width = 1), opacity = 0.3,
+                showlegend = T) %>%
+
+    layout(xaxis = x, yaxis = y.s1, yaxis2 = y.co_2,
+           # yaxis3 = y.s2_2, # NDVI Axis
+           legend = list(font = f1, orientation = "h", xanchor = "center", yanchor = "bottom", y = -0.7, x = 0.5),
+           margin = list(pad = 0, b = 200, l = 0, r = 100, automargin = TRUE),
+           title = title)
+
+    return(plt)
+}
+
+
+# Plot 2 -----------------------------------------------------------------------
+# Comparison VV, VH backscatter
+
+plt2 = function(a, scatter = TRUE, title = NULL){
+
+    plt = plot_ly(width = 700, height = 500) %>%
+
+    ### SMOOTH LINES ------------------------------------------------------------------
+    # VH
+    add_lines(data = a$vh, x = ~date, y = ~med_smooth,
+              yaxis = "y1", name = "S-1 VH backscatter smoothed (median of pixels)", line = vh.fmt) %>%
+
+    # VV
+    add_lines(data = a$vv, x = ~date, y = ~med_smooth,
+              yaxis = "y1", name = "S-1 VV backscatter smoothed (median of pixels)", line = black.fmt)
+
+    if (scatter == TRUE){
+
+        ### MARKERS -----------------------------------------------------------------
+        plt = add_lines(plt, data = a$vh, x = ~date, y = ~median,
+                  yaxis = "y1", name = "S-1 VH backscatter (median of pixels)",
+                  line = vh.fmt.slim,
+                  connectgaps = F) %>%
+
+        add_lines(data = a$vv, x = ~date, y = ~median,
+                  yaxis = "y1", name = "S-1 VV backscatter (median of pixels)",
+                  line = black.fmt.slim,
+                  connectgaps = F)
+    }
+
+    ### RIBBONS ----------------------------------------------------------------
+    plt = add_ribbons(plt, data = a$vh, x = ~date, ymin = ~losd_smooth, ymax = ~upsd_smooth,
+                yaxis = "y1", name = "S-1 VH standard deviation range (1 sigma)",
+                color = I(blue_background), line = list(width = 1), opacity = 0.3,
+                showlegend = TRUE) %>%
+
+    add_ribbons(data = a$vv, x = ~date, ymin = ~losd_smooth, ymax = ~upsd_smooth,
+                yaxis = "y1", name = "S-1 VV standard deviation range (1 sigma)",
+                color = I(grey_background), line = list(width = 1), opacity = 0.3,
+                showlegend = TRUE) %>%
+
+    layout(xaxis = x, yaxis = y.s1.general,
+           legend = list(font = f1, orientation = "h", xanchor = "center", yanchor = "bottom", y = -1, x = 0.5),
+           margin = list(pad = 0, b = 200, l = 0, r = 100, automargin = TRUE),
+           title = title)
+
+    return(plt)
+}
+
+
+# Plot 3 -----------------------------------------------------------------------
+
+plt3 = function(a, all = TRUE, title = NULL){
+    # VH VV Kohärenzen Gegenüberstellung
+
+    if (all == TRUE){
+        covv_data = a$covv_all
+        covh_data = a$covh_all
+    } else {
+        covv_data = a$covv
+        covh_data = a$covh
+        }
+
+    plt = plot_ly(width = 700, height = 500) %>%
+
+        # lines
+        add_lines(data = covv_data, x = ~date, y = ~med_smooth,
+                  name = "S1 VV coherence smoothed (2-weeks interval)", line = red.fmt,
+                  connectgaps = F) %>%
+        add_lines(data = covh_data, x = ~date, y = ~med_smooth,
+                  name = "S1 VH coherence smoothed (2-weeks interval)", line = nir.fmt,
+                  connectgaps = F) %>%
+
+        # markers
+        add_lines(data = a$covv_all, x = ~date, y = ~median,
+                  name = "S1 VV coherence (2-weeks interval)",
+                  marker = list(size = 3, color = "orange"), line = red2.fmt,
+                  connectgaps = F) %>%
+        add_lines(data = a$covh_all, x = ~date, y = ~median,
+                  name = "S1 VH coherence (2-weeks interval)",
+                  marker = list(size = 3, color = "green"), line = nir2.fmt,
+                  connectgaps = F) %>%
+
+        # ribbons
+        add_ribbons(data = covv_data, x = ~date, ymin = ~losd_smooth, ymax = ~upsd_smooth,
+                    name = "VH standard deviation range [1 sigma]",
+                    color = I(grey_background), line = list(width = 1), opacity = 0.3,
+                    showlegend = FALSE) %>%
+        add_ribbons(data = covh_data, x = ~date, ymin = ~losd_smooth, ymax = ~upsd_smooth,
+                    name = "VH standard deviation range [1 sigma]",
+                    color = I(green_background), line = list(width = 1), opacity = 0.2,
+                    showlegend = FALSE) %>%
+
+        layout(xaxis = x, yaxis = y.co,
+               legend = list(font = f1, orientation = "h", xanchor = "center", yanchor = "bottom", y = -0.7, x = 0.5),
+               margin = list(pad = 10, b = 200, l = 80, r = 80, automargin = TRUE),
+               title = title)
+    return(plt)
+}
+
+# CALL PLOTS -------------------------------------------------------------------
+#' Example plots:
+#' 1,7
+#' 1,12
+#' 1,16
+#' 1,26
+#' 1,32
+#'
+#' 2,2
+#' 2,6
+#'
+#' 3,2
+#' 3,4
+#'
+#' 4,4
+#' 4,2
+#'
+#' 7,9
+#' 7,5
+
+for (i in 1:length(elements)){
+    print(i)
+}
+
+for (a in 1:9){
+    # loop through classes
+    numbers = elements[a]
+    cat("Printing class", a, "with", numbers, "reference plots\n")
+
+    for (i in 1:numbers){
+        # make bulk graphs and save to disk
+        # for each gt in class
+
+        # general outpath:
+        outpath = paste0("D:/Geodaten/Master/projects/402slangbos/hiwi/", a, "/")
+        dir.create(outpath)
+        setwd(paste0(outpath))
+        kuerzel = paste0(a, "-", i)
+
+        # write out shp
+        sf = position(a, i)
+        st_write(sf, dsn = paste0(outpath, kuerzel, "contain.shp"), update = TRUE)
+
+        # title parsing
+        tit = sf$descrip
+        code = paste0("(code ",sf$Name,"/",sf$number,")")
+        cat(code)
+
+        # converting shp to zip archive
+        archive.files = list.files(path = outpath, pattern = paste0(kuerzel, "contain"), full.names = T)
+        zip::zipr(zipfile = paste0(kuerzel, "_shape.zip"), files = archive.files, include_directories = FALSE)
+        file.remove(archive.files)
+
+        # save map
+        m = map(a, i)
+        mapview::mapshot(m, file = paste0(outpath, kuerzel, "_map.png"),
+                         remove_controls = c("zoomControl", "layersControl"))
+
+        tryCatch(
+            expr = {
+                # Data contails all values
+                # get stats
+                stat = stats(list.dataframes, a, i, coherence_smoothing = TRUE)
+                # plot calls
+                p1 = plt1(stat, title = paste("VH Backscatter vs. VV Coherence,", tit, code))
+                p2a = plt2(stat, scatter = TRUE, title = paste("VH vs. VV Backscatter,", tit, code))
+                p2b = plt2(stat, scatter = FALSE, title = paste("VH vs. VV Backscatter,", tit, code))
+                p3 = plt3(stat, title = paste("VH vs. VV Coherence,", tit, code))
+
+            },
+            error = function(e){
+                message("fatal error")
+                message("\n", e)
+                return(NA)},
+            warning = function(w){
+                # data contains NA values in the time series
+                # get stats
+
+                message(w)
+                message("\nContinuing . . .")
+
+                stat = stats(list.dataframes, a, i, coherence_smoothing = FALSE)
+
+                # plot calls
+                p1 <<- plt1(stat, all = FALSE, title = paste("VH Backscatter vs. VV Coherence,", tit, code))
+                p2a <<- plt2(stat, scatter = TRUE, title = paste("VH vs. VV Backscatter,", tit, code))
+                p2b <<- plt2(stat, scatter = FALSE, title = paste("VH vs. VV Backscatter,", tit, code))
+                p3 <<- plt3(stat, all = FALSE, title = paste("VH vs. VV Coherence,", tit, code))
+            }
+        )
+        plotly::orca(p1, file = paste0(kuerzel, "_plt_VH-coherenceVV.svg"))
+        plotly::orca(p2a, file = paste0(kuerzel, "_plt_VH-VV_scatter.svg"))
+        plotly::orca(p2b, file = paste0(kuerzel, "_plt_VH-VV_smooth.svg"))
+        plotly::orca(p3, file = paste0(kuerzel, "_plt_coherenceVV-coherenceVH.svg"))
+
+        # saving html
+        htmlwidgets::saveWidget(widget = p1, file = paste0(outpath, kuerzel, "_plt_VH-coherenceVV.html"), selfcontained = T)
+        htmlwidgets::saveWidget(widget = p2a, file = paste0(outpath, kuerzel, "_plt_VH-VV_scatter.html"), selfcontained = T)
+        htmlwidgets::saveWidget(widget = p2b, file = paste0(outpath, kuerzel, "_plt_VH-VV_smooth.html"), selfcontained = T)
+        htmlwidgets::saveWidget(widget = p3, file = paste0(outpath, kuerzel, "_plt_coherenceVV-coherenceVH.html"), selfcontained = T)
+        htmlwidgets::saveWidget(widget = m, file = paste0(outpath, kuerzel, "_map.html"), selfcontained = T)
+        setwd(env)
+
+    }
+}
+
+
+# bulk archiving
+
+for (a in 1:length(elements)){
+    setwd(env)
+    numbers = elements[a]
+
+    for (i in 1:numbers){
+        kuerzel = paste0(a, "-", i, "_")
+        code = paste0("(code ",a,"/",i,")")
+        cat(kuerzel)
+
+        # delete archive.zip
+        file.remove(paste0("hiwi/", a, "/", kuerzel, "archive.zip"))
+
+        # archive all plots in zip
+        archive.files = list.files(path = "hiwi", pattern = kuerzel, full.names = T, recursive = T)
+        archive.files = archive.files[!grepl(x = archive.files,"_archive")]
+        print(archive.files)
+        zip::zipr(zipfile = paste0("hiwi/", a, "/", kuerzel, "archive.zip"), files = archive.files, include_directories = FALSE)
+    }
+}
