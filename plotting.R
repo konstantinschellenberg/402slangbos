@@ -28,32 +28,30 @@ env = getwd()
 source("import.R")
 source("fonts.R")
 
-library(htmlwidgets)
-
-
 # Import files -----------------------------------------------------------------
 # create these file in script mlr3_preprocessing
 
 # files in directory
-gt.files = list.files(path_rds, pattern = "gt_", full.names = TRUE)
+# gt.files = list.files(path_rds, pattern = "gt_", full.names = TRUE)
+gt.files = list.files("D:/Geodaten/#Jupiter/GEO402/03_develop/ground_reference_files", pattern = "gt_", full.names = TRUE)
 
 # load files
-gt_vv = readRDS(gt.files[grep(x = gt.files, "_vv")])
-gt_vh = readRDS(gt.files[grep(x = gt.files, "_vh")])
-gt_red = readRDS(gt.files[grep(x = gt.files, "red")])
-gt_nir = readRDS(gt.files[grep(x = gt.files, "nir")])
-gt_covh = readRDS(gt.files[grep(x = gt.files, "covh.rds")])
-gt_covv = readRDS(gt.files[grep(x = gt.files, "covv.rds")])
-gt_covh_all = readRDS(gt.files[grep(x = gt.files, "covh_all")])
-gt_covv_all = readRDS(gt.files[grep(x = gt.files, "covv_all")])
+gt_vv = readRDS(gt.files[grep(x = gt.files, "/vv")])
+gt_vh = readRDS(gt.files[grep(x = gt.files, "/vh")])
+gt_red = readRDS(gt.files[grep(x = gt.files, "/red")])
+gt_nir = readRDS(gt.files[grep(x = gt.files, "/nir")])
+# gt_covh = readRDS(gt.files[grep(x = gt.files, "/covh.rds")])
+gt_covv = readRDS(gt.files[grep(x = gt.files, "/covv_g")])
+# gt_covh_all = readRDS(gt.files[grep(x = gt.files, "/covh_all")])
+gt_covv_all = readRDS(gt.files[grep(x = gt.files, "/covv_all")])
 
 list.dataframes = list(vv = gt_vv,
                        vh = gt_vh,
                        red = gt_red,
                        nir = gt_nir,
-                       covh = gt_covh,
+                       # covh = gt_covh,
                        covv = gt_covv,
-                       covh_all = gt_covh_all,
+                       # covh_all = gt_covh_all,
                        covv_all = gt_covv_all)
 
 # number of gt elements
@@ -64,10 +62,10 @@ elements = gt %>% group_by(Name) %>%
     .$count
 
 # example stats
-a = stats(list.dataframes, 1, 3, coherence_smoothing = F)
+ex = stats(list.dataframes, 1, 15, coherence_smoothing = F)
 
 
-# User choice (which filed to be analysed --------------------------------------
+# User choice (which is filed to be analysed) ----------------------------------
 
 # class, number
 c = 4
@@ -257,9 +255,11 @@ plt2 = function(a, scatter = TRUE, title = NULL){
 
 
 # Plot 3 -----------------------------------------------------------------------
+# Comparison VV, VH Coherences
 
+# only available when VH coherences have been derived
 plt3 = function(a, all = TRUE, title = NULL){
-    # VH VV Kohärenzen Gegenüberstellung
+
 
     if (all == TRUE){
         covv_data = a$covv_all
@@ -306,6 +306,60 @@ plt3 = function(a, all = TRUE, title = NULL){
     return(plt)
 }
 
+# Plot 4 -----------------------------------------------------------------------
+# Comparison VV backscatter, VV coherence, NDVI
+
+plt4 = function(a, all = TRUE, title = NULL){
+
+
+    if (all == TRUE){
+        co_data = a$covv_all
+    } else {
+        co_data = a$covv
+    }
+
+    plt = plot_ly(width = 700, height = 500) %>%
+
+        ### LINES ------------------------------------------------------------------
+    # VV
+    add_lines(data = a$vv, x = ~date, y = ~med_smooth,
+              yaxis = "y1", name = "S-1 VV backscatter smoothed", line = vv.fmt) %>%
+
+    # VV coherence
+    add_lines(data = co_data, x = ~date, y = ~med_smooth,
+              yaxis = "y2", name = "S-1 VV coherence smoothed (2-weeks interval)", line = red.fmt,
+              connectgaps = F) %>%
+
+    # NDVI
+    # add_lines(data = a$ndvi, x = ~date, y = ~ndvi,
+    #           yaxis = "y3", name = "NDVI", line = ndvi.fmt) %>%
+
+        ### MARKERS-----------------------------------------------------------------
+
+    add_lines(data = a$covv_all, x = ~date, y = ~median,
+              yaxis = "y2", name = "S-1 VV coherence (2-weeks interval)",
+              marker = list(size = 3, color = "orange"), line = red2.fmt,
+              connectgaps = F) %>%
+
+        ### RIBBONS ----------------------------------------------------------------
+    add_ribbons(data = a$vv, x = ~date, ymin = ~losd_smooth, ymax = ~upsd_smooth,
+                yaxis = "y1", name = "S-1 VV standard deviation range (1 sigma)",
+                color = I(green_background), line = list(width = 1), opacity = 0.15,
+                showlegend = T) %>%
+
+    add_ribbons(data = co_data, x = ~date, ymin = ~losd_smooth, ymax = ~upsd_smooth,
+                yaxis = "y2", name = "S-1 VV coherence standard deviation range (1 sigma)",
+                color = I(grey_background), line = list(width = 1), opacity = 0.3,
+                showlegend = T) %>%
+
+    layout(xaxis = x, yaxis = y.s1.vv, yaxis2 = y.co_2,
+           # yaxis3 = y.s2_2, # NDVI Axis
+           legend = list(font = f1, orientation = "h", xanchor = "center", yanchor = "bottom", y = -0.7, x = 0.5),
+           margin = list(pad = 0, b = 200, l = 0, r = 100, automargin = TRUE),
+           title = title)
+
+    return(plt)
+}
 # CALL PLOTS -------------------------------------------------------------------
 #' Example plots:
 #' 1,7
@@ -314,28 +368,50 @@ plt3 = function(a, all = TRUE, title = NULL){
 #' 1,26
 #' 1,32
 #'
-#' 2,2
-#' 2,6
+#' 2,2x
+#' 2,6x
+#' 2,8
+#' 2,17
+#' 2,22
+#' 2,31
+#' 2,32
 #'
 #' 3,2
 #' 3,4
 #'
-#' 4,4
 #' 4,2
+#' 4,4
 #'
-#' 7,9
+#' 6,1
+#' 6,2
+#'
 #' 7,5
+#' 7,9
+
+y.s1.vv <- list(
+    title = list(text = "S1 VV backscatter [dB]", standoff = 50),
+    titlefont = f2,
+    tickfont = f1,
+    showline = F,
+    showgrid = FALSE,
+    anchor = "free",
+    position = 0)
+
 
 for (i in 1:length(elements)){
     print(i)
 }
+
+setwd(env)
+
+# Bulk plot creation -----------------------------------------------------------
 
 for (a in 1:9){
     # loop through classes
     numbers = elements[a]
     cat("Printing class", a, "with", numbers, "reference plots\n")
 
-    for (i in 1:numbers){
+    for (i in 31:numbers){
         # make bulk graphs and save to disk
         # for each gt in class
 
@@ -347,7 +423,7 @@ for (a in 1:9){
 
         # write out shp
         sf = position(a, i)
-        st_write(sf, dsn = paste0(outpath, kuerzel, "contain.shp"), update = TRUE)
+        st_write(sf, dsn = paste0(outpath, kuerzel, "contain.shp"), update = TRUE, quiet = TRUE)
 
         # title parsing
         tit = sf$descrip
@@ -371,9 +447,10 @@ for (a in 1:9){
                 stat = stats(list.dataframes, a, i, coherence_smoothing = TRUE)
                 # plot calls
                 p1 = plt1(stat, title = paste("VH Backscatter vs. VV Coherence,", tit, code))
-                p2a = plt2(stat, scatter = TRUE, title = paste("VH vs. VV Backscatter,", tit, code))
-                p2b = plt2(stat, scatter = FALSE, title = paste("VH vs. VV Backscatter,", tit, code))
-                p3 = plt3(stat, title = paste("VH vs. VV Coherence,", tit, code))
+                p2a = plt2(stat, scatter = TRUE, title = paste("VH Backscatter vs. VV Backscatter,", tit, code))
+                # p2b = plt2(stat, scatter = FALSE, title = paste("VH Backscatter vs. VV Backscatter,", tit, code))
+                # p3 = plt3(stat, title = paste("VH Coherence vs. VV Coherence,", tit, code))
+                p4 = plt4(stat, title = paste("VV Backscatter vs. VV Coherence,", tit, code))
 
             },
             error = function(e){
@@ -391,29 +468,33 @@ for (a in 1:9){
 
                 # plot calls
                 p1 <<- plt1(stat, all = FALSE, title = paste("VH Backscatter vs. VV Coherence,", tit, code))
-                p2a <<- plt2(stat, scatter = TRUE, title = paste("VH vs. VV Backscatter,", tit, code))
-                p2b <<- plt2(stat, scatter = FALSE, title = paste("VH vs. VV Backscatter,", tit, code))
-                p3 <<- plt3(stat, all = FALSE, title = paste("VH vs. VV Coherence,", tit, code))
+                p2a <<- plt2(stat, scatter = TRUE, title = paste("VH Backscatter vs. VV Backscatter,", tit, code))
+                # p2b <<- plt2(stat, scatter = FALSE, title = paste("VH Backscatter vs. VV Backscatter,", tit, code))
+                # p3 <<- plt3(stat, all = FALSE, title = paste("VH Coherence vs. VV Coherence,", tit, code))
+                p4 <<- plt4(stat, all = FALSE, title = paste("VV Backscatter vs. VV Coherence,", tit, code))
+
             }
         )
-        plotly::orca(p1, file = paste0(kuerzel, "_plt_VH-coherenceVV.svg"))
-        plotly::orca(p2a, file = paste0(kuerzel, "_plt_VH-VV_scatter.svg"))
-        plotly::orca(p2b, file = paste0(kuerzel, "_plt_VH-VV_smooth.svg"))
-        plotly::orca(p3, file = paste0(kuerzel, "_plt_coherenceVV-coherenceVH.svg"))
+        plotly::orca(p1, file = paste0(kuerzel, "_bscVH-cohVV.svg"))
+        plotly::orca(p2a, file = paste0(kuerzel, "_bscVH-bscVV.svg"))
+        # plotly::orca(p2b, file = paste0(kuerzel, "_bscVH-bscVV_smooth.svg"))
+        # plotly::orca(p3, file = paste0(kuerzel, "_cohVV-cohVH.svg"))
+        plotly::orca(p4, file = paste0(kuerzel, "_bscVV-cohVV.svg"))
 
         # saving html
-        htmlwidgets::saveWidget(widget = p1, file = paste0(outpath, kuerzel, "_plt_VH-coherenceVV.html"), selfcontained = T)
-        htmlwidgets::saveWidget(widget = p2a, file = paste0(outpath, kuerzel, "_plt_VH-VV_scatter.html"), selfcontained = T)
-        htmlwidgets::saveWidget(widget = p2b, file = paste0(outpath, kuerzel, "_plt_VH-VV_smooth.html"), selfcontained = T)
-        htmlwidgets::saveWidget(widget = p3, file = paste0(outpath, kuerzel, "_plt_coherenceVV-coherenceVH.html"), selfcontained = T)
-        htmlwidgets::saveWidget(widget = m, file = paste0(outpath, kuerzel, "_map.html"), selfcontained = T)
+        htmlwidgets::saveWidget(widget = p1, file = paste0(outpath, kuerzel, "_bscVH-cohVV.html"), selfcontained = TRUE)
+        htmlwidgets::saveWidget(widget = p2a, file = paste0(outpath, kuerzel, "_bscVH-bscVV.html"), selfcontained = TRUE)
+        # htmlwidgets::saveWidget(widget = p2b, file = paste0(outpath, kuerzel, "_bscVH-bscVV_smooth.html"), selfcontained = TRUE)
+        # htmlwidgets::saveWidget(widget = p3, file = paste0(outpath, kuerzel, "_cohVV-cohVH.html"), selfcontained = TRUE)
+        htmlwidgets::saveWidget(widget = p4, file = paste0(outpath, kuerzel, "_bscVV-cohVV.html"), selfcontained = TRUE)
+        htmlwidgets::saveWidget(widget = m, file = paste0(outpath, kuerzel, "_map.html"), selfcontained = TRUE)
         setwd(env)
 
     }
 }
 
 
-# bulk archiving
+# bulk archiving ---------------------------------------------------------------
 
 for (a in 1:length(elements)){
     setwd(env)
@@ -434,3 +515,65 @@ for (a in 1:length(elements)){
         zip::zipr(zipfile = paste0("hiwi/", a, "/", kuerzel, "archive.zip"), files = archive.files, include_directories = FALSE)
     }
 }
+
+# copy example plots to storage directory --------------------------------------
+
+example_plots = c("1-7",
+                  "1-12",
+                  "1-16",
+                  "1-26",
+                  "1-32",
+
+                  "2-8",
+                  "2-17",
+                  "2-22",
+                  "2-31",
+                  "2-32",
+
+                  "3-2",
+                  "3-4",
+                  "3-8",
+                  "3-11",
+                  "3-12",
+
+                  "4-1",
+                  "4-3",
+                  "4-4",
+                  "4-12",
+
+                  "6-2",
+                  "6-4",
+                  "6-7",
+                  "6-13",
+
+                  "7-5",
+                  "7-9")
+
+######## declare new paths
+all = list.files("D:/Geodaten/Master/projects/402slangbos/hiwi", recursive = TRUE, full.names = TRUE)
+new_path = "third_05_2020"
+########
+
+for (i in example_plots){
+    pattern = paste0(i, "_archive.zip")
+    copy.from = all[grepl(pattern, all)]
+    print(copy.from)
+
+    path = paste0("D:/Geodaten/#Jupiter/GEO402/HIWI_Documents/exploration/", new_path, "/#examples/")
+    dir.create(path, recursive = TRUE)
+    file.copy(from = copy.from, to = path, overwrite = TRUE)
+    zip::unzip(paste0(path, pattern), overwrite = TRUE, exdir = paste0(path, "unzipped/"))
+
+}
+
+
+# Copy all other plots in storage ----------------------------------------------
+
+for (i in all){
+    copy.from = i[grepl("_archive", i)]
+    print(copy.from)
+
+    path = paste0("D:/Geodaten/#Jupiter/GEO402/HIWI_Documents/exploration/", new_path)
+    file.copy(from = copy.from, to = path, overwrite = TRUE)
+}
+

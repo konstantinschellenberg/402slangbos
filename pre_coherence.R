@@ -3,13 +3,17 @@
 
 source("import.R")
 
-library(rgdal)
-library(gdalUtils)
+################################################################################
+# Follow this for single-file stacking
+################################################################################
 
 # list coherence files
 
-list.stacking = list.files(path = "F:/geodata/geo402/coherence/", pattern = ".tif$", full.names = T)
-coherence.names = list.files(path = "F:/geodata/geo402/coherence/", pattern = ".tif$", full.names = F)
+list.stacking = list.files(path = "F:/geodata/geo402/S1-coherence/xx_old_stack/raw_data", pattern = ".tif$", full.names = T)
+coherence.names = list.files(path = "F:/geodata/geo402/S1-coherence/xx_old_stack/raw_data", pattern = ".tif$", full.names = F)
+
+# for new coherences (including 2020 data)
+coherence.names = names(brick("F:/geodata/geo402/S1-coherence/xx_new_stack/S1_A_VV_stack_coherence"))
 
 single.vrt = coherence.names %>%
     substring(., first = 1, last = nchar(.[1]) - 4) %>%
@@ -61,31 +65,89 @@ for (a in bands){
 
 }
 
+################################################################################
+# Follow this for stack cleaning
+################################################################################
 
-# (2) filter NA ----------------------------------------------------------------
-# bands 14-24
-# 166 in total
+# Pre-processing ---------------------------------------------------------------
+#' (1) cut extent to study area
+#' (2) leave no-data as -99
+#' (3) identify scenes with significant -99 ocurrence
+#' (4) create bandnames file
+#' (5) remove 24d repeat cycle data
+
+gdalUtils::gdalinfo(s1covv_all)
+gdalUtils::gdalinfo(s1covv)
+gdalinfo("D:/Geodaten/#Jupiter/GEO402/03_develop/s1/vrtpath.vrt")
+
+nlayers(covv_all)
+nlayers(covv)
+
+# (1) & (2)
+# repeat this for VV and VH
+file.remove("D:/Geodaten/#Jupiter/GEO402/03_develop/coherence/vrtpath.vrt")
+gdalUtils::gdalbuildvrt(gdalfile = s1covv_all,
+                        output.vrt = "D:/Geodaten/#Jupiter/GEO402/03_develop/coherence/vrtpath.vrt",
+                        overwrite = TRUE,
+                        te = st_bbox(study_area),
+                        a_srs = "+proj=utm +zone=35 +south +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0", srcnodata = 0)
+
+gdalUtils::gdal_translate(src_dataset = "D:/Geodaten/#Jupiter/GEO402/03_develop/coherence/vrtpath.vrt",
+                          dst_dataset = paste0(path_s1, "S1_A_VH_stack_slangbos_50m_crop"),
+                          of = "ENVI")
+
+# (3)
+# assess NA qualities
+na_identifier(covv, na = 0)
+na_identifier(covv_all, na = NA)
 
 
-covh = brick(s1vh_co)
-covv = brick(s1vv_co)
-
-length(names(covh))
-length(names(covv))
-
-co.na = cellStats(covh == 0, sum) # count the NA (0) values in each layer
-co.na.fraction = co.na/ncell(covh) # fraction that is NA (0)
-co.na.fraction
-
-co.filtered.out = covh[[which(co.na.fraction>0.1)]] # filter all with na more than 20%
-names(co.filtered.out) # return dir with NA rasters
-
-# (3) create bandnames file txt ------------------------------------------------
+# (4) create bandnames file txt ------------------------------------------------
 
 # creating a textfile for automatic renaming of the raster bands according to the date
 coherence.names
 
-co.dates = substring(coherence.names, first = 10, last = 17) %>% as.numeric()
-write.csv(co.dates, file = path_naming_co, row.names = F)
+dates = substring(coherence.names, first = 10, last = 17) %>% as.numeric()
+# write.csv(dates, file = "D:/Geodaten/#Jupiter/GEO402/01_data/coherence/xx_new_stack_coherence_bandnames.txt", row.names = F)
 
-# remove first row manually from the file!
+# (5) checking interferogram interval spacing --------------------------------------
+
+dates = substring(coherence.names, first = 10, last = 17)
+d = as.POSIXlt(x = dates, tryFormats = "%Y%m%d", tz = "GMT")
+
+df = data.frame(date = d, diff = NA)
+for (i in seq_along(d)) {
+    # print(i)
+    diff = as.numeric(difftime(time1 = d[[i+1]], time2 = d[[i]]))
+    df$diff[[i]] = diff
+}
+df
+# Interferograms with temporal baseline larger than 12d
+filt_df = df %>%
+    filter(diff > 12)
+filt_df
+pattern = filt_df$date %>% as.character() %>% gsub("-", ".", .)
+
+#' Datum bezieht sich auf das erste SLC.
+#' 8 Daten sind 24d-Paare
+#'
+raster = covv_all
+falsepairs = grepl(pattern = paste(pattern, collapse = "|"), x = names(raster))
+
+names_truepairs = names(raster)[!falsepairs]
+out = raster[[names_truepairs]]
+raster::writeRaster(out, filename = "D:/Geodaten/#Jupiter/GEO402/01_data/coherence/S1_A_VV_stack_coherence_reproj_resamp_rm24-repeat.tif")
+
+# filename covv_all "D:/Geodaten/#Jupiter/GEO402/01_data/coherence/S1_A_VV_stack_coherence_all_reproj_resamp_nodatafix_rm24-repeat.tif"
+# filename covv     "D:/Geodaten/#Jupiter/GEO402/01_data/coherence/S1_A_VV_stack_coherence_reproj_resamp_rm24-repeat.tif"
+
+# (6) create bandnames for new coherence stacks (24-repeat cycle removed) ------
+
+dates_renaming = names(out) %>%
+    substring(first = 10, last = length(.)) %>%
+    as.POSIXct(., tz = "GMT", tryFormats = "%Y.%m.%d") %>%
+    gsub("-", "", .) %>%
+    as.numeric()
+
+# write.csv(dates_renaming, file = "D:/Geodaten/#Jupiter/GEO402/01_data/coherence/xx_new_stack_coherence_bandnames_all_rm24-repeat.txt", row.names = F, quote = F)
+

@@ -1,6 +1,6 @@
 # Konstantin Schellenberg, WS 2019/20
 # University of Jena, Chair of remote sensing
-# supervisor: Dr. Marcel Urban
+# Supervisor: Dr. Marcel Urban
 
 # This script serves to read Sentinel-1 Radar time series in order to extract pixel values falling in the ground truth training
 # and validation polygons (GT)
@@ -66,48 +66,15 @@ fun.ndvi = function(r, n){(n-r)/(n+r)}
 # Rename bandnames -------------------------------------------------------------
 ################################################################################
 
-rename_bandnames = function(raster = NULL, option = 1, var_prefix = NULL, naming = NULL){
+rename_bandnames = function(raster = NULL, var_prefix = NULL, naming = NULL){
 
     #' param. raster to be renames
-    #' option. 1 = Sentinel-1, 2 = Sentinel-2 according to naming table, 3 = Sentinel-2 according to naming table small
     #' var_prefix. prefix of the raster bands
     #' naming. table.txt with layer names in rows
 
-    # Sentinel 1
-    if (option == 1){ # S1 as provided by M. Urban (FSU Jena)
-
-        date_in_bandnames = read.csv(file = naming, colClasses = "character") %>%
-            .$.
-        print("Sentinel 1")
-        }
-
-    else if (option == 2){ # S2 as provided by A. Hirner (DLR)
-        date_in_bandnames = read.csv(file = naming, colClasses = "character") %>%
-            .$bandname
-        print("Sentinel 2, with clouds")
-        }
-
-    else if (option == 3){
-        date_in_bandnames = read.csv(file = naming, colClasses = "character") %>%
-            .$n
-        print("Sentinel 2, cloud filtered raster")
-    }
-
-    else if (option == 4){
-        date_in_bandnames = read.csv(file = naming, colClasses = "character") %>%
-            .$x
-        print("Sentinel 1 coherences")
-    }
-
-    else if (option == 5){
-        date_in_bandnames = read.csv(file = naming, colClasses = "character") %>%
-            .$x
-        print("Sentinel 1 coherences with scenes having a large number of nulls")
-    }
-
-    else {warning("Unknown parsing option . . .")}
-
-
+    # read in csv data
+    date_in_bandnames = read.csv(file = naming, colClasses = "character") %>%
+        .$x
 
     # convert date string into R date-time format
     date = c()
@@ -131,35 +98,39 @@ rename_bandnames = function(raster = NULL, option = 1, var_prefix = NULL, naming
 gt_from_raster = function(train_data = NULL,
                           response_col = NULL,
                           raster = NULL,
-                          outfile = NULL){
+                          dst = NULL,
+                          prefix = NULL){
 
     # credits to http://amsantac.co/blog/en/2015/11/28/classification-r.html
     # https://gist.github.com/amsantac/5183c0c71a8dcbc27a4f
-    df_all = data.frame(matrix(vector(), nrow = 0, ncol = length(names(raster)) + 1))
     outest = list()
+    cat("load raster as velox-object... please wait.")
+    v = velox(raster)
 
     for (i in 1:length(unique(train_data[[response_col]]))){
 
         # get class
         category = unique(train_data[[response_col]])[i]
-        print(category)
+        cat("Category:", category, "\n")
+
         # returns sp polygon with class i
         categorymap = train_data[train_data[[response_col]] == category,]
 
         # extract pixel information
-        dataSet = raster::extract(raster, categorymap, cellnumbers = TRUE)
+        # dataSet = raster::extract(raster, categorymap, cellnumbers = TRUE) ## deprecated
+        dataSet = v$extract(sp = categorymap)
 
         out = list()
 
-        for (a in 1:length(dataSet)){
+        for (a in dataSet){
 
-            remove_cell = as.data.frame(dataSet[[a]]) %>%
-                .[, -1] # this removes the first column "cell" from cellnumbers
+            # replace colnames of matrix by raster's colnames (preferrably dates)
+            colnames(a) = names(raster)
 
-            calcs = remove_cell %>%
+            calcs = a %>%
                 t() %>%
                 as.data.frame() %>%
-                mutate(date = colnames(remove_cell)) %>%
+                mutate(date = colnames(a)) %>%
                 pivot_longer(-date, names_to = "names", values_to = "values") %>%
                 group_by(date) %>%
                 summarise(mean = mean(values), # here can be put more stats information retrieved from the polygons
@@ -169,19 +140,64 @@ gt_from_raster = function(train_data = NULL,
                           "upper_sd" = mean(values) + sd(values),
                           count = n())
 
-            out = append(out, list(as.data.frame(calcs)))
+             out = append(out, list(as.data.frame(calcs)))
         }
+
+        # rename inner lists (of the categories)
+        names(out) = c(seq(1:nrow(categorymap)))
+
+        # append to master-list (outest)
+        outest = append(outest, list(out))
+    }
+
+    names(outest) = unique(train_data[[response_col]])
+    saveRDS(outest, paste0(dst, prefix, "_gt_list.rds"))
+}
+
+################################################################################
+# Learning table ---------------------------------------------------------------
+################################################################################
+
+# not working!!!!!!
+
+learning_table = function(train_data = NULL,
+                          response_col = NULL,
+                          raster = NULL,
+                          dst = NULL,
+                          prefix = NULL){
+
+    xname = paste0(prefix, "_x")
+    yname = paste0(prefix, "_y")
+
+    # credits to http://amsantac.co/blog/en/2015/11/28/classification-r.html
+    # https://gist.github.com/amsantac/5183c0c71a8dcbc27a4f7
+
+    df_all = data.frame(matrix(vector(), nrow = 0, ncol = length(names(raster)) + 1))
+
+    for (i in 1:length(unique(train_data[[response_col]]))){
+
+        # get class
+        category = unique(train_data[[response_col]])[i]
+        cat("Category:", category, "\n")
+
+        # returns sp polygon with class i
+        categorymap = train_data[train_data[[response_col]] == category,]
+
+        # extract pixel information
+        dataSet = raster::extract(raster, categorymap, cellnumbers = TRUE) ## deprecated
+        # dataSet = v$extract(sp = categorymap)
+
+        out = list()
 
         # making dataset for machine learning-----------------------------------
         dataSet2 = NULL
 
-        xname = paste0(outfile, "_x")
-        yname = paste0(outfile, "_y")
-
-        for (i in dataSet){ # writing coordinates to the matrix of each gt element
-            coords = coordinates(raster)[i[,1],] # getting coordinates from raster cell number
+        # writing coordinates to the matrix of each gt element
+        for (j in seq_along(dataSet)){
+            table = dataSet[[j]]
+            coords = coordinates(raster)[table[,1],] # getting coordinates from raster cell number
             colnames(coords) = c(xname, yname)
-            coords_binded = cbind(i, coords) # bind them to extract output
+            coords_binded = cbind(table, coords) # bind them to extract output
 
             dataSet2 = append(dataSet2, list(coords_binded)) # make list output
         }
@@ -191,209 +207,11 @@ gt_from_raster = function(train_data = NULL,
 
         df = do.call("rbind", dataSet3)
         df_all = rbind(df_all, df)
-
-        # ----------------------------------------------------------------------
-
-        # rename inner lists (of the categories)
-        names(out) = c(seq(1:nrow(categorymap)))
-
-        # append to master-list (outest)
-        outest = append(outest, list(out))
     }
+
     df_all = df_all[, -1]
     df_all$class = as_factor(df_all$class)
-    names(outest) = unique(train_data[[response_col]])
-    saveRDS(df_all, paste0(path_rds, "learning_input_", outfile, ".rds"))
-    saveRDS(outest, paste0(path_rds, "gt_list_", outfile, ".rds"))
-}
-
-
-################################################################################
-# Function definition `carve_brick`---------------------------------------------
-################################################################################
-
-carve_brick = function(sentinel1_brick,
-                        polygon,
-                        code = 1,
-                        gt_example_no = 1){
-
-    # built-in function for naming gts
-    namer <<- function(code){
-
-    codename = ""
-
-    # looping for plotting name
-    if (code == 1) {
-        codename = "Increase"
-    }
-    if (code == 2) {
-        codename = "Cleaned"
-    }
-    if (code == 12) {
-        codename = "Increase, then cleaned"
-    }
-    if (code == 3) {
-        codename = "Continuous"
-    }
-    if (code == 4) {
-        codename = "Agriculture"
-    }
-    return(codename)
-    }
-
-    # filtering code
-    gt_code = filter(polygon, polygon$Name == code)
-
-    # indexing single object
-    single_gt = gt_code[gt_example_no, 1]
-
-    # spatial subset with single gt bounds
-    subset = raster::extract(sentinel1_brick, single_gt) %>%
-        as.data.frame()
-
-    # convert band names to date
-    bandnames = names(subset)
-
-    # iterate for date in column-names
-    for (i in bandnames){
-        date = substr(bandnames,13,20)
-    }
-
-    # convert date string into R date-time format
-    date_s1 = c()
-    for (i in 1:length(date)){
-        date_s1 <- append(date_s1, as.POSIXct(date[i], format = "%Y%m%d")) #https://www.statmethods.net/input/dates.html
-    }
-    ####
-
-    datenames <<- date_s1
-
-    # integrate date to dataset: making time series
-    # calculating the mean and margins (stdev), one transposition t() needed here
-    df_date = subset %>%
-        t() %>%
-        as.data.frame() %>%
-        mutate(date = date_s1) #%>%
-        # na.omit()
-
-    df = pivot_longer(df_date,
-                      -date,
-                      names_to = "names",
-                      values_to = "values"
-    )
-
-    df_summary = df %>%
-        group_by(date) %>%
-        summarise(mean = mean(values),
-                  median = median(values),
-                  sd = sd(values),
-                  "lower_sd" = mean(values) - sd(values),
-                  "upper_sd" = mean(values) + sd(values),
-                  count = n())
-
-    # printing summary to console
-    paste = paste(
-        paste("Size of the plot:", st_area(single_gt[1,]), sep = " "),
-        paste("count of pixels in the timestack:", nrow(df), sep = " "),
-        paste("count of pixels in the polygon:", median(df_summary$count), sep = " "),
-        paste("gt of type: ", namer(code), sep = " "),
-        paste("median = ", mean(df_summary$median, na.rm = TRUE), sep = " "),
-        paste("mean = ", mean(df_summary$mean, na.rm = TRUE), sep = " "),
-        paste("standard deviation = ", mean(df_summary$sd, na.rm = TRUE), "\n", sep = " "),
-        sep = "\n")
-    ####
-
-    cat(paste)
-    return(df_summary)
-}
-
-################################################################################
-# Developing loop for `carve_brick`---------------------------------------------
-################################################################################
-
-
-list_summaries = function(sentinel1_brick, polygon){
-
-    # help for data.frame in loops:
-    # https://stackoverflow.com/questions/17499013/how-do-i-make-a-list-of-data-frames
-    # set up function to set back all counters and variables before running the loops below
-    initialise_counters = function(){
-        code <<- 1
-        ct_1 <<- 1
-        ct_12 <<- 1
-        ct_2 <<- 1
-        ct_3 <<- 1
-        ct_4 <<- 1
-    }
-
-    # run the intialisation
-    initialise_counters()
-    summary = list()
-    counter = 1
-
-    # for loop to write dataframes for each gt to the summary list
-    for (code in gt$Name) {
-
-        print(counter)
-
-        if (code == 1) { #increase
-            new = list(carve_brick(sentinel1_brick = sentinel1_brick,
-                                   polygon = polygon,
-                                   code = code, gt_example_no = ct_1))
-            summary = append(summary, new)
-            names(summary)[length(summary)] = paste0("plot", code, "_", ct_1)
-            ct_1 = ct_1 + 1
-
-        } else if (code == 12) { #increase, then cleaned
-            new = list(carve_brick(sentinel1_brick = sentinel1_brick,
-                                   polygon = polygon,
-                                   code = code, gt_example_no = ct_12))
-            summary = append(summary, new)
-            names(summary)[length(summary)] = paste0("plot", code, "_", ct_12)
-            ct_12 = ct_12 + 1
-
-        } else if (code == 2) { #cleaning
-            new = list(carve_brick(sentinel1_brick = sentinel1_brick,
-                                   polygon = polygon,
-                                   code = code, gt_example_no = ct_2))
-            summary = append(summary, new)
-            names(summary)[length(summary)] = paste0("plot", code, "_", ct_2)
-            ct_2 = ct_2 + 1
-
-        } else if (code == 3) { #continuous
-            new = list(carve_brick(sentinel1_brick = sentinel1_brick,
-                                   polygon = polygon,
-                                   code = code, gt_example_no = ct_3))
-            summary = append(summary, new)
-            names(summary)[length(summary)] = paste0("plot", code, "_", ct_3)
-            ct_3 = ct_3 + 1
-
-        } else if (code == 4) { #agriculture
-            new = list(carve_brick(sentinel1_brick = sentinel1_brick,
-                                   polygon = polygon,
-                                   code = code, gt_example_no = ct_4))
-            summary = append(summary, new)
-            names(summary)[length(summary)] = paste0("plot", code, "_", ct_4)
-            ct_4 = ct_4 + 1
-
-        } else {
-            print("Not correctly assigned gt code")
-        }
-        counter = counter + 1
-    }
-
-    statement = paste(
-        paste("Number of code 1:", ct_1),
-        paste("Number of code 12:", ct_12),
-        paste("Number of code 2:", ct_2),
-        paste("Number of code 3:", ct_3),
-        paste("Number of code 4:", ct_4),
-        sep = "\n")
-
-    # print statement to console
-    cat(statement)
-
-    return(summary)
+    saveRDS(df_all, paste0(dst, prefix, "_learning_input.rds"))
 }
 
 
@@ -835,3 +653,32 @@ stats = function(list.dataframes, c, n, coherence_smoothing = FALSE){
     list = list.append(list, ndvi = ndvi)
     return(list)
 }
+
+################################################################################
+# Checks NA statistics on a Raster Stack
+################################################################################
+
+na_identifier = function(stack, na){
+    if (is.na(na)) {stack.na = cellStats(is.na(stack), sum)}
+    else {stack.na = cellStats(stack == na, sum)} #count the NA (-99) values in each layer
+    stack.na.fraction = stack.na/ncell(stack) # fraction that is NA (-99)
+    filter_less20 = stack[[which(stack.na.fraction < 0.2)]] # filter all with NA less 20% coverage
+    filter_less10 = stack[[which(stack.na.fraction < 0.1)]] # filter all with NA less 10% coverage
+    filter_0 = stack[[which(stack.na.fraction == 0)]] # filter all with 0% NA coverage
+
+    # cat("Layer names where less than 20% is covered with NAs\n")
+    cat("20%: Number of layers", nlayers(filter_less20), "- Fraction of total layers", nlayers(filter_less20)/nlayers(stack)*100, "%", sep = " ")
+    cat("\n")
+
+    # cat("Layer names where less than 10% is covered with NAs\n")
+    cat("10%: Number of layers", nlayers(filter_less10), "- Fraction of total layers", nlayers(filter_less10)/nlayers(stack)*100, "%", sep = " ")
+    cat("\n")
+
+    # cat("Layer names where 0% is covered with NAs\n")
+    cat("0%: Number of layers", nlayers(filter_0), "- Fraction of total layers", nlayers(filter_0)/nlayers(stack)*100, "%", sep = " ")
+    cat("\n")
+
+    cat("Mean NA values in scenes:", mean(stack.na))
+
+}
+

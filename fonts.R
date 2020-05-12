@@ -18,6 +18,8 @@ pr_3.fmt = list(dash="solid", width = 1, color="#007f00")
 interval.fmt = list(dash="solid", width = 1, color="grey")
 
 vh.fmt = list(dash="solid", width = 2, color="#2c6487") # blue
+vv.fmt = list(dash="solid", width = 2, color="#007f00") # green
+red.fmt = list(dash="solid", width = 2, color="#fc8d59") # red
 red.fmt = list(dash="solid", width = 2, color="#fc8d59") # red
 red2.fmt = list(dash="solid", width = 1, color="#fc8d59") # red
 nir.fmt = list(dash="solid", width = 2, color="#007f00") # green
@@ -70,6 +72,15 @@ x <- list(
 
 y.s1 <- list(
     title = list(text = "S1 VH backscatter [dB]", standoff = 50),
+    titlefont = f2,
+    tickfont = f1,
+    showline = F,
+    showgrid = FALSE,
+    anchor = "free",
+    position = 0)
+
+y.s1.vv <- list(
+    title = list(text = "S1 VV backscatter [dB]", standoff = 50),
     titlefont = f2,
     tickfont = f1,
     showline = F,
