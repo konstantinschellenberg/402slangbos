@@ -117,8 +117,8 @@ gt_from_raster = function(train_data = NULL,
         categorymap = train_data[train_data[[response_col]] == category,]
 
         # extract pixel information
-        # dataSet = raster::extract(raster, categorymap, cellnumbers = TRUE) ## deprecated
-        dataSet = v$extract(sp = categorymap)
+        dataSet = raster::extract(raster, categorymap, cellnumbers = TRUE)
+        # dataSet = v$extract(sp = categorymap) # deprecated under R 4.x
 
         out = list()
 
@@ -681,4 +681,3 @@ na_identifier = function(stack, na){
     cat("Mean NA values in scenes:", mean(stack.na))
 
 }
-

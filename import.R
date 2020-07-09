@@ -129,23 +129,24 @@ study_area = st_read(path_gt, layer = "study_area", quiet = TRUE) %>%  # read in
     st_zm(drop = TRUE)  # Remove Z-Dimension
 
 # only training gt
-gt = st_read(path_gt, layer = "gt", quiet = TRUE) %>%  # read in
-    st_transform(st_crs(vv)) %>%  # set crs(gt) to the crs(s1) brick.
-    st_zm(drop = TRUE) %>% # Remove Z-Dimension
-    dplyr::group_by(Name) %>%
-    mutate(number = row_number()) %>%  # adding row numbers to classes
-    mutate(descrip = case_when(Name == 1 ~ "Slangbos Increase", # adding descriptions
-                                   Name == 2 ~ "Slangbos Continuous",
-                                   Name == 3 ~ "Slangbos Breakpoint",
-                                   Name == 4 ~ "Agriculture",
-                                   Name == 5 ~ "Bare Soil",
-                                   Name == 6 ~ "Grassland",
-                                   Name == 7 ~ "Forest",
-                                   Name == 8 ~ "Urban",
-                                   Name == 9 ~ "Water"))
+gt = st_read(path_gt, layer = "gt", quiet = TRUE)
+    # %>%  # read in
+    # st_transform(st_crs(vv)) %>%  # set crs(gt) to the crs(s1) brick.
+    # st_zm(drop = TRUE) %>% # Remove Z-Dimension
+    # dplyr::group_by(Name) %>%
+    # mutate(number = row_number()) %>%  # adding row numbers to classes
+    # mutate(descrip = case_when(Name == 1 ~ "Slangbos Increase", # adding descriptions
+    #                                Name == 2 ~ "Slangbos Continuous",
+    #                                Name == 3 ~ "Slangbos Breakpoint",
+    #                                Name == 4 ~ "Arable Land",
+    #                                Name == 5 ~ "Bare Soil",
+    #                                Name == 6 ~ "Grassland",
+    #                                Name == 7 ~ "Forest",
+    #                                Name == 8 ~ "Urban",
+    #                                Name == 9 ~ "Water"))
 
 # including validation gt
-all_gt = read_sf(path_gt, layer = "gt_total") %>%
-    st_zm() %>%
-    st_transform(st_crs(vv))
+all_gt = read_sf(path_gt, layer = "gt_total")
 
+# st_write(obj = gt, dsn = path_gt, layer = "gt", update = T, delete_layer = T)
+# st_write(obj = gt, dsn = "D:/Geodaten/#Jupiter/GEO402/02_features/LADYBRAND_reference_plots.shp", update = T)
