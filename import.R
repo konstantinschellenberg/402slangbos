@@ -4,9 +4,7 @@
 
 # Script to import and clean data
 
-getOption("max.print")
-options(digits = 4, max.print = 1000)
-source("functions.R")
+source("D:/Geodaten/Master/projects/402slangbos/functions.R")
 
 library(tidyverse)
 library(tidytable)
@@ -17,21 +15,20 @@ library(gdalUtils)
 library(ggplot2)
 library(data.table)
 library(rlist)
-library(velox)
 
-library(plotly)
-library(leaflet)
-library(processx)
-library(htmlwidgets)
+# library(plotly)
+# library(leaflet)
+# library(processx)
+# library(htmlwidgets)
 
-library(mlr3verse)
-library(precrec)
-library(mlr3spatiotempcv)
-library(parallelMap)
-library(rasterVis)
-library(RColorBrewer)
-library(paradox)
-library(mlr3tuning)
+# library(mlr3verse)
+# library(precrec)
+# library(mlr3spatiotempcv)
+# library(parallelMap)
+# library(rasterVis)
+# library(RColorBrewer)
+# library(paradox)
+# library(mlr3tuning)
 
 ################################################################################
 # Import paths -----------------------------------------------------------------
@@ -124,29 +121,29 @@ pred_classif = raster("D:/Geodaten/#Jupiter/GEO402/04_products/rf/run1_vrn_class
 # Import Ground Truth-----------------------------------------------------------
 ################################################################################
 
-study_area = st_read(path_gt, layer = "study_area", quiet = TRUE) %>%  # read in
-    st_transform(st_crs(vv)) %>%  # set crs(gt) to the crs(s1) brick.
-    st_zm(drop = TRUE)  # Remove Z-Dimension
-
-# only training gt
-gt = st_read(path_gt, layer = "gt", quiet = TRUE)
-    # %>%  # read in
-    # st_transform(st_crs(vv)) %>%  # set crs(gt) to the crs(s1) brick.
-    # st_zm(drop = TRUE) %>% # Remove Z-Dimension
-    # dplyr::group_by(Name) %>%
-    # mutate(number = row_number()) %>%  # adding row numbers to classes
-    # mutate(descrip = case_when(Name == 1 ~ "Slangbos Increase", # adding descriptions
-    #                                Name == 2 ~ "Slangbos Continuous",
-    #                                Name == 3 ~ "Slangbos Breakpoint",
-    #                                Name == 4 ~ "Arable Land",
-    #                                Name == 5 ~ "Bare Soil",
-    #                                Name == 6 ~ "Grassland",
-    #                                Name == 7 ~ "Forest",
-    #                                Name == 8 ~ "Urban",
-    #                                Name == 9 ~ "Water"))
-
-# including validation gt
-all_gt = read_sf(path_gt, layer = "gt_total")
+# study_area = st_read(path_gt, layer = "study_area", quiet = TRUE) %>%  # read in
+#     st_transform(st_crs(vv)) %>%  # set crs(gt) to the crs(s1) brick.
+#     st_zm(drop = TRUE)  # Remove Z-Dimension
+#
+# # only training gt
+# gt = st_read(path_gt, layer = "gt", quiet = TRUE)
+#     # %>%  # read in
+#     # st_transform(st_crs(vv)) %>%  # set crs(gt) to the crs(s1) brick.
+#     # st_zm(drop = TRUE) %>% # Remove Z-Dimension
+#     # dplyr::group_by(Name) %>%
+#     # mutate(number = row_number()) %>%  # adding row numbers to classes
+#     # mutate(descrip = case_when(Name == 1 ~ "Slangbos Increase", # adding descriptions
+#     #                                Name == 2 ~ "Slangbos Continuous",
+#     #                                Name == 3 ~ "Slangbos Breakpoint",
+#     #                                Name == 4 ~ "Arable Land",
+#     #                                Name == 5 ~ "Bare Soil",
+#     #                                Name == 6 ~ "Grassland",
+#     #                                Name == 7 ~ "Forest",
+#     #                                Name == 8 ~ "Urban",
+#     #                                Name == 9 ~ "Water"))
+#
+# # including validation gt
+# all_gt = read_sf(path_gt, layer = "gt_total")
 
 # st_write(obj = gt, dsn = path_gt, layer = "gt", update = T, delete_layer = T)
 # st_write(obj = gt, dsn = "D:/Geodaten/#Jupiter/GEO402/02_features/LADYBRAND_reference_plots.shp", update = T)

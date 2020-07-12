@@ -92,6 +92,99 @@ rename_bandnames = function(raster = NULL, var_prefix = NULL, naming = NULL){
 }
 
 ################################################################################
+# exactextracting, fully replaces gt_from_raster: faster and more stable!
+################################################################################
+
+# can take NA rasters!
+
+exactextracting = function(gt, ras, col_class, col_id, stats, dstdir, outfile){
+
+    stats = c("med", stats)
+
+    layernames = names(ras)
+    medianname = paste("med", layernames, sep = ".")
+
+    library(exactextractr)
+
+    # create dirs
+    if (!dir.exists(dstdir)) {dir.create(dstdir)}
+
+    # extracting user-defined function (median) to the exactextract
+    raslist = list()
+    for (i in 1:nlayers(ras)){
+        r = ras[[i]]
+        raslist = append(raslist, r)
+    }
+
+    cat("processing median")
+    med = lapply(raslist, function(x) exact_extract(x, gt, function(values, coverage_fraction){
+        median(values[!is.na(values)], na.rm = TRUE)
+        })) %>%
+        as.data.frame(col.names = medianname)
+
+    # extracting
+    cat("processing other metrics")
+    ex = exactextractr::exact_extract(ras, gt, stats[2:length(stats)]) # calculate means
+
+    all_data = cbind(med, ex)
+    all_data[is.na(all_data)] = NaN
+
+    # join classes on extracted data for tiding pipe coming
+    join = mutate(all_data, class = gt[[col_class]], id = gt[[col_id]])
+
+    outer = list()
+    # iterate by class
+    for (i in sort(unique(join$class))){
+        inner = list()
+
+        ij = filter(join, join$class == i)
+
+        # iterate by number
+        for (j in sort(unique(ij$id))){
+
+            # wrangle dataframe
+            entity = filter(join, join$class == i & join$id == j) %>%
+                dplyr::select(-c(class, id)) %>%
+                t() %>%
+                as.data.frame() %>%
+                mutate(rowname = row.names(.))
+
+            date_raw = entity$rowname
+
+            date = substr(date_raw, start = nchar(date_raw) - 9, stop = nchar(date_raw))
+            date = as.POSIXct(date, tryFormats = "%Y.%m.%d") %>%
+                unique() %>%
+                as.data.frame() %>%
+                `colnames<-`("date")
+            stat = list()
+
+            for (h in seq_along(stats)){
+                metric = stats[h]
+                data = entity %>% filter(str_detect(rowname, metric)) %>%
+                    dplyr::select(-rowname) %>%
+                    `colnames<-`(metric)
+                stat[[h]] = data
+            }
+
+            stat = cbind(stat, date)
+
+            # create list and rename ij table
+            entity = list(as.data.frame(stat)) %>% `names<-`(j)
+
+            inner = append(inner, entity)
+        }
+
+        outer[[i]] = append(outer, inner)
+
+    }
+
+    saveRDS(outer, paste0(dstdir, outfile))
+
+    return(outer)
+}
+
+
+################################################################################
 # gt_from_raster----------------------------------------------------------------
 ################################################################################
 
