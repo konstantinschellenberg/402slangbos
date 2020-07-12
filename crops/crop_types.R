@@ -11,6 +11,7 @@ library(leaflet)
 library(leafem)
 library(mapview)
 library(TRAMPR)
+library(ggplot2)
 
 options(max.print = 100)
 
@@ -56,7 +57,6 @@ map(crops, function(x) nrow(x))
 # Real Data
 
 centroids = map(crops, function(x) st_centroid(x))
-names = c("CATNAME_1" ,"AREA_HA", "FIELD_ID", "CropType_1415", "CropType_1516", "CropType_1617", "geom")
 names = c("CropType_1415", "CropType_1516", "CropType_1617")
 join = crop_boundaries
 
@@ -108,43 +108,53 @@ st_geometry(classified) = sfc
 classifiedNA = mutate(classified, description = paste(a, b, c, sep = "-"))
 
 # SAME FOR NA CLEANED DATA -----------------------------------------------------
+# not really necessary...
+#'
+#'
+#'
+#'
 
-data = st_read("02_features/Ladybrand_CropData.gpkg", layer = "CropIntersect") %>%
-  na.omit()
+# data = st_read("02_features/Ladybrand_CropData.gpkg", layer = "CropIntersect") %>%
+#   na.omit()
+#
+# ct = map(list(ct1 = unique(crop1415$CropType),
+#               ct2 = unique(crop1516$CropType),
+#               ct3 = unique(crop1617$CropType)),
+#          function(x) append(x, NA))
+#
+# # get geometry column
+# sfc = st_geometry(data)
+#
+# data = data %>%
+#   as.data.frame() %>%
+#   select(4:6) %>%
+#   map_df(function(x) as.factor(x))
+# print(data, n = 50)
+#
+# # all possible crop changes as dataframe (land use change = luc)
+# luc_cat = tidyr::expand_grid(a = ct[[1]], b = ct[[2]], c = ct[[3]])
+# print(luc_cat, n = 50)
+#
+# table_real = data %>%
+#   `colnames<-`(c("a", "b", "c"))
+# use_real = luc_cat %>%
+#   map_df(., ~ as.factor(.x))
+#
+# # run classification
+# classified = cbind(table_real, cat = TRAMPR::classify(table_real, use_real))
+# st_geometry(classified) = sfc
+#
+# # add description column
+# classified = mutate(classified, description = paste(a, b, c, sep = "-"))
 
-ct = map(list(ct1 = unique(crop1415$CropType),
-              ct2 = unique(crop1516$CropType),
-              ct3 = unique(crop1617$CropType)),
-         function(x) append(x, NA))
-
-# get geometry column
-sfc = st_geometry(data)
-
-data = data %>%
-  as.data.frame() %>%
-  select(4:6) %>%
-  map_df(function(x) as.factor(x))
-print(data, n = 50)
-
-# all possible crop changes as dataframe (land use change = luc)
-luc_cat = tidyr::expand_grid(a = ct[[1]], b = ct[[2]], c = ct[[3]])
-print(luc_cat, n = 50)
-
-table_real = data %>%
-  `colnames<-`(c("a", "b", "c"))
-use_real = luc_cat %>%
-  map_df(., ~ as.factor(.x))
-
-# run classification
-classified = cbind(table_real, cat = TRAMPR::classify(table_real, use_real))
-st_geometry(classified) = sfc
-
-# add description column
-classified = mutate(classified, description = paste(a, b, c, sep = "-"))
-
+#'
+#'
+#'
+#'
+#'
 
 # RESULTS ----------------------------------------------------------------------
-count(classifiedNA, description, sort = TRUE) # with missing values
+count(classifiedNA, description, sort = TRUE) %>% print(n=50) # with missing values
 count(classified, description, sort = TRUE) # without missing values
 
 st_write(classifiedNA, "02_features/Ladybrand_CropData.gpkg", layer = "CropClassifiedComplexWithNA", delete_layer = TRUE)
@@ -153,30 +163,84 @@ st_write(classified, "02_features/Ladybrand_CropData.gpkg", layer = "CropClassif
 # Simplify the output ----------------------------------------------------------
 
 data2 = st_read("02_features/Ladybrand_CropData.gpkg", layer = "CropClassifiedComplex")
+data2 = st_read("02_features/Ladybrand_CropData.gpkg", layer = "CropClassifiedComplexWithNA")
+
 sfc = st_geometry(data2)
 data2 = st_set_geometry(data2, NULL) %>%
   as_tibble()
 
-# change column type to factor
-data2[,1:3] = map(data2[1:3], function(x) as_factor(x))
-
-check_identity = function(a, b){
-  identical(as.character(a), as.character(b))
+renaming = function(x){
+  case_when(x == "Pasture" ~ 1,
+              x == "Fallow" ~ 2,
+              x == "Maize" ~ 3,
+              x == "Sunflower" ~ 4,
+              x == "SoyaBeans" ~ 5,
+              x == "Wheat" ~ 6,
+              x == "Groundnuts" ~ 7,
+              x == "Sorghum" ~ 8,
+              x == "X" ~ 0)
 }
 
-naming = function(x){
-  case_when(x, x = "Pasture" ~ 1)
-}
+data2[1:3] = map_df(data2[1:3], ~ renaming(.x))
 
-naming(data2)
+data2 %>%
+  mutate(count = n(cat))
 
-identical(data2[1,1], data2[1,2])
-paste(data2$a[1])
-mutate(data2, i = identical(as.character(a), as.character(b)))
-mutate(data2, identical = check_identity(a, b), .keep = "used") %>% print(n=50)
-mutate(data2, identical = check_identity(a, b))
+data2 = data2 %>%
+  mutate(turnover = as.numeric(a!=b) + as.numeric(b!=c)) %>%
+  st_set_geometry(sfc)
+
+st_write(data2, "02_features/Ladybrand_CropData.gpkg", layer = "CropClassifiedTurnoversNA", delete_layer = TRUE)
+
+# PLOTTING ---------------------------------------------------------------------
+
+data3.full = st_read("02_features/Ladybrand_CropData.gpkg", layer = "CropClassifiedTurnovers")
+data3.na = st_read("02_features/Ladybrand_CropData.gpkg", layer = "CropClassifiedTurnoversNA")
+sfc = st_geometry(data3)
+data3 = st_set_geometry(data3, NULL) %>%
+  as_tibble()
+
+library(grid)
+library(gridExtra)
+
+
+data3 = list(data3.full, data3.na)
+sfc = map(data3, ~ st_geometry(.x))
+data3 = map(data3, ~ as_tibble(st_set_geometry(.x, NULL)))
+
+g1 = map(data3, function(x){
+  ggplot(x) +
+    geom_bar(aes(turnover)) +
+    theme_bw()
+})
+
+facet1 = grid.arrange(g1[[1]], g1[[2]], nrow = 2)
+ggsave(plot = facet1, filename = "turnover_amount.png", path = "HIWI_Documents/agriculture/", scale = 1.5)
+
+
+ggplot(data3) +
+  geom_bar(aes(turnover))
+
+
+colfunc = colorRampPalette(c("white", "darkred"))
+
+g2 = ggplot(data3) +
+  geom_boxplot(aes(a, turnover), fill = "lightgrey", varwidth = T) +
+  theme_bw()
+
+p1 = data3 %>%
+  group_by(a) %>%
+  summarise(mean.trn = mean(turnover),
+            sd = sd(turnover),
+            var = sd(turnover)^2)
+
+g3 = ggplot(p1) +
+  geom_point(aes(a, mean.trn, size = var), shape = 16) +
+  ylab("Mean Field Turnover") +
+  xlab("First Year Sowing") +
+  theme_bw()
 
 
 
-
-identical(as.character(data2$a[1]), as.character(data2$b[1]))
+facet2 = grid.arrange(g2, g3, nrow = 2)
+ggsave(plot = facet2, filename = "turnover.png", path = "HIWI_Documents/agriculture/")
