@@ -97,9 +97,9 @@ rename_bandnames = function(raster = NULL, var_prefix = NULL, naming = NULL){
 
 # can take NA rasters!
 
-exactextracting = function(gt, ras, col_class, col_id, stats, dstdir, outfile){
+exactextracting = function(gt, ras, col_class, col_id, statistics, dstdir, outfile){
 
-    stats = c("med", stats)
+    statistics = c("med", statistics)
 
     layernames = names(ras)
     medianname = paste("med", layernames, sep = ".")
@@ -116,23 +116,23 @@ exactextracting = function(gt, ras, col_class, col_id, stats, dstdir, outfile){
         raslist = append(raslist, r)
     }
 
-    cat("processing median")
+    print("processing median")
     med = lapply(raslist, function(x) exact_extract(x, gt, function(values, coverage_fraction){
         median(values[!is.na(values)], na.rm = TRUE)
         })) %>%
         as.data.frame(col.names = medianname)
 
     # extracting
-    cat("processing other metrics")
-    ex = exactextractr::exact_extract(ras, gt, stats[2:length(stats)]) # calculate means
+    print("processing other metrics")
+    ex = exactextractr::exact_extract(ras, gt, statistics[2:length(statistics)]) # calculate means
 
     all_data = cbind(med, ex)
-    all_data[is.na(all_data)] = NaN
 
     # join classes on extracted data for tiding pipe coming
     join = mutate(all_data, class = gt[[col_class]], id = gt[[col_id]])
+    join[is.na(join)] = NA
 
-    outer = list()
+    outer = vector("list", length = length(unique(join$class)))
     # iterate by class
     for (i in sort(unique(join$class))){
         inner = list()
@@ -158,8 +158,8 @@ exactextracting = function(gt, ras, col_class, col_id, stats, dstdir, outfile){
                 `colnames<-`("date")
             stat = list()
 
-            for (h in seq_along(stats)){
-                metric = stats[h]
+            for (h in seq_along(statistics)){
+                metric = statistics[h]
                 data = entity %>% filter(str_detect(rowname, metric)) %>%
                     dplyr::select(-rowname) %>%
                     `colnames<-`(metric)
@@ -168,21 +168,17 @@ exactextracting = function(gt, ras, col_class, col_id, stats, dstdir, outfile){
 
             stat = cbind(stat, date)
 
-            # create list and rename ij table
+                        # create list and rename ij table
             entity = list(as.data.frame(stat)) %>% `names<-`(j)
-
             inner = append(inner, entity)
         }
 
-        outer[[i]] = append(outer, inner)
+        outer[[i]] = inner
+        # apply more statistics
 
     }
-
-    saveRDS(outer, paste0(dstdir, outfile))
-
     return(outer)
 }
-
 
 ################################################################################
 # gt_from_raster----------------------------------------------------------------
@@ -693,58 +689,19 @@ scale_custom = function(x, fun = NULL, center = FALSE){
 # Extracting stats of the ground truth elements and applies smoothing
 ################################################################################
 
-stats = function(list.dataframes, c, n, coherence_smoothing = FALSE){
-    #' function to warp data of a ground truth segment of choice in readable lists
-    #' digestable for plotting
-    #' "all" within the list's name indicated exclusion from the smoothing calculation
-    #' due to NA values in the table
+# buggy
+stats = function(dfs){
 
-    # get names of the dataframes
-    names = list.names(list.dataframes)
-
-    # initialise list
-    list = list()
-    for(i in list.dataframes){
-        new = list(grep2(i, c, n))
-        list = append(list, new)
+    out = list()
+    for (c in seq_along(dfs)){
+        data = dfs[[c]]
+        data = map(data, function(x) na.omit(x))
+        map(data, function(x) mutate(x, med_smooth = supsmu(x$date, x$med)$y,
+                                     losd_smooth = supsmu(x$date, x$mean - x$stdev)$y,
+                                     upsd_smooth = supsmu(x$date, x$mean + x$stdev)$y))
+        out = append(out, data)
     }
-
-    # set names of the new dataframes list
-    names(list) = names
-
-    # add median smoothed column
-    if (coherence_smoothing == FALSE){
-        list2 = list[!grepl(pattern = "all", x = names(list))]
-        all = list[grepl(pattern = "all", x = names(list))]
-
-        list2 = lapply(list2, function (x) drop_na(x))
-        list2 = lapply(list2, function (x) mutate(x, med_smooth = supsmu(x$date, x$median)$y))
-        list2 = lapply(list2, function (x) mutate(x, losd_smooth = supsmu(x$date, x$lower_sd)$y))
-        list2 = lapply(list2, function (x) mutate(x, upsd_smooth = supsmu(x$date, x$upper_sd)$y))
-        names(list2)
-        names(all)
-        list = append(list2, all)
-        names(list)
-    } else {
-        list = lapply(list, function (x) mutate(x, med_smooth = supsmu(x$date, x$median)$y))
-        list = lapply(list, function (x) mutate(x, losd_smooth = supsmu(x$date, x$lower_sd)$y))
-        list = lapply(list, function (x) mutate(x, upsd_smooth = supsmu(x$date, x$upper_sd)$y))
-    }
-
-    # calc NDVI
-    ndvi.pre.red = grep2(gt_red, c, n)
-    ndvi.pre.nir = grep2(gt_nir, c, n)
-
-    ndvi = data.frame(matrix(nrow = nrow(list$nir), ncol = 2))
-    ndvi$X2 = fun.ndvi(list$red$median, list$nir$median)
-    ndvi$X1 = list$red$date
-    names(ndvi) = c("date", "ndvi")
-
-    # optional scaling of the ndvi (only for comparison purposes, scale on stdev)
-    # ndvi$X2 = scale(ndvi$X2, center = T) %>% as.vector()
-
-    list = list.append(list, ndvi = ndvi)
-    return(list)
+    return(data)
 }
 
 ################################################################################
