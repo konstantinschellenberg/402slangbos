@@ -6,6 +6,7 @@ library(sf)
 library(tidyverse)
 library(raster)
 library(ggplot2)
+library(plotly)
 
 library(exactextractr)
 
@@ -24,9 +25,11 @@ gt = st_read("02_features/features.gpkg", layer = "LADYBRAND_gt_stats_simple") %
 
 # CREATE RUNNING NUMBERS FOR GT ------------------------------------------------
 
-gt = gt %>%
-    group_by(class_simple) %>%
-    mutate(id = row_number())
+
+# already done
+# gt = gt %>%
+#     group_by(class_simple) %>%
+#     mutate(id = row_number())
 
 # SOME METADATA FOR TESTING ----------------------------------------------------
 

@@ -99,6 +99,13 @@ rename_bandnames = function(raster = NULL, var_prefix = NULL, naming = NULL){
 
 exactextracting = function(gt, ras, col_class, col_id, statistics, dstdir, outfile){
 
+    if (!is_vector(gt[[col_id]])){
+        stop("the col_id does not exist, please specify...")
+    }
+    if ((!is_vector(gt[[col_class]]))){
+        stop("the col_class does not exist, please specify...")
+    }
+
     statistics = c("med", statistics)
 
     layernames = names(ras)
@@ -151,13 +158,15 @@ exactextracting = function(gt, ras, col_class, col_id, statistics, dstdir, outfi
 
             date_raw = entity$rowname
 
+            # get date
             date = substr(date_raw, start = nchar(date_raw) - 9, stop = nchar(date_raw))
             date = as.POSIXct(date, tryFormats = "%Y.%m.%d") %>%
                 unique() %>%
                 as.data.frame() %>%
                 `colnames<-`("date")
-            stat = list()
 
+            # init single dataframe
+            stat = list()
             for (h in seq_along(statistics)){
                 metric = statistics[h]
                 data = entity %>% filter(str_detect(rowname, metric)) %>%
@@ -166,23 +175,104 @@ exactextracting = function(gt, ras, col_class, col_id, statistics, dstdir, outfi
                 stat[[h]] = data
             }
 
+            # bind lists to dataframe
             stat = cbind(stat, date)
 
+            # add smoothings
             stat = stat %>%
                 mutate(med_smooth = ifelse(!is.na(med), yes = supsmu(date, med)$y, no = NA),
                        losd_smooth = ifelse(!is.na(med), yes = supsmu(date, mean - stdev)$y, no = NA),
                        upsd_smooth = ifelse(!is.na(med), yes = supsmu(date, mean + stdev)$y, no = NA))
 
-                        # create list and rename ij table
+            # create list and rename ij table
             entity = list(as.data.frame(stat)) %>% `names<-`(j)
             inner = append(inner, entity)
         }
 
+        # iteratively add the lists of dataframes of the classes to a master (outer) class
         outer[[i]] = inner
-        # apply more statistics
 
     }
+    saveRDS(outer, paste0(dstdir, outfile))
     return(outer)
+}
+
+
+################################################################################
+# extracting summary statistics for all classes!
+################################################################################
+
+extract_summary = function(gt, ras, col_class, statistics){
+
+    # pre ----------------------------------------------------------------------
+    layernames = names(ras)
+    medianname = paste("med", layernames, sep = ".")
+    raslist = list()
+    for (i in 1:nlayers(ras)){
+        r = ras[[i]]
+        raslist = append(raslist, r)
+    }
+
+    # date -------------------------------------------------------------------------
+    date = substr(medianname, start = nchar(medianname) - 9, stop = nchar(medianname))
+    date = as.POSIXct(date, tryFormats = "%Y.%m.%d") %>%
+        unique()
+
+    # data processing ----------------------------------------------------------
+    print("processing median")
+
+    summ = list()
+    for (i in 1:length(unique(gt[[col_class]]))){
+        print(i)
+        cls = sort(unique(gt[[col_class]]))[[i]]
+
+        # get the class
+        y = filter(gt, class_simple == cls)
+
+        # median calc
+        med = lapply(raslist, function(x) exact_extract(x, y, function(values, coverage_fraction){
+            median(values[!is.na(values)], na.rm = TRUE)
+        })) %>%
+            as.data.frame(col.names = medianname)
+
+        summ[[i]] = med
+        names(summ[[i]]) = cls
+    }
+
+
+    # wrangling ----------------------------------------------------------------
+    print("processing other metrics")
+
+    summ2 = map(summ, function(x){
+        stat = list()
+        for (h in seq_along(statistics)){
+
+            metric = statistics[h]
+
+            data = med %>%
+                na.omit() %>%
+                summarise_all(c(metric = metric)) %>%
+                t() %>%
+                `colnames<-`(metric)
+
+            stat = cbind(stat, data) %>%
+                as.data.frame() %>%
+                `row.names<-`(NULL)
+
+        }
+        stat$median = as.numeric(stat$median)
+        stat
+    })
+
+    # add date
+    summ3 = map(summ2, function(x){
+        x %>% mutate(date = date) %>%
+            mutate(med_smooth = ifelse(!is.na(median), yes = supsmu(date, median - sd)$y, no = NA),
+                   losd_smooth = ifelse(!is.na(median), yes = supsmu(date, mean - sd)$y, no = NA),
+                   upsd_smooth = ifelse(!is.na(median), yes = supsmu(date, mean + sd)$y, no = NA))
+    })
+    print("finished")
+    return(summ3)
 }
 
 ################################################################################
