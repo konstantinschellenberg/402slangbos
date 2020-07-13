@@ -35,6 +35,8 @@ b_extracted = exactextracting(gt, ras = coh[[1:10]], col_class = "class_simple",
 b = readRDS("03_develop/extract/test.RDS")
 
 # STATISTICS FOR ALL CLASSES AGGREGATED ----------------------------------------
+# USER INPUT -------------------------------------------------------------------
+
 
 # all raster to be queried
 rasters = list(vv, vh, red, nir, coh)
@@ -48,42 +50,17 @@ ras = coh[[1:10]]
 class = gt %>% filter(class_simple == "1")
 col_class = "class_simple"
 
+# RUN --------------------------------------------------------------------------
 
+# example run
+extract_summary(gt, coh[[1:10]], col_class = "class_simple", statistics = statistics)
 
-
-
-
-extract_summary(gt, coh[[1:50]], col_class = "class_simple", statistics = statistics)
-
+# batch run
 summary = list()
 for (i in seq_along(rasters)){
     summary[[i]] = extract_summary(gt, rasters[[i]], "class_simple", statistics)
 }
 
+saveRDS(summary, paste0(dstdir, "summary_statistics.RDS"))
 
-# ------------------------------------------------------------------------------
-
-# from the median we want the median and stdev of all sites
-# init single dataframe
-
-
-# add dates
-stat = cbind(stat, date)
-stat$median = as.numeric(stat$median)
-
-stat = stat %>% mutate(med_smooth = ifelse(!is.na(median), yes = supsmu(date, median - sd)$y, no = NA),
-                losd_smooth = ifelse(!is.na(median), yes = supsmu(date, mean - sd)$y, no = NA),
-                upsd_smooth = ifelse(!is.na(median), yes = supsmu(date, mean + sd)$y, no = NA))
-
-outer[[i]] = stat
-
-
-
-for (i in seq_along(outfiles)){
-    exactextracting(gt = gt, ras = rasters[[i]],
-                    col_class = "class_simple",
-                    col_id = "id",
-                    statistics = statistics,
-                    dstdir = dstdir,
-                    outfile = outfiles[i])
-}
+# (end)

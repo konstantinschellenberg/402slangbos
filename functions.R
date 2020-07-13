@@ -221,22 +221,34 @@ extract_summary = function(gt, ras, col_class, statistics){
     # data processing ----------------------------------------------------------
     print("processing median")
 
-    summ = list()
+    # summ = list()
+    # for (i in 1:length(unique(gt[[col_class]]))){
+    #     print(i)
+    #     cls = sort(unique(gt[[col_class]]))[[i]]
+    #
+    #     # get the class
+    #     y = filter(gt, gt[[col_class]] == cls)
+    #
+    #     # median calc
+    #     med = lapply(raslist, function(x) exact_extract(x, y, function(values, coverage_fraction){
+    #         median(values[!is.na(values)], na.rm = TRUE)
+    #     })) %>%
+    #         as.data.frame(col.names = medianname)
+    #
+    #     summ[[i]] = med
+    # }
+
+    med = lapply(raslist, function(x) exact_extract(x, gt, function(values, coverage_fraction){
+        median(values[!is.na(values)], na.rm = TRUE)
+    })) %>%
+        as.data.frame(col.names = medianname) %>%
+        mutate(class = gt$class_simple)
+
+    # sorting by class
     for (i in 1:length(unique(gt[[col_class]]))){
         print(i)
         cls = sort(unique(gt[[col_class]]))[[i]]
-
-        # get the class
-        y = filter(gt, class_simple == cls)
-
-        # median calc
-        med = lapply(raslist, function(x) exact_extract(x, y, function(values, coverage_fraction){
-            median(values[!is.na(values)], na.rm = TRUE)
-        })) %>%
-            as.data.frame(col.names = medianname)
-
-        summ[[i]] = med
-        names(summ[[i]]) = cls
+        summ[[i]] = filter(med, gt[[col_class]] == cls) %>% select(-class)
     }
 
 
@@ -249,7 +261,7 @@ extract_summary = function(gt, ras, col_class, statistics){
 
             metric = statistics[h]
 
-            data = med %>%
+            data = x %>%
                 na.omit() %>%
                 summarise_all(c(metric = metric)) %>%
                 t() %>%
