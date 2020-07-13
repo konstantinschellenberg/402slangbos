@@ -168,6 +168,11 @@ exactextracting = function(gt, ras, col_class, col_id, statistics, dstdir, outfi
 
             stat = cbind(stat, date)
 
+            stat = stat %>%
+                mutate(med_smooth = ifelse(!is.na(med), yes = supsmu(date, med)$y, no = NA),
+                       losd_smooth = ifelse(!is.na(med), yes = supsmu(date, mean - stdev)$y, no = NA),
+                       upsd_smooth = ifelse(!is.na(med), yes = supsmu(date, mean + stdev)$y, no = NA))
+
                         # create list and rename ij table
             entity = list(as.data.frame(stat)) %>% `names<-`(j)
             inner = append(inner, entity)

@@ -20,49 +20,53 @@
 #' 7,5
 #'
 
-# Import sources ---------------------------------------------------------------
+# LOAD PACKAGES ----------------------------------------------------------------
 
-# setwd("D:/Geodaten/Master/projects/402slangbos")
-env = getwd()
+library(sf)
+library(tidyverse)
+library(raster)
+library(mapview)
+library(ggplot2)
 
-source("import.R")
-source("fonts.R")
+options(max.print = 100)
+
+source("D:/Geodaten/Master/projects/402slangbos/import.R")
+
+env = "D:/Geodaten/#Jupiter/GEO402"
+setwd(env)
+
 
 # Import files -----------------------------------------------------------------
 # create these file in script mlr3_preprocessing
 
 # files in directory
-# gt.files = list.files(path_rds, pattern = "gt_", full.names = TRUE)
-gt.files = list.files("D:/Geodaten/#Jupiter/GEO402/03_develop/ground_reference_files", pattern = "gt_", full.names = TRUE)
+gt.files = list.files("D:/Geodaten/#Jupiter/GEO402/03_develop/extract/", pattern = "extract", full.names = TRUE)
 
-# load files
-gt_vv = readRDS(gt.files[grep(x = gt.files, "/vv")])
-gt_vh = readRDS(gt.files[grep(x = gt.files, "/vh")])
-gt_red = readRDS(gt.files[grep(x = gt.files, "/red")])
-gt_nir = readRDS(gt.files[grep(x = gt.files, "/nir")])
-# gt_covh = readRDS(gt.files[grep(x = gt.files, "/covh.rds")])
-gt_covv = readRDS(gt.files[grep(x = gt.files, "/covv_g")])
-# gt_covh_all = readRDS(gt.files[grep(x = gt.files, "/covh_all")])
-gt_covv_all = readRDS(gt.files[grep(x = gt.files, "/covv_all")])
+types = map(gt.files, ~ substr(.x, start = 56, stop = 100))
 
-list.dataframes = list(vv = gt_vv,
-                       vh = gt_vh,
-                       red = gt_red,
-                       nir = gt_nir,
-                       # covh = gt_covh,
-                       covv = gt_covv,
-                       # covh_all = gt_covh_all,
-                       covv_all = gt_covv_all)
+dfs = map(gt.files, ~ readRDS(.x)) %>% `names<-`(types)
 
-# number of gt elements
-elements = lapply(list.dataframes[[1]], length) %>%
-    as.data.frame()
-elements = gt %>% group_by(Name) %>%
-    summarise(count = n()) %>%
-    .$count
 
 # example stats
-ex = stats(list.dataframes, 1, 15, coherence_smoothing = F)
+ex = stats(dfs, 1, 15, coherence_smoothing = F)
+
+
+
+## SOLVE NDVI PROBLEM! BZW: WHAT TO DO WITH UPPER LIST
+# # calc NDVI
+# ndvi.pre.red = grep2(gt_red, c, n)
+# ndvi.pre.nir = grep2(gt_nir, c, n)
+#
+# ndvi = data.frame(matrix(nrow = nrow(list$nir), ncol = 2))
+# ndvi$X2 = fun.ndvi(list$red$median, list$nir$median)
+# ndvi$X1 = list$red$date
+# names(ndvi) = c("date", "ndvi")
+#
+# # optional scaling of the ndvi (only for comparison purposes, scale on stdev)
+# # ndvi$X2 = scale(ndvi$X2, center = T) %>% as.vector()
+#
+# list = list.append(list, ndvi = ndvi)
+# return(list)
 
 
 # User choice (which is filed to be analysed) ----------------------------------

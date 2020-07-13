@@ -108,7 +108,7 @@ nir = brick(s2nir) %>% rename_bandnames(var_prefix = "nir", naming = path_naming
 # covv_all = brick(s1vv_co_nulls) %>% rename_bandnames(var_prefix = "covv_all", naming = path_naming_co_nulls)
 
 covv = brick(s1covv) %>% rename_bandnames(var_prefix = "covv", naming = path_naming_co_new)
-covv_all = brick(s1covv_all) %>% rename_bandnames(var_prefix = "covv_all", naming = path_naming_co_new_all)
+coh = brick(s1covv_all) %>% rename_bandnames(var_prefix = "covv_all", naming = path_naming_co_new_all)
 
 vh_Q95 = raster("D:/Geodaten/#Jupiter/GEO402/03_develop/multitemp/VH_Q95.tif")
 vh_Q05 = raster("D:/Geodaten/#Jupiter/GEO402/03_develop/multitemp/VH_Q05.tif")
@@ -126,8 +126,10 @@ pred_classif = raster("D:/Geodaten/#Jupiter/GEO402/04_products/rf/run1_vrn_class
 #     st_zm(drop = TRUE)  # Remove Z-Dimension
 #
 # # only training gt
-# gt = st_read(path_gt, layer = "gt", quiet = TRUE)
-#     # %>%  # read in
+
+gt = st_read("D:/Geodaten/#Jupiter/GEO402/02_features/features.gpkg", layer = "LADYBRAND_gt_stats_simple") %>%
+    st_zm()
+
 #     # st_transform(st_crs(vv)) %>%  # set crs(gt) to the crs(s1) brick.
 #     # st_zm(drop = TRUE) %>% # Remove Z-Dimension
 #     # dplyr::group_by(Name) %>%
