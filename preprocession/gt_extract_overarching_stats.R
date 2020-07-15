@@ -27,6 +27,8 @@ dstdir = "03_develop/extract/"
 gt = st_read("02_features/features.gpkg", layer = "LADYBRAND_gt_stats_simple") %>%
     st_zm()
 
+# ------------------------------------------------------------------------------
+
 # example stats
 b_extracted = exactextracting(gt, ras = coh[[1:10]], col_class = "class_simple", col_id = "id", statistics = c("mean", "stdev", "count"),
                     dstdir, outfile = "test.RDS")
@@ -40,6 +42,8 @@ b = readRDS("03_develop/extract/test.RDS")
 
 # all raster to be queried
 rasters = list(vv, vh, red, nir, coh)
+
+fun.ndvi(red[[1]], nir[[1]])
 outfiles = sapply(c("vv", "vh", "red", "nir", "coh"), function(x) paste("extract", x, sep = "_"))
 
 
@@ -53,7 +57,7 @@ col_class = "class_simple"
 # RUN --------------------------------------------------------------------------
 
 # example run
-extract_summary(gt, coh[[1:10]], col_class = "class_simple", statistics = statistics)
+e = extract_summary(gt, coh[[1:10]], col_class = "class_simple", statistics = statistics)
 
 # batch run
 summary = list()

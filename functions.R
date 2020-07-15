@@ -213,6 +213,8 @@ extract_summary = function(gt, ras, col_class, statistics){
         raslist = append(raslist, r)
     }
 
+    nr_classes = length(unique(gt[[col_class]]))
+
     # date -------------------------------------------------------------------------
     date = substr(medianname, start = nchar(medianname) - 9, stop = nchar(medianname))
     date = as.POSIXct(date, tryFormats = "%Y.%m.%d") %>%
@@ -221,36 +223,25 @@ extract_summary = function(gt, ras, col_class, statistics){
     # data processing ----------------------------------------------------------
     print("processing median")
 
-    # summ = list()
-    # for (i in 1:length(unique(gt[[col_class]]))){
-    #     print(i)
-    #     cls = sort(unique(gt[[col_class]]))[[i]]
-    #
-    #     # get the class
-    #     y = filter(gt, gt[[col_class]] == cls)
-    #
-    #     # median calc
-    #     med = lapply(raslist, function(x) exact_extract(x, y, function(values, coverage_fraction){
-    #         median(values[!is.na(values)], na.rm = TRUE)
-    #     })) %>%
-    #         as.data.frame(col.names = medianname)
-    #
-    #     summ[[i]] = med
-    # }
-
     med = lapply(raslist, function(x) exact_extract(x, gt, function(values, coverage_fraction){
-        median(values[!is.na(values)], na.rm = TRUE)
+    median(values[!is.na(values)], na.rm = TRUE)
     })) %>%
-        as.data.frame(col.names = medianname) %>%
-        mutate(class = gt$class_simple)
+    as.data.frame(col.names = medianname) %>%
+    mutate(class = gt$class_simple)
 
+    # init class list
+    summ = vector("list", length = nr_classes)
+    names = c()
     # sorting by class
-    for (i in 1:length(unique(gt[[col_class]]))){
+    for (i in 1:nr_classes){
         print(i)
         cls = sort(unique(gt[[col_class]]))[[i]]
         summ[[i]] = filter(med, gt[[col_class]] == cls) %>% select(-class)
-    }
+        names = c(names, cls)
+        }
 
+    # assign class names
+    names(summ) = names
 
     # wrangling ----------------------------------------------------------------
     print("processing other metrics")
@@ -283,6 +274,7 @@ extract_summary = function(gt, ras, col_class, statistics){
                    losd_smooth = ifelse(!is.na(median), yes = supsmu(date, mean - sd)$y, no = NA),
                    upsd_smooth = ifelse(!is.na(median), yes = supsmu(date, mean + sd)$y, no = NA))
     })
+
     print("finished")
     return(summ3)
 }

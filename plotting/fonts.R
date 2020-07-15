@@ -157,6 +157,6 @@ y.s2_2 <- list(
 #        images = list(source = paste0("hiwi/", b, "/map_", b, "-", i, ".png")))
 
 # for LaTeX text in labels
-plot_ly(x = c(1, 2, 3, 4), y = c(1, 4, 9, 16)) %>%
-    layout(title = TeX("\\text{Some mathjax: }\\alpha+\\beta x")) %>%
-    config(mathjax = "cdn")
+# plot_ly(x = c(1, 2, 3, 4), y = c(1, 4, 9, 16)) %>%
+#     layout(title = TeX("\\text{Some mathjax: }\\alpha+\\beta x")) %>%
+#     config(mathjax = "cdn")
