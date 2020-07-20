@@ -23,7 +23,7 @@ crop.inter = st_read("02_features/Ladybrand_CropData.gpkg", layer = "CropInterse
     replace_na(list(CropType_1415 = "X", CropType_1516 = "X", CropType_1617 = "X"))
 
 # contains NA data of LandCare
-crop.classif = st_read("02_features/Ladybrand_CropData.gpkg", layer = "CropClassifiedComplexWithNA")
+crop.classif = st_read("02_features/Ladybrand_CropData.gpkg", layer = "CropClassifiedComplex")
 
 # OVERVIEW PLOTS ---------------------------------------------------------------
 
@@ -44,7 +44,7 @@ sfc = st_geometry(data)
 # fetch only cropdata columns for comparing with look-up table
 data = data %>%
     as.data.frame() %>%
-    select(4:6) %>%
+    select(1:3) %>%
     map_df(function(x) as.factor(x)) %>%
     `colnames<-`(c("a", "b", "c"))
 
@@ -73,7 +73,7 @@ data = map_df(data, function(x) reclassify(x)) %>% map_df(., ~ as.factor(.x))
 
 # write out simplified categories
 out = st_set_geometry(data, sfc)
-st_write(out, "02_features/Ladybrand_CropData.gpkg", layer = "CropIntersectSimplified", delete_layer = TRUE)
+st_write(out, "02_features/Ladybrand_CropData.gpkg", layer = "CropIntersectSimplified", append = FALSE)
 
 
 # run classification
@@ -82,7 +82,7 @@ classified = mutate(classified, description = paste(a, b, c, sep = "-"))
 
 # write out simplified classification
 out = st_set_geometry(classified, sfc)
-st_write(out, "02_features/Ladybrand_CropData.gpkg", layer = "CropClassifiedSimplified", delete_layer = TRUE)
+st_write(out, "02_features/Ladybrand_CropData.gpkg", layer = "CropClassifiedSimplified", append = FALSE)
 
 # CREATE TEMPORAL TRANSITION CLASSES -------------------------------------------
 

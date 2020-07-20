@@ -26,10 +26,9 @@ gt = st_read("02_features/features.gpkg", layer = "LADYBRAND_gt_stats_simple") %
 # CREATE RUNNING NUMBERS FOR GT ------------------------------------------------
 
 
-# already done
-# gt = gt %>%
-#     group_by(class_simple) %>%
-#     mutate(id = row_number())
+gt = gt %>%
+    group_by(class_simple) %>%
+    mutate(id = row_number())
 
 # SOME METADATA FOR TESTING ----------------------------------------------------
 
@@ -37,7 +36,7 @@ gt = st_read("02_features/features.gpkg", layer = "LADYBRAND_gt_stats_simple") %
 col_class = "class_simple"
 col_id = "id"
 dstdir = "03_develop/extract/"
-rasters = list(vv, vh, red, nir, covv_all)
+rasters = list(vv, vh, red, nir, coh)
 outfiles = sapply(c("vv", "vh", "red", "nir", "coh"), function(x) paste("extract", x, sep = "_"))
 outfile = "test"
 statistics = c("mean", "stdev", "count") # must be coercable by exact_extract()
@@ -79,4 +78,4 @@ ggplot(o) +
     geom_line(aes(date, med), color = "red") +
     theme_bw()
 
-plot_ly(o) %>% plotly::add_lines(x = ~date, y= ~mean, connectgaps = F)
+plot_ly(o) %>% plotly::add_lines(x = ~date, y= ~med, connectgaps = F)

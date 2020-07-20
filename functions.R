@@ -98,6 +98,9 @@ rename_bandnames = function(raster = NULL, var_prefix = NULL, naming = NULL){
 # can take NA rasters!
 
 exactextracting = function(gt, ras, col_class, col_id, statistics, dstdir, outfile){
+    #' 1st order list: classes
+    #' 2nd order list: raster bands
+    #' 3rd order dataframe: aggregated statistics with smoothing curves
 
     if (!is_vector(gt[[col_id]])){
         stop("the col_id does not exist, please specify...")
@@ -270,7 +273,7 @@ extract_summary = function(gt, ras, col_class, statistics){
     # add date
     summ3 = map(summ2, function(x){
         x %>% mutate(date = date) %>%
-            mutate(med_smooth = ifelse(!is.na(median), yes = supsmu(date, median - sd)$y, no = NA),
+            mutate(med_smooth = ifelse(!is.na(median), yes = supsmu(date, median)$y, no = NA),
                    losd_smooth = ifelse(!is.na(median), yes = supsmu(date, mean - sd)$y, no = NA),
                    upsd_smooth = ifelse(!is.na(median), yes = supsmu(date, mean + sd)$y, no = NA))
     })

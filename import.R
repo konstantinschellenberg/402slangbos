@@ -44,6 +44,7 @@ s1vh_path_30 = "D:/Geodaten/#Jupiter/GEO402/01_data/s1_data/S1_A_VH_stack_slangb
 old_s1 = "D:/Geodaten/#Jupiter/GEO402/01_data/s1_data/S1_A_D_VH_free_state_study_area_geo402" #-14, -17, -62 invalid!
 s2red = "D:/Geodaten/#Jupiter/GEO402/01_data/s2/red_less20_gapfilled_realdates_spline.tif"
 s2nir = "D:/Geodaten/#Jupiter/GEO402/01_data/s2/nir_less20_gapfilled_realdates_spline.tif"
+s2ndvi = "D:/Geodaten/#Jupiter/GEO402/01_data/s2/ndvi.tif"
 
 # old coherences (-2019)
 # s1vh_co = "D:/Geodaten/#Jupiter/GEO402/01_data/coherence/covh"
@@ -99,6 +100,8 @@ vh = brick(s1vh_path_30) %>% rename_bandnames(var_prefix = "vh", naming = path_n
 
 red = brick(s2red) %>% rename_bandnames(var_prefix = "red", naming = path_naming_s2)
 nir = brick(s2nir) %>% rename_bandnames(var_prefix = "nir", naming = path_naming_s2)
+
+ndvi = brick(s2ndvi) %>% rename_bandnames(var_prefix = "ndvi", naming = path_naming_s2)
 
 # covh = brick(s1vh_co) %>% rename_bandnames(var_prefix = "covh", naming = path_naming_co)
 # covv = brick(s1vv_co) %>% rename_bandnames(var_prefix = "covv", naming = path_naming_co)

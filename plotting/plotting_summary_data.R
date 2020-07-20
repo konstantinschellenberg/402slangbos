@@ -33,14 +33,16 @@ gt = st_read("02_features/features.gpkg", layer = "LADYBRAND_gt_stats_simple") %
 
 # READ IN ----------------------------------------------------------------------
 s = readRDS(paste0(dstdir, "summary_statistics.RDS")) %>%
-    `names<-`(c("vv", "vh", "red", "nir", "coh"))
+    `names<-`(c("vv", "vh", "ndvi", "coh"))
 
 # GGPLOTS SIMPLE ---------------------------------------------------------------
 
-name = c("S1 VV", "S1 VH", "S2 RED", "S2 NIR", "S1 VV Coherence")
+name = c("S1 VV", "S1 VH", "S2 NDVI", "S1 VV Coherence")
+gname = c("Slangbos Increase", "Slangbos Continuous", "Slangbos Clearning", "Grassland", "Cultivated")
+
 
 # Slangbos increase COH
-ggplot(s[[5]][[1]]) +
+ggplot(s[[4]][[1]]) +
     geom_point(aes(date, median)) +
     geom_line(aes(date, median))
 
@@ -49,29 +51,40 @@ ggplot(s[[1]][[1]]) +
     geom_point(aes(date, median))+
     geom_line(aes(date, median))
 
+# Slangbos increase NDVI
+map(s[[3]], ~ ggplot(.x) +
+    geom_point(aes(date, median))+
+    geom_line(aes(date, median)) +
+    geom_line(aes(date, med_smooth)))
+
+ggplot(s[[2]][[5]], aes(x = date)) +
+    geom_line(aes(y = median)) +
+    geom_line(aes(y = med_smooth)) +
+    geom_ribbon(aes(ymin = losd_smooth, ymax = upsd_smooth), fill = "grey70", alpha = 0.2) +
+    theme_minimal()
+
 # calculate ndvi
-red_median = map(s[[3]], function(x) x$median)
-nir_median = map(s[[4]], function(x) x$median)
-ndvi = map2(red_median, nir_median, ~ fun.ndvi(.x, .y))
+# red_median = map(s[[3]], function(x) x$median)
+# nir_median = map(s[[4]], function(x) x$median)
+# ndvi = map2(red_median, nir_median, ~ fun.ndvi(.x, .y))
 
 
 arr = list()
 for (i in seq_along(name)){
     met = s[[i]]
-    out = map2(met, name, function(x, y) ggplot(x, aes(date, median)) +
-        geom_smooth(method = "lm", color = "red") +
-        geom_smooth(color = "blue") +
-        geom_line(aes(x = supsmu(date, median)$x, y = supsmu(date, median)$y), size = 1) +
-        geom_point() +
+    out = map2(met, gname, function(x, y) ggplot(x, aes(date, median)) +
+        geom_smooth(method = "lm", color = "grey60", se = F) +
+        # geom_smooth(color = "blue") +
+        geom_line(aes(x = date, y = med_smooth), size = 0.2) +
+        geom_ribbon(aes(x = date, ymin = losd_smooth, ymax = upsd_smooth), alpha = 0.2, fill = "blue") +
         ggtitle(y) +
         theme_minimal())
     arr[[i]] = out
 }
 
-gname = c("Slangbos Increase", "Slangbos Continuous", "Slangbos Clearning", "Grassland", "Cultivated")
-arr = map2(arr, gname, ~ marrangeGrob(.x, nrow=3, ncol=2, top = .y))
-arr1 = marrangeGrob(arr[[1]], nrow = 3, ncol = 2, top = "Slangbos Increase")
+arr = map2(arr, name, ~ marrangeGrob(.x, nrow=3, ncol=2, top = .y))
+arr[[3]];arr[[1]];arr[[2]];arr[[4]]
 
-map2(arr, gname, ~ ggsave(filename = paste0(.y, ".png"), path = plotdir, plot = .x, width = 10, height = 10))
+map2(arr, name, ~ ggsave(filename = paste0(.y, ".png"), path = plotdir, plot = .x, width = 10, height = 10))
 
 # PLOTY COMPLEX ----------------------------------------------------------------

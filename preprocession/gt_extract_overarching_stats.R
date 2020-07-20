@@ -41,23 +41,20 @@ b = readRDS("03_develop/extract/test.RDS")
 
 
 # all raster to be queried
-rasters = list(vv, vh, red, nir, coh)
+rasters = list(vv, vh, ndvi, coh)
 
-fun.ndvi(red[[1]], nir[[1]])
-outfiles = sapply(c("vv", "vh", "red", "nir", "coh"), function(x) paste("extract", x, sep = "_"))
-
+outfiles = sapply(c("vv", "vh", "ndvi", "coh"), function(x) paste("extract", x, sep = "_"))
 
 statistics = c("median", "sd", "mean")
 
 # get example raster
 ras = coh[[1:10]]
-class = gt %>% filter(class_simple == "1")
 col_class = "class_simple"
 
 # RUN --------------------------------------------------------------------------
 
 # example run
-e = extract_summary(gt, coh[[1:10]], col_class = "class_simple", statistics = statistics)
+e = extract_summary(gt, ndvi[[1:5]], col_class = "class_simple", statistics = statistics)
 
 # batch run
 summary = list()

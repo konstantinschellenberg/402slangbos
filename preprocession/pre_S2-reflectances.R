@@ -15,6 +15,9 @@ library(rgdal)
 library(gdalUtils)
 library(link2GI)
 
+# calculate ndvi from gdal command line utility
+system("python C:/OSGeo4W64/apps/Python37/Scripts/gdal_calc.py --calc=(A-B)/(A+B) --outfile=D:/Geodaten/#Jupiter/GEO402/01_data/s2/ndvi.tif -A D:/Geodaten/#Jupiter/GEO402/01_data/s2/nir_less20_gapfilled_realdates_spline.tif -B D:/Geodaten/#Jupiter/GEO402/01_data/s2/red_less20_gapfilled_realdates_spline.tif --allBands A --overwrite")
+
 
 # (1) search S2 scenes in 20m res and QA. --------------------------------------
 ################################################################################
