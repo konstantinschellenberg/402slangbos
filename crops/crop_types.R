@@ -137,6 +137,8 @@ data2[1:3] = map_df(data2[1:3], ~ renaming(.x))
 data2 %>%
   mutate(count = n(cat))
 
+# TURNOVER CALC ----------------------------------------------------------------
+
 data2 = data2 %>%
   mutate(turnover = as.numeric(a!=b) + as.numeric(b!=c)) %>%
   st_set_geometry(sfc)

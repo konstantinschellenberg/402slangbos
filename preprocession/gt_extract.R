@@ -25,7 +25,6 @@ gt = st_read("02_features/features.gpkg", layer = "LADYBRAND_gt_stats_simple") %
 
 # CREATE RUNNING NUMBERS FOR GT ------------------------------------------------
 
-
 gt = gt %>%
     group_by(class_simple) %>%
     mutate(id = row_number())
@@ -36,8 +35,8 @@ gt = gt %>%
 col_class = "class_simple"
 col_id = "id"
 dstdir = "03_develop/extract/"
-rasters = list(vv, vh, red, nir, coh)
-outfiles = sapply(c("vv", "vh", "red", "nir", "coh"), function(x) paste("extract", x, sep = "_"))
+rasters = list(ndvi)
+outfiles = sapply(c("ndvi"), function(x) paste("extract", x, sep = "_"))
 outfile = "test"
 statistics = c("mean", "stdev", "count") # must be coercable by exact_extract()
 
@@ -61,20 +60,20 @@ for (i in seq_along(outfiles)){
 
 # READ IN ----------------------------------------------------------------------
 
-co = readRDS("03_develop/extract/extract_coh")
+co = readRDS("03_develop/extract/extract_ndvi")
 
 map(co[[1]], ~ sum(is.na(.x)))
 
-o = co[[5]][[15]]
+o = co[[1]][[44]]
 is.na(o)
 
 o[is.na(o)] = NA
 
 
 ggplot(o) +
-    geom_point(aes(date, mean)) +
+    geom_point(aes(date, med)) +
     geom_line(aes(date, med)) +
-    geom_ribbon(aes(date, ymin = mean - stdev, ymax = mean + stdev)) +
+    geom_ribbon(aes(date, ymin = mean - 2*stdev, ymax = mean + 2* stdev)) +
     geom_line(aes(date, med), color = "red") +
     theme_bw()
 

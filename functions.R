@@ -63,6 +63,35 @@ rvi = function(vv, vh){
 fun.ndvi = function(r, n){(n-r)/(n+r)}
 
 ################################################################################
+# BANDNAME FILE CREATION -------------------------------------------------------
+################################################################################
+
+bandnames = function(file, prefix){
+
+    # load raster
+    ras = brick(file)
+    phrase = names(ras) # get names
+
+    # Substring
+    phrase.datum = substr(phrase, start = 12, stop = 19)
+
+    # convert to POSTict (R-date) format
+    phrase.date = as.Date(phrase.datum, format = "%Y%m%d") %>%
+        as.character() %>%
+        stringr::str_replace_all("-", ".")
+
+    # prepend the prefix to date information
+    bdnames = map_chr(phrase.date, function(x) paste0(prefix, ".", x))
+
+    outfile = paste0(file, ".txt")
+    write.csv(bdnames, file = outfile, row.names = FALSE)
+}
+
+# DEMO
+# bandnames("F:/geodata/geo402/S2/xx_S2_indices/ladybrand35JMH/stack_35JMH_ndvi.img", "ndvi")
+
+
+################################################################################
 # Rename bandnames -------------------------------------------------------------
 ################################################################################
 
