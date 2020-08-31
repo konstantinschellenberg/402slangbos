@@ -66,7 +66,7 @@ fun.ndvi = function(r, n){(n-r)/(n+r)}
 # BANDNAME FILE CREATION -------------------------------------------------------
 ################################################################################
 
-bandnames = function(file, prefix){
+bandnames = function(file, prefix, writeout = FALSE){
 
     # load raster
     ras = brick(file)
@@ -76,15 +76,19 @@ bandnames = function(file, prefix){
     phrase.datum = substr(phrase, start = 12, stop = 19)
 
     # convert to POSTict (R-date) format
-    phrase.date = as.Date(phrase.datum, format = "%Y%m%d") %>%
+    phrase.date = as.Date(phrase.datum, format = "%Y%m%d")
+
+    bdnames = phrase.date %>%
         as.character() %>%
         stringr::str_replace_all("-", ".")
 
     # prepend the prefix to date information
-    bdnames = map_chr(phrase.date, function(x) paste0(prefix, ".", x))
+    bdnames = map_chr(bdnames, function(x) paste0(prefix, ".", x))
 
-    outfile = paste0(file, ".txt")
-    write.csv(bdnames, file = outfile, row.names = FALSE)
+    if (writeout == TRUE){
+        outfile = paste0(file, ".txt")
+        write.csv(bdnames, file = outfile, row.names = FALSE)
+    } else return(phrase.date)
 }
 
 # DEMO

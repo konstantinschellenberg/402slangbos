@@ -6,16 +6,15 @@ library(raster)
 library(sf)
 library(rgdal)
 library(gdalUtils)
+source("D:/Geodaten/Master/projects/402slangbos/functions.R")
+
 
 # USER INPUT -------------------------------------------------------------------
 
 dirs = c("F:/geodata/geo402/S2/xx_S2_indices/ladybrand35JMH/",
          "F:/geodata/geo402/S2/xx_S2_indices/ladybrand35JNH/")
-# output automatically created
 
-outputdir = "F:/geodata/geo402/S2/xx_S2_indices/mosaics/output.vrt"
-
-# PROCESSING -------------------------------------------------------------------
+# CREATE DATES -------------------------------------------------------------------
 
 # get directories only of files ending with "img" (= raster information)
 files = map(dirs, ~ list.files(.x, full.names = T, recursive = T, pattern = "img$"))
@@ -26,49 +25,85 @@ for (i in seq_along(files)){
         split = str_split(x, "_")
         prefix = map_chr(split, ~ .x[length(.x)])
         prefix2 = map(prefix, ~ str_sub(.x, 1, -5))
-        bandnames(x, prefix = prefix2)
+        bandnames(x, prefix = prefix2, writeout = TRUE)
     })
 
 }
 
-# MAIN PROBLEM, not matching count of scenes
-nlayers(rasters[[1]][[4]])
-nlayers(rasters[[2]][[4]])
+# example for one raster
+ras = files[[1]][[1]]
+gdalUtils::gdalinfo(ras)
+bandnames(ras, prefix = "new")
 
-# solution 1: delete lefthand scenes not matching righthand, then vrt
-# solution 2: create dummy scenes righthand, then vrt
+# show all date of the bands
+map(files, ~ map(.x, ~ bandnames(.x)))
 
-# pair = c(files[[1]][4], files[[2]][4])
+# SPLIT STACKS -----------------------------------------------------------------
 
-# load all in as raster::brick in a list
-rasters = map(files, ~ map(.x, ~ brick(.x)))
+# create single file for each layer (virtual VRT format)
+map(files, ~ map(.x, function(ras){
 
-command = sprintf("gdalbuildvrt -separate -overwrite %s %s %s", outputdir, pair[1], pair[2])
-# command = sprintf("gdalinfo %s", files[[1]][1])
+    # get nlayers, iteration basis
+    ras.in = brick(ras)
+    nlay = ras.in %>% nlayers()
+    bandnames = names(ras.in)
 
-# gdalUtils::gdalbuildvrt(pair, outputdir, separate = T, overwrite = TRUE)
+    dir = str_split(ras, "/")
+    dir = dir[[1]][1:length(dir[[1]]) - 1] %>%
+        paste(collapse = "/")
 
-system(command)
+    split = str_split(ras, "_")
+    prefix = map_chr(split, ~ .x[length(.x)]) %>%
+        map(., ~ str_sub(.x, 1, -5))
 
-# VISO -------------------------------------------------------------------------
+    dir.out = paste(dir, prefix, sep = "/")
+    if (!dir.exists(dir.out)){
+        dir.create(dir.out)
+    }
 
-ras1 = rasters[[1]][[4]]
-ras2 = rasters[[2]][[4]]
+    for (i in 1:nlay){
 
-plot(ras1[[2]])
+        cat("no. ", i, "\n")
+        band = i
+        output = paste0(dir.out, "/", bandnames[i], ".vrt")
 
-head(names(ras1))
-head(names(ras2))
+        command = sprintf("gdalbuildvrt -b %s %s %s", band, output, ras)
+        system(command)
+    }
+}))
 
-ras1[[1:10]] %>% writeRaster("F:/geodata/geo402/S2/xx_S2_indices/mosaics/ras1.tif"
-ras2[[1:10]] %>% writeRaster("F:/geodata/geo402/S2/xx_S2_indices/mosaics/ras2.tif")
+
+# PYROSAR ----------------------------------------------------------------------
+# now switch to pyroSAR in python and execute groupbyTime on the stacks
+
+# STACKING ---------------------------------------------------------------------
+
+mosaics = "F:/geodata/geo402/S2/xx_S2_indices/mosaics/"
+files = list.files(mosaics, full.names = T)
+
+# exclude VRT data
+files.mosaic = files[!grepl(files, pattern = ".vrt$")]
+
+names.stack = str_split(files.mosaic, "/") %>%
+    map_chr(., ~ .x[length(.x)])
+
+for (i in seq_along(files.mosaic)){
+    print(i)
+
+    # concat outfile name
+    name = names.stack[i]
+    output = paste0(mosaics, name, ".vrt")
+
+    stack.dir = paste0(files.mosaic[i], "/*.tif")
+    # scenes = list.files(stack.dir, full.names = TRUE)
+
+    command = sprintf("gdalbuildvrt -separate -srcnodata -9999 -vrtnodata -9999 -overwrite %s %s", output, stack.dir)
+    system(command)
+}
+i = 1
+# for xy
 
 
--# TODO
-#' only include dates, where dates match.
-#' NOT: separate = TRUE
-#'
-#' check if the data really means the right UTM tile!
-#'
-#'
-#' stack_35JMH_dvi kaputt, gehört to 35JNH!
+
+# TODO
+# make everything nodata which is outside possible areas (NDVI >1 <-1 etc.)
