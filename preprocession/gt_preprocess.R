@@ -94,3 +94,5 @@ ggplot(gt_stats_simplified) +
     geom_bar(aes(class_simple)) +
     theme_bw() +
     theme(axis.text.x = element_text(angle = 60, vjust = 1, hjust=1))
+
+# end

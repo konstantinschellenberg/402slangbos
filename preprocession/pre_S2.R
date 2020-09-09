@@ -8,6 +8,7 @@ library(rgdal)
 library(gdalUtils)
 source("D:/Geodaten/Master/projects/402slangbos/functions.R")
 
+# -tr 30 30 -te 463563.375 6739018 549706.4375 6791364
 
 # USER INPUT -------------------------------------------------------------------
 
@@ -73,6 +74,8 @@ map(files, ~ map(.x, function(ras){
 }))
 
 
+# MOVE Data --------------------------------------------------------------------
+
 # PYROSAR ----------------------------------------------------------------------
 # now switch to pyroSAR in python and execute groupbyTime on the stacks
 
@@ -100,10 +103,58 @@ for (i in seq_along(files.mosaic)){
     command = sprintf("gdalbuildvrt -separate -srcnodata -9999 -vrtnodata -9999 -overwrite %s %s", output, stack.dir)
     system(command)
 }
-i = 1
-# for xy
-
-
 
 # TODO
 # make everything nodata which is outside possible areas (NDVI >1 <-1 etc.)
+
+# gdalbuildvrt -r nearest -srcnodata "-99" -tr 0.001 0.001 -te 26.6241841334384013 -29.4777883287671010 27.5127027974126008 -29.0049152907063998 -input_file_list F:/geodata/geo402/S1_SLC/xx_new/inputfiles.txt S1A_IW_SLC_stack.vrt
+
+
+
+################################################################################
+# NEW BANDNAMES FOR MOSAICS ----------------------------------------------------
+################################################################################
+
+dir = c("F:/geodata/geo402/S2/xx_S2_indices/mosaics")
+
+# CREATE DATES -------------------------------------------------------------------
+
+# get directories which are not files in the system
+dirs = list.files(dir, full.names = TRUE)
+
+# folders conatining the raw scenes stacked by pyroSAR
+folders = dirs[!grepl(pattern = "\\.", x = dirs)]
+print(folders)
+
+stack_bandnames = map(folders, function(x){
+
+    # get file names
+    files = list.files(x, full.names = FALSE, pattern = "*.tif$")
+
+    # substring date
+    phrase.datum = stringr::str_sub(files, start = 12, end = 19)
+
+    # convert to POSTict (R-date) format
+    phrase.date = as.Date(phrase.datum, format = "%Y%m%d") %>%
+        as.character() %>%
+        stringr::str_replace_all("-", ".")
+
+    # formulate prefix
+    split = strsplit(x, split = "/") %>% .[[1]]
+    prefix = split[length(split)]
+
+    # get the last part of the path as future prefix name
+    split2 = strsplit(prefix, split = "_") %>% .[[1]]
+    prefix2 = split2[length(split2)]
+
+    # prepend the prefix to date information
+    bandnames = map_chr(phrase.date, function(x) paste0(prefix2, ".", x))
+
+})
+
+# create bandnames .txt
+map2(folders, stack_bandnames, function(x, y){
+    outfile = paste0(x, ".txt")
+
+    write.csv(y, outfile, row.names = FALSE)
+})

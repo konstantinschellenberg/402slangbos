@@ -23,43 +23,41 @@ setwd(env)
 # destination
 dstdir = "03_develop/extract/"
 
-# load reference sites
-gt = st_read("02_features/features.gpkg", layer = "LADYBRAND_gt_stats_simple") %>%
-    st_zm()
+# TEST RUN ---------------------------------------------------------------------
 
-# ------------------------------------------------------------------------------
+# example raster
+ras = co[[1:5]]
+col_class = "class_simple"
 
-# example stats
-b_extracted = exactextracting(gt, ras = coh[[1:10]], col_class = "class_simple", col_id = "id", statistics = c("mean", "stdev", "count"),
-                    dstdir, outfile = "test.RDS")
+# check if exactextracting is operative
+example_stats = exactextracting(gt, ras, col_class,
+                                col_id = "id", statistics = c("mean", "stdev", "count"),
+                                dstdir, outfile = "test.RDS")
 
 # load dummy
-b = readRDS("03_develop/extract/test.RDS")
+readRDS("03_develop/extract/test.RDS")
 
 # STATISTICS FOR ALL CLASSES AGGREGATED ----------------------------------------
 # USER INPUT -------------------------------------------------------------------
 
-
 # all raster to be queried
-rasters = list(vv, vh, ndvi, coh)
-
-outfiles = sapply(c("vv", "vh", "ndvi", "coh"), function(x) paste("extract", x, sep = "_"))
+rasters = list(vh, vv, co, dvi, evi, msavi, ndvi, reip, rvi)
+layernames = c("vh", "vv", "co", "dvi", "evi", "msavi", "ndvi", "reip", "rvi")
+names(rasters) = layernames
 
 statistics = c("median", "sd", "mean")
 
-# get example raster
-ras = coh[[1:10]]
-col_class = "class_simple"
-
 # RUN --------------------------------------------------------------------------
 
+################ Baustelle
+
 # example run
-e = extract_summary(gt, ndvi[[1:5]], col_class = "class_simple", statistics = statistics)
+e = extract_summary(gt, ras, col_class, statistics)
 
 # batch run
 summary = list()
 for (i in seq_along(rasters)){
-    summary[[i]] = extract_summary(gt, rasters[[i]], "class_simple", statistics)
+    summary[[i]] = extract_summary(gt, rasters[[i]], col_class, statistics)
 }
 
 saveRDS(summary, paste0(dstdir, "summary_statistics.RDS"))

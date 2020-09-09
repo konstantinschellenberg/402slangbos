@@ -1,43 +1,50 @@
-# Sentinel-1 cleaning
+# init 09.09.2020
+# bandname creation for GRD
 
-source("import.R")
+source("D:/Geodaten/Master/projects/402slangbos/import.R")
 
-# create bandnames file as text
+# LOAD RASTERS -----------------------------------------------------------------
 
-names = names(vv) %>%
-    substr(start = 13, stop = 20) %>%
-    as.numeric()
-
-write.csv(names, file = paste0(path_s1, "xx_new_stack_backscatter_bandnames_30.txt"), row.names = FALSE)
+headers = c("F:/geodata/geo402/S1_GRD/xx_new/S1A_IW_GRD_VH_stack.hdr",
+         "F:/geodata/geo402/S1_GRD/xx_new/S1A_IW_GRD_VV_stack.hdr")
 
 
-# Pre-processing ---------------------------------------------------------------
-#' (1) cut extent to study area
-#' (2) leave no-data as -99
-#' (3) identify scenes with significant -99 ocurrence
-
-gdalUtils::gdalinfo(s1vv_path_50)
-gdalUtils::gdalinfo(s1vh_path_30)
-
-file.remove(path_vrt)
-
-# (1) & (2)
-# repeat this for VV and VH
-
-gdalUtils::gdalbuildvrt(gdalfile = s1vh_path_50,
-                        output.vrt = "D:/Geodaten/#Jupiter/GEO402/03_develop/s1/vrtpath.vrt",
-                        overwrite = TRUE,
-                        te = st_bbox(study_area),
-                        a_srs = "+proj=utm +zone=35 +south +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0")
-                        # vrtnodata = -99L)
-
-gdalUtils::gdal_translate(src_dataset = "D:/Geodaten/#Jupiter/GEO402/03_develop/s1/vrtpath.vrt",
-                          dst_dataset = paste0(path_s1, "S1_A_VH_stack_slangbos_50m_crop"),
-                          of = "ENVI")
-
-# (3)
-# assess NA qualities
-na_identifier(vv, na = -99)
-na_identifier(vh,, na = -99)
+# CREATE DATES -------------------------------------------------------------------
+stack_bandnames = map2(headers, prefix, function(x, y){
 
 
+    # hdr file read ------------------------------------------------------------
+    bandnames = read.delim(x, header = TRUE, sep = "=") %>%
+        .[["band names",1]]
+
+    # remove braces at the beginning and end
+    brace = str_remove_all(bandnames, pattern = "[{}]")
+
+    # trim whitespaces at the beginning
+    trimmed = trimws(brace, which = "both")
+
+    # split by commata
+    splitted = str_split(trimmed, pattern = ", ")
+
+    # bandnames ----------------------------------------------------------------
+    # substring date
+    phrase.datum = stringr::str_sub(splitted[[1]], start = 13, end = 20)
+
+    # convert to POSTict (R-date) format
+    phrase.date = as.Date(phrase.datum, format = "%Y%m%d") %>%
+        as.character() %>%
+        stringr::str_replace_all("-", ".")
+
+    # prepend the prefix to date information
+    map_chr(phrase.date, function(x) paste0(y, ".", x))
+
+})
+
+# create bandnames .txt
+map2(headers, stack_bandnames, function(x, y){
+
+    split = strsplit(x, split = "\\.") %>% .[[1]]
+    outfile = paste0(split[1], ".txt")
+
+    write.csv(y, outfile, row.names = FALSE)
+})

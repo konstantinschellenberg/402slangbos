@@ -66,7 +66,7 @@ fun.ndvi = function(r, n){(n-r)/(n+r)}
 # BANDNAME FILE CREATION -------------------------------------------------------
 ################################################################################
 
-bandnames = function(file, prefix, writeout = FALSE){
+bandnames = function(file, prefix = NULL, writeout = FALSE){
 
     # load raster
     ras = brick(file)
@@ -88,7 +88,7 @@ bandnames = function(file, prefix, writeout = FALSE){
     if (writeout == TRUE){
         outfile = paste0(file, ".txt")
         write.csv(bdnames, file = outfile, row.names = FALSE)
-    } else return(phrase.date)
+    } else return(bdnames)
 }
 
 # DEMO
@@ -99,30 +99,26 @@ bandnames = function(file, prefix, writeout = FALSE){
 # Rename bandnames -------------------------------------------------------------
 ################################################################################
 
-rename_bandnames = function(raster = NULL, var_prefix = NULL, naming = NULL){
+rename_bandnames = function(rasterfile, textfile = NULL){
 
-    #' param. raster to be renames
-    #' var_prefix. prefix of the raster bands
-    #' naming. table.txt with layer names in rows
+    ##### stop sequence
+    if (is.null(textfile)){stop("Define a textfile contain bandnames of all layers in the raster.")}
+
+    # load raster
+    raster = brick(rasterfile)
 
     # read in csv data
-    date_in_bandnames = read.csv(file = naming, colClasses = "character") %>%
-        .$x
+    date = read.csv(file = textfile, colClasses = "character") %>% .$x
 
-    # convert date string into R date-time format
-    date = c()
-    for (i in 1:length(date_in_bandnames)){
-        date = append(date, as.POSIXct(date_in_bandnames[i], format = "%Y%m%d")) #https://www.statmethods.net/input/dates.html
-    }
-
+    ##### stop sequence 2
     a = length(names(raster)) - length(date)
-
-    if (a != 0){warning("Number of raster bands does not fit the input table")}
+    if (a != 0){stop("Number of raster bands does not fit the input table")}
 
     # final tranfer
-    names(raster) = paste0(var_prefix, ".", date) # change names to more easy
+    names(raster) = date # change names to more easy
     return(raster)
 }
+
 
 ################################################################################
 # exactextracting, fully replaces gt_from_raster: faster and more stable!
