@@ -79,6 +79,8 @@ y.s1 <- list(
     anchor = "free",
     position = 0)
 
+# c(y.s1, range = list(c(-99L, 0L)))
+
 y.s1.vv <- list(
     title = list(text = "S1 VV backscatter [dB]", standoff = 50),
     titlefont = f2,
@@ -143,7 +145,16 @@ y.s2_2 <- list(
     showline = F,
     overlaying = "y",
     side = "right",
-    range = c(-1,1),
+    range = c(0,1),
+    anchor = "free",
+    position = 1)
+
+y.indizes <- list(
+    titlefont = f2,
+    tickfont = f1,
+    showline = F,
+    overlaying = "y",
+    side = "right",
     anchor = "free",
     position = 1)
 
