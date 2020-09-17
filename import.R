@@ -86,4 +86,5 @@ pred_classif = raster("D:/Geodaten/#Jupiter/GEO402/04_products/rf/run1_vrn_class
 gt = st_read("D:/Geodaten/#Jupiter/GEO402/02_features/features.gpkg", layer = "LADYBRAND_gt_stats_simple") %>%
     st_zm() %>%
     group_by(class_simple) %>%
+    # CREATE RUNNING NUMBERS FOR GT
     mutate(id = row_number())

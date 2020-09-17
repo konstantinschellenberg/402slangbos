@@ -12,7 +12,6 @@ library(exactextractr)
 
 options(max.print = 200)
 
-source("D:/Geodaten/Master/projects/402slangbos/functions.R")
 source("D:/Geodaten/Master/projects/402slangbos/import.R")
 
 # SET ENVIRONMENT --------------------------------------------------------------
@@ -23,20 +22,6 @@ setwd(env)
 # destination
 dstdir = "03_develop/extract/"
 
-# TEST RUN ---------------------------------------------------------------------
-
-# example raster
-ras = co[[1:5]]
-col_class = "class_simple"
-
-# check if exactextracting is operative
-example_stats = exactextracting(gt, ras, col_class,
-                                col_id = "id", statistics = c("mean", "stdev", "count"),
-                                dstdir, outfile = "test.RDS")
-
-# load dummy
-readRDS("03_develop/extract/test.RDS")
-
 # STATISTICS FOR ALL CLASSES AGGREGATED ----------------------------------------
 # USER INPUT -------------------------------------------------------------------
 
@@ -45,21 +30,37 @@ rasters = list(vh, vv, co, dvi, evi, msavi, ndvi, reip, rvi)
 layernames = c("vh", "vv", "co", "dvi", "evi", "msavi", "ndvi", "reip", "rvi")
 names(rasters) = layernames
 
-statistics = c("median", "sd", "mean")
-
 # RUN --------------------------------------------------------------------------
 
-################ Baustelle
-
+# example raster
+ras = ndvi[[1:30]]
 # example run
-e = extract_summary(gt, ras, col_class, statistics)
+example = extract_summary(gt, ras, col_class)
 
-# batch run
-summary = list()
-for (i in seq_along(rasters)){
-    summary[[i]] = extract_summary(gt, rasters[[i]], col_class, statistics)
-}
+o = example[[1]]
 
+# POINTS
+ggplot(o) +
+    geom_point(aes(date, median), color = "red") +
+    geom_point(aes(date, med_smooth), color = "blue")
+
+# LINE
+# with NA lines
+ggplot(o) +
+    geom_line(aes(date, median), color = "red") +
+    geom_line(aes(date, med_smooth), color = "blue")
+
+# without NA lines
+o2 = o %>% na.omit()
+ggplot(o2) +
+    geom_line(aes(date, median), color = "red") +
+    geom_line(aes(date, med_smooth), color = "blue")
+
+
+# batch run --------------------------------------------------------------------
+
+summary = map(rasters, ~ extract_summary(gt, .x, col_class))
 saveRDS(summary, paste0(dstdir, "summary_statistics.RDS"))
+# summary = readRDS("03_develop/extract/summary_statistics.RDS")
 
 # (end)

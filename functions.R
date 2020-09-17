@@ -41,28 +41,6 @@
 # 9 = water
 
 ################################################################################
-# Make mask from QA bands ------------------------------------------------------
-################################################################################
-
-make_mask = function(x){
-    out = x == 2 | x == 3; return(out)
-}
-
-################################################################################
-# RVI definition ---------------------------------------------------------------
-################################################################################
-
-rvi = function(vv, vh){
-    4 * vh / (vv + vh)
-}
-
-################################################################################
-# NDVI definition ---------------------------------------------------------------
-################################################################################
-
-fun.ndvi = function(r, n){(n-r)/(n+r)}
-
-################################################################################
 # BANDNAME FILE CREATION -------------------------------------------------------
 ################################################################################
 
@@ -167,7 +145,7 @@ exactextracting = function(gt, ras, col_class, col_id, statistics, dstdir, outfi
 
     all_data = cbind(med, ex)
 
-    # join classes on extracted data for tiding pipe coming
+    # join classes on extracted data for tidying pipe coming
     join = mutate(all_data, class = gt[[col_class]], id = gt[[col_id]])
     join[is.na(join)] = NA
 
@@ -176,11 +154,13 @@ exactextracting = function(gt, ras, col_class, col_id, statistics, dstdir, outfi
     for (i in sort(unique(join$class))){
         inner = list()
 
+        print(i)
         ij = filter(join, join$class == i)
 
         # iterate by number
         for (j in sort(unique(ij$id))){
 
+            print(j)
             # wrangle dataframe
             entity = filter(join, join$class == i & join$id == j) %>%
                 dplyr::select(-c(class, id)) %>%
@@ -210,14 +190,29 @@ exactextracting = function(gt, ras, col_class, col_id, statistics, dstdir, outfi
             # bind lists to dataframe
             stat = cbind(stat, date)
 
-            # add smoothings
-            stat = stat %>%
-                mutate(med_smooth = ifelse(!is.na(med), yes = supsmu(date, med)$y, no = NA),
-                       losd_smooth = ifelse(!is.na(med), yes = supsmu(date, mean - stdev)$y, no = NA),
-                       upsd_smooth = ifelse(!is.na(med), yes = supsmu(date, mean + stdev)$y, no = NA))
+            if (nrow(stat) == length(stat$med[stat$med == TRUE])) next
+            # print(j)
+
+            # smoothing functions
+            smooth_names = c("med_smooth", "losd_smooth", "upsd_smooth")
+
+            # functions
+            med_smooth = supsmu(stat$date, stat$med)
+            losd_smooth = supsmu(stat$date, stat$mean - stat$stdev)
+            sd_smooth = supsmu(stat$date, stat$mean + stat$stdev)
+
+            # listed
+            smooth = list(med_smooth, losd_smooth, sd_smooth)
+
+            single_columns = map2(smooth, smooth_names, function(x, y){
+                df = data.frame(x$x, x$y) %>% `names<-`(c("date", y))
+            })
+
+            stat_smoothed = left_join(stat, single_columns, by = "date", copy = TRUE, keep = FALSE) %>%
+                select(-c(date.1, date.2))
 
             # create list and rename ij table
-            entity = list(as.data.frame(stat)) %>% `names<-`(j)
+            entity = list(as.data.frame(stat_smoothed)) %>% `names<-`(j)
             inner = append(inner, entity)
         }
 
@@ -234,7 +229,14 @@ exactextracting = function(gt, ras, col_class, col_id, statistics, dstdir, outfi
 # extracting summary statistics for all classes!
 ################################################################################
 
-extract_summary = function(gt, ras, col_class, statistics){
+extract_summary = function(gt, ras, col_class){
+
+    #' default statistics implemented are:
+    #' Median
+    #' Mean
+    #' Standard Deviation
+    #' smoothed median
+    #' smoothed standard deviations (upper and lower)
 
     # pre ----------------------------------------------------------------------
     layernames = names(ras)
@@ -247,26 +249,33 @@ extract_summary = function(gt, ras, col_class, statistics){
 
     nr_classes = length(unique(gt[[col_class]]))
 
+    # console output:
+
+    cat("Number of raster layers:", nlayers(ras), "\n")
+    cat("Number of classes:", nr_classes, "\n\n\n")
+
+
     # date -------------------------------------------------------------------------
     date = substr(medianname, start = nchar(medianname) - 9, stop = nchar(medianname))
     date = as.POSIXct(date, tryFormats = "%Y.%m.%d") %>%
         unique()
 
     # data processing ----------------------------------------------------------
-    print("processing median")
-
-    med = lapply(raslist, function(x) exact_extract(x, gt, function(values, coverage_fraction){
-    median(values[!is.na(values)], na.rm = TRUE)
+    cat("processing median\n\n")
+    med = map(raslist, function(x) exact_extract(x, gt, function(values, coverage_fraction){
+        cat(names(x))
+        median(values[!is.na(values)], na.rm = TRUE)
     })) %>%
-    as.data.frame(col.names = medianname) %>%
-    mutate(class = gt$class_simple)
+        as.data.frame(col.names = medianname) %>%
+        mutate(class = gt$class_simple)
 
     # init class list
     summ = vector("list", length = nr_classes)
     names = c()
+
     # sorting by class
     for (i in 1:nr_classes){
-        print(i)
+        # print(i)
         cls = sort(unique(gt[[col_class]]))[[i]]
         summ[[i]] = filter(med, gt[[col_class]] == cls) %>% select(-class)
         names = c(names, cls)
@@ -275,165 +284,76 @@ extract_summary = function(gt, ras, col_class, statistics){
     # assign class names
     names(summ) = names
 
-    # wrangling ----------------------------------------------------------------
-    print("processing other metrics")
+    # wrangling: calculating metrics from the median ---------------------------
+    cat("\n\nprocessing other metrics\n")
+
+    # function definition:
+    s.median = as.function(x = alist(a = , median(a, na.rm = TRUE)), envir = globalenv())
+    s.mean = as.function(x = alist(a = , mean(a, na.rm = TRUE)), envir = globalenv())
+    s.sd = as.function(x = alist(a = , sd(a, na.rm = TRUE)), envir = globalenv())
+
+    s.list = list(s.median, s.mean, s.sd)
+    s.colnames = c("median", "mean", "sd")
 
     summ2 = map(summ, function(x){
         stat = list()
-        for (h in seq_along(statistics)){
-
-            metric = statistics[h]
+        for (h in seq_along(s.list)){
 
             data = x %>%
-                na.omit() %>%
-                summarise_all(c(metric = metric)) %>%
+                # na.omit() %>%
+                summarise_all(.funs = s.list[h]) %>%
                 t() %>%
-                `colnames<-`(metric)
+                `colnames<-`(s.colnames[h])
+
+            #' count the number of reference site accounted for the statistics
+            #' many are lost by missing data, especially Sentinel-2 probes
+            NAs = x %>%
+                summarise_all(~(sum(!is.na(.)))) %>%
+                t() %>%
+                as.data.frame() %>%
+                `colnames<-`("count")
 
             stat = cbind(stat, data) %>%
                 as.data.frame() %>%
                 `row.names<-`(NULL)
-
         }
+
+        # add date
+        stat = stat %>% mutate(NAs, date)
+
         stat$median = as.numeric(stat$median)
-        stat
+        stat[is.na(stat)] = NA
+        return(stat)
     })
 
-    # add date
+    # add smoothing functions --------------------------------------------------
+    # smoothing functions
+    smooth_names = c("med_smooth", "losd_smooth", "upsd_smooth")
+
     summ3 = map(summ2, function(x){
-        x %>% mutate(date = date) %>%
-            mutate(med_smooth = ifelse(!is.na(median), yes = supsmu(date, median)$y, no = NA),
-                   losd_smooth = ifelse(!is.na(median), yes = supsmu(date, mean - sd)$y, no = NA),
-                   upsd_smooth = ifelse(!is.na(median), yes = supsmu(date, mean + sd)$y, no = NA))
+
+        # process the smoothing
+        med_smooth = supsmu(x$date, x$median)
+        losd_smooth = supsmu(x$date, x$mean - x$sd)
+        sd_smooth = supsmu(x$date, x$mean + x$sd)
+
+        # list the results
+        smooth = list(med_smooth, losd_smooth, sd_smooth)
+
+        # create proper columns from it
+        single_columns = map2(smooth, smooth_names, function(x, y){
+            df = data.frame(x$x, x$y) %>% `names<-`(c("date", y))
+        })
+
+        # join commands to the master data.frame `x`
+        all_columns = reduce(single_columns, left_join, by = "date")
+        joined = left_join(x, all_columns, by = "date")
+        return(joined)
     })
 
-    print("finished")
+    cat("finished")
     return(summ3)
 }
-
-################################################################################
-# gt_from_raster----------------------------------------------------------------
-################################################################################
-
-gt_from_raster = function(train_data = NULL,
-                          response_col = NULL,
-                          raster = NULL,
-                          dst = NULL,
-                          prefix = NULL){
-
-    # credits to http://amsantac.co/blog/en/2015/11/28/classification-r.html
-    # https://gist.github.com/amsantac/5183c0c71a8dcbc27a4f
-    outest = list()
-    cat("load raster as velox-object... please wait.")
-    v = velox(raster)
-
-    for (i in 1:length(unique(train_data[[response_col]]))){
-
-        # get class
-        category = unique(train_data[[response_col]])[i]
-        cat("Category:", category, "\n")
-
-        # returns sp polygon with class i
-        categorymap = train_data[train_data[[response_col]] == category,]
-
-        # extract pixel information
-        dataSet = raster::extract(raster, categorymap, cellnumbers = TRUE)
-        # dataSet = v$extract(sp = categorymap) # deprecated under R 4.x
-
-        out = list()
-
-        for (a in dataSet){
-
-            # replace colnames of matrix by raster's colnames (preferrably dates)
-            colnames(a) = names(raster)
-
-            calcs = a %>%
-                t() %>%
-                as.data.frame() %>%
-                mutate(date = colnames(a)) %>%
-                pivot_longer(-date, names_to = "names", values_to = "values") %>%
-                group_by(date) %>%
-                summarise(mean = mean(values), # here can be put more stats information retrieved from the polygons
-                          median = median(values),
-                          sd = sd(values),
-                          "lower_sd" = mean(values) - sd(values),
-                          "upper_sd" = mean(values) + sd(values),
-                          count = n())
-
-             out = append(out, list(as.data.frame(calcs)))
-        }
-
-        # rename inner lists (of the categories)
-        names(out) = c(seq(1:nrow(categorymap)))
-
-        # append to master-list (outest)
-        outest = append(outest, list(out))
-    }
-
-    names(outest) = unique(train_data[[response_col]])
-    saveRDS(outest, paste0(dst, prefix, "_gt_list.rds"))
-}
-
-################################################################################
-# Learning table ---------------------------------------------------------------
-################################################################################
-
-# not working!!!!!!
-
-learning_table = function(train_data = NULL,
-                          response_col = NULL,
-                          raster = NULL,
-                          dst = NULL,
-                          prefix = NULL){
-
-    xname = paste0(prefix, "_x")
-    yname = paste0(prefix, "_y")
-
-    # credits to http://amsantac.co/blog/en/2015/11/28/classification-r.html
-    # https://gist.github.com/amsantac/5183c0c71a8dcbc27a4f7
-
-    df_all = data.frame(matrix(vector(), nrow = 0, ncol = length(names(raster)) + 1))
-
-    for (i in 1:length(unique(train_data[[response_col]]))){
-
-        # get class
-        category = unique(train_data[[response_col]])[i]
-        cat("Category:", category, "\n")
-
-        # returns sp polygon with class i
-        categorymap = train_data[train_data[[response_col]] == category,]
-
-        # extract pixel information
-        dataSet = raster::extract(raster, categorymap, cellnumbers = TRUE) ## deprecated
-        # dataSet = v$extract(sp = categorymap)
-
-        out = list()
-
-        # making dataset for machine learning-----------------------------------
-        dataSet2 = NULL
-
-        # writing coordinates to the matrix of each gt element
-        for (j in seq_along(dataSet)){
-            table = dataSet[[j]]
-            coords = coordinates(raster)[table[,1],] # getting coordinates from raster cell number
-            colnames(coords) = c(xname, yname)
-            coords_binded = cbind(table, coords) # bind them to extract output
-
-            dataSet2 = append(dataSet2, list(coords_binded)) # make list output
-        }
-
-        dataSet3 = dataSet2[!unlist(lapply(dataSet2, is.null))] %>%
-            lapply(function(x){cbind(x, class = as.numeric(rep(category, nrow(x))))})
-
-        df = do.call("rbind", dataSet3)
-        df_all = rbind(df_all, df)
-    }
-
-    df_all = df_all[, -1]
-    df_all$class = as_factor(df_all$class)
-    saveRDS(df_all, paste0(dst, prefix, "_learning_input.rds"))
-}
-
 
 ################################################################################
 # Coercing large rasters to data.tables ----------------------------------------
@@ -484,43 +404,7 @@ as.data.table.raster <- function(x, row.names = NULL, optional = FALSE, xy=FALSE
     }
 }
 
-# if (!isGeneric("as.data.table")) {
-#     setGeneric("as.data.table", function(x, ...)
-#         standardGeneric("as.data.table"))
-# }
-#
-# setMethod('as.data.table', signature(x='data.frame'), data.table::as.data.table)
-# setMethod('as.data.table', signature(x='Raster'), as.data.table.raster)
 
-################################################################################
-# remove cloud layers from brick within the given fraction ---------------------
-################################################################################
-
-# clouds have to be masked already and have NA values.
-
-remove_cloud_layers = function(x, outfile, fraction = 0.2){
-
-    x.clouds = cellStats(is.na(x), sum) # count class 1 (clouds)
-
-    x.clouds.fraction = x.clouds/ncell(x) # fraction that is NA
-    x.clouds.fraction
-
-    cat(paste("fraction of clouds in images: ", sep = "\n"))
-    cat(sort(round(x.clouds.fraction, digits = 2), decreasing = TRUE), sep = "\n")
-
-    x.keep = x[[which(x.clouds.fraction < fraction)]] # filter all with clouds less than the given faction of cloud cover
-
-    cat(paste("Layers kept: ", sep = "\n"))
-    cat(names(x.keep))
-    cat("layers deleted:")
-    cat(length(names(x.clouds)) - length(names(x.keep)), sep = "\n")
-
-    cat("Writing raster, please be patient . . . ")
-    writeRaster(x.keep, filename = outfile, overwrite = TRUE)
-    x.keep = brick(outfile)
-
-    return(x.keep)
-}
 
 ################################################################################
 # binds together three input data.frames with coordinates and class column "class"
@@ -833,32 +717,4 @@ stats = function(dfs){
         out = append(out, data)
     }
     return(data)
-}
-
-################################################################################
-# Checks NA statistics on a Raster Stack
-################################################################################
-
-na_identifier = function(stack, na){
-    if (is.na(na)) {stack.na = cellStats(is.na(stack), sum)}
-    else {stack.na = cellStats(stack == na, sum)} #count the NA (-99) values in each layer
-    stack.na.fraction = stack.na/ncell(stack) # fraction that is NA (-99)
-    filter_less20 = stack[[which(stack.na.fraction < 0.2)]] # filter all with NA less 20% coverage
-    filter_less10 = stack[[which(stack.na.fraction < 0.1)]] # filter all with NA less 10% coverage
-    filter_0 = stack[[which(stack.na.fraction == 0)]] # filter all with 0% NA coverage
-
-    # cat("Layer names where less than 20% is covered with NAs\n")
-    cat("20%: Number of layers", nlayers(filter_less20), "- Fraction of total layers", nlayers(filter_less20)/nlayers(stack)*100, "%", sep = " ")
-    cat("\n")
-
-    # cat("Layer names where less than 10% is covered with NAs\n")
-    cat("10%: Number of layers", nlayers(filter_less10), "- Fraction of total layers", nlayers(filter_less10)/nlayers(stack)*100, "%", sep = " ")
-    cat("\n")
-
-    # cat("Layer names where 0% is covered with NAs\n")
-    cat("0%: Number of layers", nlayers(filter_0), "- Fraction of total layers", nlayers(filter_0)/nlayers(stack)*100, "%", sep = " ")
-    cat("\n")
-
-    cat("Mean NA values in scenes:", mean(stack.na))
-
 }
