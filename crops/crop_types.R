@@ -1,3 +1,4 @@
+#' (1)
 #' crop type analysis
 #' init: 09.07.2020, Konstantin Schellenberg
 #' Intersection of crop types per year
@@ -13,7 +14,7 @@ library(mapview)
 library(TRAMPR)
 library(ggplot2)
 
-options(max.print = 100)
+options(max.print = 200)
 
 # SET ENVIRONMENT --------------------------------------------------------------
 
@@ -135,7 +136,7 @@ renaming = function(x){
 data2[1:3] = map_df(data2[1:3], ~ renaming(.x))
 
 data2 %>%
-  mutate(count = n(cat))
+  mutate(count = n())
 
 # TURNOVER CALC ----------------------------------------------------------------
 

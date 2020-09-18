@@ -1,3 +1,4 @@
+#' (3)
 # Intersect Crop Types and Turnover scores with Slangbos samples
 
 # LOAD PACKAGES ----------------------------------------------------------------
@@ -51,6 +52,8 @@ turnover = data %>%
                                 is.na(b) ~ as.numeric(a!=c),
                                 is.na(c) ~ as.numeric(a!=b))) %>%
     st_set_geometry(sfc)
+
+st_write(turnover, "02_features/Ladybrand_CropData.gpkg", layer = "CropClassifiedSimplifiedTurnover")
 
 inter = st_join(gt, turnover, join = st_intersects)
 

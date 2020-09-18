@@ -31,7 +31,7 @@ g1 = ggplot(data3) +
     geom_bar(aes(turnover)) +
     theme_bw()
 
-ggsave(plot = g1, filename = "turnover_amount.png", path = "06_plots/croptypes", scale = 1.5)
+# ggsave(plot = g1, filename = "turnover_amount.png", path = "06_plots/croptypes", scale = 1.5)
 
 colfunc = colorRampPalette(c("white", "darkred"))
 
@@ -52,4 +52,4 @@ g3 = ggplot(p1) +
     theme_bw()
 
 facet2 = grid.arrange(g2, g3, nrow = 2)
-ggsave(plot = facet2, filename = "turnover.png", path = "06_plots/croptypes")
+# ggsave(plot = facet2, filename = "turnover.png", path = "06_plots/croptypes")

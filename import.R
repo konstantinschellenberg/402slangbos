@@ -79,12 +79,12 @@ pred_classif = raster("D:/Geodaten/#Jupiter/GEO402/04_products/rf/run1_vrn_class
 # Import Ground Truth-----------------------------------------------------------
 ################################################################################
 
-# study_area = st_read(path_gt, layer = "study_area", quiet = TRUE) %>%  # read in
-#     st_transform(st_crs(vv)) %>%  # set crs(gt) to the crs(s1) brick.
-#     st_zm(drop = TRUE)  # Remove Z-Dimension
+study_area = st_read("D:/Geodaten/#Jupiter/GEO402/02_features/study_area.gpkg", layer = "final", quiet = TRUE) %>%  # read in
+    st_zm(drop = TRUE)  # Remove Z-Dimension
 
 gt = st_read("D:/Geodaten/#Jupiter/GEO402/02_features/features.gpkg", layer = "LADYBRAND_gt_stats_simple") %>%
     st_zm() %>%
     group_by(class_simple) %>%
     # CREATE RUNNING NUMBERS FOR GT
     mutate(id = row_number())
+
