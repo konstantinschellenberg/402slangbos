@@ -26,13 +26,16 @@ nir.fmt = list(dash="solid", width = 2, color="#007f00") # green
 nir2.fmt = list(dash="solid", width = 1, color="#007f00") # green
 ndvi.fmt = list(dash = "do", width = 2, color = "red")
 black.fmt = list(dash = "solid", width = 2, color = "black")
+classes.fmt = map(RColorBrewer::brewer.pal(5, "Set1"), ~ list(dash="solid", width = 2, color = .x))
 
 vh.fmt.slim = list(dash="solid", width = 0.3, color="#2c6487") # blue
 red.fmt.slim = list(dash="solid", width = 0.7, color="#fc8d59") # red
 nir.fmt.slim = list(dash="solid", width = 0.7, color="#007f00") # green
 ndvi.fmt.slim = list(dash = "do", width = 0.7, color = "red")
 black.fmt.slim = list(dash = "solid", width = 0.3, color = "black")
-
+classes.fmt.slim = map(c(increase = "#ff0040", continuous = "#ffbf00", clearing = "black",
+                         grass = "#009933", agro = "#bf8040"), ~ list(dash="solid", width = 1.2, color = .x))
+classes.fmt.slim$grass$dash = "dash"; classes.fmt.slim$agro$dash = "dash"
 # Fonts ------------------------------------------------------------------------
 f1 <- list(
     family = "Arial, sans-serif",
@@ -60,7 +63,7 @@ f4= list(
 )
 
 # X-Axis -----------------------------------------------------------------------
-x <- list(
+date.axis <- list(
     type = "date",
     title = "Date",
     titlefont = f2,

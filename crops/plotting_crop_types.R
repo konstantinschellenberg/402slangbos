@@ -152,6 +152,11 @@ bar.data.reduced = bar.data.reduced %>% dplyr::select(-starts_with("count"))
 bar.data_simple = pivot_longer(bar.data.reduced, -CropType, names_to = "year", values_to = "area")
 bar.data_simple$area = as.numeric(bar.data_simple$area)
 
+# saving pie data
+saveRDS(bar.data_complex, "D:/Geodaten/#Jupiter/GEO402/03_develop/croptypes/crop_type_complex.rds")
+saveRDS(bar.data_simple, "D:/Geodaten/#Jupiter/GEO402/03_develop/croptypes/crop_type_simple.rds")
+
+
 # . . . and many more analyses!
 
 ################################################################################
@@ -169,7 +174,7 @@ gg.pie = ggplot(pie.data, aes(x="", y=area, fill=CropType)) +
     theme(legend.position="none") +
     theme_void() # remove background, grid, numeric labels
 gg.pie
-ggsave(filename = "CropTypes2016-17.png", plot = gg.pie, scale = 1, path = "D:/Geodaten/#Jupiter/GEO402/06_plots/croptypes")
+ggsave(filename = "CropTypes2016-17.png", plot = gg.pie, scale = 1, path = "D:/Geodaten/#Jupiter/GEO402/06_plots/Croptypes")
 
 # ------------------------------------------------------------------------------
 # 2) Turnover rates
@@ -187,7 +192,7 @@ gg.bar2 = ggplot(bar.data_complex, aes(fill=CropType, y=area, x=year)) +
     ylab("percentage")
 gg.bar2
 
-ggsave(plot = gg.bar1, filename = "CropTurnover_simple.png", path = "D:/Geodaten/#Jupiter/GEO402/06_plots/croptypes", scale = 1)
-ggsave(plot = gg.bar2, filename = "CropTurnover_complex.png", path = "D:/Geodaten/#Jupiter/GEO402/06_plots/croptypes", scale = 1)
+ggsave(plot = gg.bar1, filename = "CropTurnover_simple.png", path = "D:/Geodaten/#Jupiter/GEO402/06_plots/Croptypes", scale = 1)
+ggsave(plot = gg.bar2, filename = "CropTurnover_complex.png", path = "D:/Geodaten/#Jupiter/GEO402/06_plots/roptypes", scale = 1)
 
 # ------------------------------------------------------------------------------

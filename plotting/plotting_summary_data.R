@@ -12,7 +12,7 @@ library(grid)
 
 library(exactextractr)
 
-options(max.print=999999)
+options(max.print=100)
 
 source("D:/Geodaten/Master/projects/402slangbos/import.R")
 source("D:/Geodaten/Master/projects/402slangbos/plotting/fonts.R")
@@ -34,7 +34,6 @@ setwd(env)
 # destination
 dstdir = "03_develop/extract/"
 plotdir = "06_plots/"
-summarystats_plotsdir = "06_plots/summary/"
 
 # READ IN ----------------------------------------------------------------------
 data = readRDS(paste0(dstdir, "summary_statistics.RDS"))
@@ -45,7 +44,30 @@ summary = map(data, ~ map(.x, function(x){
 })
 )
 
+# INDIZES DEFINITION -----------------------------------------------------------
 
+# give named list of indizes
+indizes = list(evi = summary[["evi"]], ndvi = summary[["ndvi"]], reip = summary[["reip"]],
+               msavi = summary[["msavi"]], dvi = summary[["dvi"]], rvi = summary[["rvi"]])
+i_name = names(indizes)
+
+# range berechnen
+ranges = map(indizes, function(x){
+    max = map_dbl(x, ~ max(.x$upsd_smooth)) %>% max()
+    min = map_dbl(x, ~ min(.x$losd_smooth)) %>% min()
+    range = list(c(min, max))
+})
+
+ranges.all = map(summary, function(x){
+    max = map_dbl(x, ~ max(.x$upsd_smooth)) %>% max()
+    min = map_dbl(x, ~ min(.x$losd_smooth)) %>% min()
+    range = list(c(min, max))
+})
+
+# define normalised indizes manually
+# ranges$evi[[1]] = c(0, 1); ranges$ndvi[[1]] = c(0, 1)
+
+################################################################################
 # GGPLOTS SIMPLE ---------------------------------------------------------------
 p.vh = summary[[1]]
 p.vv = summary[[2]]
@@ -123,7 +145,7 @@ s.plt1 = function(vh, co, classnames){
                         yaxis = "y2", name = "S-1 VV coherence standard deviation range (1 sigma)",
                         color = I(grey_background), line = list(width = 1), opacity = 0.3,
                         showlegend = T) %>%
-            layout(xaxis = x,
+            layout(xaxis = date.axis,
                    yaxis = c(y.s1, range = list(c(min, max))),
                    yaxis2 = y.co_2,
                    legend = list(font = f1, orientation = "h", xanchor = "center", yanchor = "bottom", y = -0.7, x = 0.5),
@@ -136,7 +158,7 @@ s.plt1 = function(vh, co, classnames){
 plots1 = s.plt1(summary[["vh"]], summary[["co"]], classnames)
 plots1[[1]]
 
-walk2(plots1, classnames, ~ plotly::orca(.x, file = paste0(summarystats_plotsdir, .y, "_bscVH-cohVV.png"), scale = 3))
+walk2(plots1, classnames, ~ plotly::orca(.x, file = paste0(plotdir, "Comparing/", .y, "_bscVH-cohVV.png"), scale = 3))
 
 # ------------------------------------------------------------------------------
 
@@ -169,7 +191,7 @@ s.plt2 = function(vh, ndvi, classnames){
                         yaxis = "y2", name = "NDVI standard deviation range (1 sigma)",
                         color = I(red_background), line = list(width = 1), opacity = 0.3,
                         showlegend = T) %>%
-            layout(xaxis = x,
+            layout(xaxis = date.axis,
                    yaxis = c(y.s1, range = list(c(min, max))),
                    yaxis2 = y.s2_2,
                    legend = list(font = f1, orientation = "h", xanchor = "center", yanchor = "bottom", y = -0.7, x = 0.5),
@@ -182,7 +204,7 @@ s.plt2 = function(vh, ndvi, classnames){
 plots2 = s.plt2(summary[["vh"]], summary[["ndvi"]], classnames)
 plots2[[1]]
 
-walk2(plots2, classnames, ~ plotly::orca(.x, file = paste0(summarystats_plotsdir, .y, "_bscVH-NDVI.png"), scale = 3))
+walk2(plots2, classnames, ~ plotly::orca(.x, file = paste0(plotdir, "Comparing/", .y, "_bscVH-NDVI.png"), scale = 3))
 
 # ------------------------------------------------------------------------------
 
@@ -216,7 +238,7 @@ s.plt3 = function(vh, co, ndvi, classnames){
                         yaxis = "y2", name = "NDVI standard deviation range (1 sigma)",
                         color = I(red_background), line = list(width = 1), opacity = 0.3,
                         showlegend = T) %>%
-            layout(xaxis = x,
+            layout(xaxis = date.axis,
                    yaxis = c(y.s1, range = list(c(min, max))),
                    yaxis2 = y.co_2,
                    yaxis3 = y.s2_2,
@@ -230,7 +252,7 @@ s.plt3 = function(vh, co, ndvi, classnames){
 plots3 = s.plt3(summary[["vh"]], summary[["co"]], summary[["ndvi"]], classnames)
 plots3[[1]]
 
-walk2(plots3, classnames, ~ plotly::orca(.x, file = paste0(summarystats_plotsdir, .y, "_bscVH-cohVV-NDVI.png"), scale = 3))
+walk2(plots3, classnames, ~ plotly::orca(.x, file = paste0(plotdir, "Comparing/", .y, "_bscVH-cohVV-NDVI.png"), scale = 3))
 
 # ------------------------------------------------------------------------------
 
@@ -239,12 +261,6 @@ s.plt4 = function(vh, indizes, classnames){
 
     # INFO:
     # indizes are a list of index data.frames
-
-    ranges = map(indizes, function(x){
-        max = map_dbl(x, ~ max(.x$median)) %>% max()
-        min = map_dbl(x, ~ min(.x$median)) %>% min()
-        range = list(c(min, max))
-    })
 
     # save indizes' name
     indizesnames = names(indizes)
@@ -265,7 +281,7 @@ s.plt4 = function(vh, indizes, classnames){
 
             print(classnames)
 
-            plot_ly(width = 700, height = 500) %>%
+            plot_ly() %>%
                 add_lines(data = vh, x = ~ date, y = ~ med_smooth,
                           yaxis = "y1", name = "S-1 VH backscatter smoothed", line = vh.fmt) %>%
                 add_lines(data = index, x = ~ date, y = ~ med_smooth,
@@ -279,9 +295,9 @@ s.plt4 = function(vh, indizes, classnames){
                             yaxis = "y2", name = paste(i_names, "standard deviation range (1 sigma)"),
                             color = I(red_background), line = list(width = 1), opacity = 0.3,
                             showlegend = T) %>%
-                layout(xaxis = x,
-                       yaxis = c(y.s1, range = list(c(min, max))),
-                       yaxis2 = c(y.indizes, range = range, title = i_names),
+                layout(xaxis = date.axis,
+                       yaxis = c(y.s1, range = ranges.all$vh),
+                       yaxis2 = c(y.indizes, range = ranges, title = i_names),
                        legend = list(font = f1, orientation = "h", xanchor = "center", yanchor = "bottom", y = -0.7, x = 0.5),
                        margin = list(pad = 0, b = 200, l = 0, r = 100, automargin = TRUE),
                        title = classnames)
@@ -292,20 +308,74 @@ s.plt4 = function(vh, indizes, classnames){
 
 }
 
-# give named list of indizes
-indizes = list(evi = summary[["evi"]], ndvi = summary[["ndvi"]], reip = summary[["reip"]],
-               msavi = summary[["msavi"]], dvi = summary[["dvi"]], rvi = summary[["rvi"]])
-i_name = names(indizes)
 
+
+# GO
 plots4 = s.plt4(summary[["vh"]], indizes = indizes, classnames)
-plots4[[1]][[1]]
+map(plots4[[1]], ~ print(.x))
+plots4[[1]][[2]]
+
+# creating subplots not easy here . . .
 
 # save iteratively
 map2(plots4, i_name, function(plots, i_name){
     print(i_name)
     pwalk(list(plots, classnames, i_name), function(x, y, z){
-        plotly::orca(x, file = paste0(summarystats_plotsdir, "indizes/", y, "_bscVH-", i_name, ".png"), scale = 3)
+        plotly::orca(x, file = paste0(plotdir, "Indizes/", i_name, "-bscVH_", y, ".png"), scale = 3)
     })
 })
-# ------------------------------------------------------------------------------
 
+################################################################################
+# Subplots for each sensor -----------------------------------------------------
+# similar to ggplots in the beginning of the script
+
+# NOT GOOD PLOT!! BUGGY!!
+
+plots5 = pmap(list(summary, proper_layernames, ranges.all), function(data, layr_names, range){
+
+    plt.classwise = pmap(list(data, classes.fmt.slim, classes.fmt, classnames), function(x, classes.fmt.slim, classes.fmt, classnames){
+
+        plot_ly() %>%
+            add_lines(data = x, x ~ date, y ~ med_smooth, name = classnames, line = classes.fmt, showlegend = TRUE) %>%
+            add_ribbons(data = x, x ~ date, ymin ~ losd_smooth, ymax ~ upsd_smooth, line = list(width = 0),
+                        color = I(classes.fmt$color), opacity = 0.3, showlegend = F) %>%
+            layout(title = layr_names,
+                   yaxis = c(y.s1, range = range))
+
+    })
+    plt.classwise[[1]]
+    # now create facet grid
+    subplot(plt.classwise, nrows = length(plt.classwise), shareX = TRUE)
+})
+
+plots5[[1]]
+
+# ------------------------------------------------------------------------------
+# Same, but all lines integreted in one plot per sensor type
+
+plots6 = pmap(list(summary, proper_layernames, ranges.all), function(data, layr_names, range){
+
+        # stack lines up
+    plt = plot_ly(width = 700, height = 500)
+    for (i in seq_along(classnames)){
+        plt = add_lines(plt, data = data[[i]], x ~ date, y ~ med_smooth, name = classnames[i], line = classes.fmt.slim[[i]], showlegend = TRUE)
+    }
+    plt = plt %>%
+        layout(title = layr_names,
+               yaxis = c(y.s1, range = range),
+               xaxis = date.axis,
+               legend = list(font = f1, orientation = "h", xanchor = "center", yanchor = "bottom", y = -0.7, x = 0.5),
+               margin = list(pad = 0, b = 200, l = 0, r = 100, automargin = TRUE))
+
+
+})
+
+plots6[[2]]
+
+# save plots
+walk2(plots6, proper_layernames, ~ plotly::orca(.x, file = paste0(plotdir, "Sensors", .y, ".png"), scale = 3))
+walk2(plots6, proper_layernames, ~ htmlwidgets::saveWidget(widget = .x, file = paste0(.y, ".html"), selfcontained = TRUE))
+# ACHTUNG: LETZTERE MÜSSEN NOCH EINMAL VON HAND VERSCHOBEN WERDEN!!!!!
+
+# ------------------------------------------------------------------------------
+# end (not run)
