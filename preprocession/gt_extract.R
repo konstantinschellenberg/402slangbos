@@ -1,4 +1,6 @@
-# gt = ground-truth samples
+#' Scrip for extracting sample data from all sensors and for all classes within
+#' the SALDi-Slangbos project
+#' saves the data sensor-wise (1) and coerces everything in a tidy dataframe (2)
 
 # LOAD PACKAGES ----------------------------------------------------------------
 
@@ -44,7 +46,7 @@ outfile = "test"
 statistics = c("mean", "stdev", "count")
 
 # EXTRACTING -------------------------------------------------------------------
-b = exactextracting(gt, co[[1:10]], col_class, col_id, statistics, dstdir, "outfile")
+b = exactextracting(gt, reip[[1:10]], col_class, col_id, statistics, dstdir, "outfile")
 
 map2(outfiles, rasters, function(x, y){
     cat(x)
@@ -58,22 +60,58 @@ map2(outfiles, rasters, function(x, y){
 
 # reip 3-15 PROBLEM
 
-# example READ IN ----------------------------------------------------------------------
 
-example = readRDS("03_develop/extract/extract_reip")
+# READ IN ----------------------------------------------------------------------
 
-# map(ras[[1]], ~ sum(is.na(.x)))
+# concat file paths
+path.extract = list.files("03_develop/extract", pattern = "^extract") %>%
+    file.path("03_develop", "extract", .)
 
-o = example[[1]][[5]]
-o[is.na(o)] = NA
-o = o %>% na.omit()
+data.raw = map(path.extract, ~ readRDS(.x))
 
-ggplot(o) +
-    geom_ribbon(aes(date, ymin = mean - 2*stdev, ymax = mean + 2* stdev), fill = "lightgrey", alpha = 0.9) +
-    geom_line(aes(date, med)) +
-    geom_line(aes(date, med_smooth), color = "blue") +
-    geom_line(aes(date, losd_smooth), na.rm = T) +
-    # geom_line(aes(date, mean + 2 * stdev), na.rm = T) +
-    theme_bw()
+# rename list headers
+data = data.raw %>%
+    `names<-`(layernames) %>%
+    map( ~ `names<-`(.x, classnames))
 
-plot_ly(o) %>% plotly::add_lines(x = ~date, y= ~med, connectgaps = T)
+# TIDY TABLE LONG CREATION -----------------------------------------------------
+
+# sensor -> class -> sample ----------------------------------------------------
+a = data$vh$`Slangbos Increase`$`1`
+b = data$vh$`Slangbos Increase`$`2`
+
+# sensor -> class --------------------------------------------------------------
+
+# dplyr
+# df = map_df(data$vh$`Slangbos Increase`, ~ rbindlist(.x, use.names = TRUE, idcol = TRUE))
+# df2 = map_df(data$vh$`Slangbos Continuous`, ~ bind_rows(.x))
+
+# data.table -> perferred!
+df = data$vh$`Slangbos Increase` %>% rbindlist(idcol = TRUE) %>% rename("sample" = .id)
+df2 = data$vh$`Slangbos Continuous` %>% rbindlist(idcol = TRUE) %>% rename("sample" = .id)
+
+# each contains the data of a sensor & a class, binded a rows without ids
+
+# sensor -----------------------------------------------------------------------
+# data.table solution
+# s.vh = map(data$vh, ~ rbindlist(.x, use.names = TRUE, idcol = "sample")) %>%
+#     rbindlist(., use.names = TRUE, idcol = "class")
+# s.ndvi = map(data$ndvi, ~ rbindlist(.x, use.names = TRUE, idcol = TRUE)) %>%
+#     rbindlist(., use.names = TRUE, idcol = "class")
+
+sensors = map(data, function(x){
+    classes = map(x, ~ rbindlist(.x, use.names = TRUE, idcol = "sample"))
+    sensors = rbindlist(classes, use.names = TRUE, idcol = "class")
+    return(sensors)
+})
+
+# scale up to master level -> one tidy dataframe
+master = rbindlist(sensors, use.names = TRUE, idcol = "sensor")
+
+# reorder columns, convert "sample" character to integer and sort after "date"
+master = master %>% relocate("date", where(is.character), .before = where(is.numeric)) %>%
+    mutate(across(.cols = sample, as.integer)) %>%
+    arrange(date, sensor, class, sample)
+
+# now, we have the tidy dataframe for all stats!!
+write_rds(master, "03_develop/extract/extract_all.RDS")

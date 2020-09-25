@@ -21,8 +21,10 @@ source("D:/Geodaten/Master/projects/402slangbos/plotting/fonts.R")
 
 rasters = list(vh, vv, co, dvi, evi, msavi, ndvi, reip, rvi)
 layernames = c("vh", "vv", "co", "dvi", "evi", "msavi", "ndvi", "reip", "rvi")
-proper_layernames = c("S-1 VH", "S-1 VV", "S-1 VV Coherence", "S-2 DVI", "S-2 EVI",
-                       "S-2 MSAVI", "S-2 NDVI", "S-2 REIP", "S-2 RVI")
+proper_layernames = c("Sentinel-1 VH", "Sentinel-1 VV", "Sentinel-1 VV Coherence", "Sentinel-2 DVI", "Sentinel-2 EVI",
+                       "Sentinel-2 MSAVI", "Sentinel-2 NDVI", "Sentinel-2 REIP", "Sentinel-2 RVI")
+proper_layernames.axis = c("S-1 VH [dB]", "S-1 VV [dB]", "S-1 VV Coherence", "S-2 DVI Index", "S-2 EVI Index",
+                           "S-2 MSAVI Index", "S-2 NDVI Index", "S-2 REIP Index", "S-2 RVI Index")
 names(rasters) = layernames
 classnames = c("Slangbos Increase", "Slangbos Continuous", "Slangbos Clearning", "Grassland", "Cultivated")
 
@@ -32,7 +34,6 @@ env = "D:/Geodaten/#Jupiter/GEO402"
 setwd(env)
 
 # destination
-dstdir = "03_develop/extract/"
 plotdir = "06_plots/"
 
 # READ IN ----------------------------------------------------------------------
@@ -312,7 +313,7 @@ s.plt4 = function(vh, indizes, classnames){
 
 # GO
 plots4 = s.plt4(summary[["vh"]], indizes = indizes, classnames)
-map(plots4[[1]], ~ print(.x))
+# map(plots4[[1]], ~ print(.x))
 plots4[[1]][[2]]
 
 # creating subplots not easy here . . .
@@ -331,38 +332,52 @@ map2(plots4, i_name, function(plots, i_name){
 
 # NOT GOOD PLOT!! BUGGY!!
 
-plots5 = pmap(list(summary, proper_layernames, ranges.all), function(data, layr_names, range){
+s.plt5 = function(data){
 
-    plt.classwise = pmap(list(data, classes.fmt.slim, classes.fmt, classnames), function(x, classes.fmt.slim, classes.fmt, classnames){
+    plots5 = pmap(list(data, proper_layernames, ranges.all), function(data, layr_names, range){
 
-        plot_ly() %>%
-            add_lines(data = x, x ~ date, y ~ med_smooth, name = classnames, line = classes.fmt, showlegend = TRUE) %>%
-            add_ribbons(data = x, x ~ date, ymin ~ losd_smooth, ymax ~ upsd_smooth, line = list(width = 0),
-                        color = I(classes.fmt$color), opacity = 0.3, showlegend = F) %>%
-            layout(title = layr_names,
-                   yaxis = c(y.s1, range = range))
 
+
+        plt.classwise = pmap(list(data, classes.fmt.slim, classes.fmt, classnames), function(x, classes.fmt.slim, classes.fmt, classnames){
+
+            plot_ly() %>%
+                add_lines(data = x, x ~ date, y ~ med_smooth, name = classnames, line = classes.fmt, showlegend = TRUE) %>%
+                add_ribbons(data = x, x ~ date, ymin ~ losd_smooth, ymax ~ upsd_smooth, line = list(width = 0),
+                            color = I(classes.fmt$color), opacity = 0.3, showlegend = F) %>%
+                layout(title = layr_names,
+                       yaxis = c(y.s1, range = range))
+
+        })
+        plt.classwise[[1]]
+        # now create facet grid
+        subplot(plt.classwise, nrows = length(plt.classwise), shareX = TRUE)
     })
-    plt.classwise[[1]]
-    # now create facet grid
-    subplot(plt.classwise, nrows = length(plt.classwise), shareX = TRUE)
-})
+    return(plots5)
 
+}
+
+
+plots5 = s.plt5(summary)
 plots5[[1]]
 
 # ------------------------------------------------------------------------------
 # Same, but all lines integreted in one plot per sensor type
 
-plots6 = pmap(list(summary, proper_layernames, ranges.all), function(data, layr_names, range){
+plots6 = pmap(list(summary, proper_layernames, proper_layernames.axis, ranges.all),
+              function(data, layr_names, proper_layernames.axis, ranges.all){
+
+    yaxis = y.s1
+    yaxis$title$text = proper_layernames.axis
+    yaxis = c(yaxis, range = ranges.all)
 
         # stack lines up
     plt = plot_ly(width = 700, height = 500)
-    for (i in seq_along(classnames)){
-        plt = add_lines(plt, data = data[[i]], x ~ date, y ~ med_smooth, name = classnames[i], line = classes.fmt.slim[[i]], showlegend = TRUE)
+    for (i in length(classnames):1){
+        plt = add_lines(plt, data = data[[i]], x ~ date, y ~ med_smooth, name = classnames[i], line = classes.fmt[[i]], showlegend = TRUE)
     }
     plt = plt %>%
         layout(title = layr_names,
-               yaxis = c(y.s1, range = range),
+               yaxis = yaxis,
                xaxis = date.axis,
                legend = list(font = f1, orientation = "h", xanchor = "center", yanchor = "bottom", y = -0.7, x = 0.5),
                margin = list(pad = 0, b = 200, l = 0, r = 100, automargin = TRUE))
@@ -370,12 +385,80 @@ plots6 = pmap(list(summary, proper_layernames, ranges.all), function(data, layr_
 
 })
 
-plots6[[2]]
+plots6[[5]]
 
 # save plots
-walk2(plots6, proper_layernames, ~ plotly::orca(.x, file = paste0(plotdir, "Sensors", .y, ".png"), scale = 3))
-walk2(plots6, proper_layernames, ~ htmlwidgets::saveWidget(widget = .x, file = paste0(.y, ".html"), selfcontained = TRUE))
+walk2(plots6, proper_layernames, ~ plotly::orca(.x, file = paste0(plotdir, "Sensors/", .y, "_smoothed.png"), scale = 3))
+walk2(plots6, proper_layernames, ~ htmlwidgets::saveWidget(widget = .x, file = paste0(.y, "_smoothed.html"), selfcontained = TRUE))
+
 # ACHTUNG: LETZTERE MÜSSEN NOCH EINMAL VON HAND VERSCHOBEN WERDEN!!!!!
+
+
+# ------------------------------------------------------------------------------
+# Same as plot 6 but without smoothing and other line font
+
+plots6 = pmap(list(summary, proper_layernames, proper_layernames.axis, ranges.all),
+              function(data, layr_names, proper_layernames.axis, ranges.all){
+
+                  yaxis = y.s1
+                  yaxis$title$text = proper_layernames.axis
+                  yaxis = c(yaxis, range = ranges.all)
+
+                  # stack lines up
+                  plt = plot_ly(width = 700, height = 500)
+                  for (i in length(classnames):1){
+                      plt = add_lines(plt, data = data[[i]], x ~ date, y ~ median, name = classnames[i], line = classes.fmt.slim[[i]], showlegend = TRUE)
+                  }
+                  plt = plt %>%
+                      layout(title = layr_names,
+                             yaxis = yaxis,
+                             xaxis = date.axis,
+                             legend = list(font = f1, orientation = "h", xanchor = "center", yanchor = "bottom", y = -0.7, x = 0.5),
+                             margin = list(pad = 0, b = 200, l = 0, r = 100, automargin = TRUE))
+
+
+              })
+
+plots6[[3]]
+
+# save plots
+walk2(plots6, proper_layernames, ~ plotly::orca(.x, file = paste0(plotdir, "Sensors/", .y, ".png"), scale = 3))
+walk2(plots6, proper_layernames, ~ htmlwidgets::saveWidget(widget = .x, file = paste0(.y, ".html"), selfcontained = TRUE))
+
+# ------------------------------------------------------------------------------
+# Same as plot6 bis with subtle smoothing line above the raw median data
+
+plots6 = pmap(list(summary, proper_layernames, proper_layernames.axis, ranges.all),
+              function(data, layr_names, proper_layernames.axis, ranges.all){
+
+                  yaxis = y.s1
+                  yaxis$title$text = proper_layernames.axis
+                  yaxis = c(yaxis, range = ranges.all)
+
+                  # stack lines up
+                  plt = plot_ly(width = 700, height = 500)
+                  for (i in length(classnames):1){
+                      plt = add_lines(plt, data = data[[i]], x ~ date, y ~ median, name = classnames[i], line = classes.fmt.slim[[i]], showlegend = TRUE)
+                  }
+                  for (i in length(classnames):1){
+                      plt = add_lines(plt, data = data[[i]], x ~ date, y ~ med_smooth, name = paste(classnames[i], "smoothed"), opacity = 0.6, line = classes.fmt[[i]], showlegend = T)
+                  }
+
+                  plt = plt %>%
+                      layout(title = layr_names,
+                             yaxis = yaxis,
+                             xaxis = date.axis,
+                             legend = list(font = f1, orientation = "h", xanchor = "center", yanchor = "bottom", y = -0.7, x = 0.5),
+                             margin = list(pad = 0, b = 200, l = 0, r = 100, automargin = TRUE))
+
+
+              })
+
+plots6[[3]]
+
+# save plots
+walk2(plots6, proper_layernames, ~ plotly::orca(.x, file = paste0(plotdir, "Sensors/", .y, ".png"), scale = 3))
+walk2(plots6, proper_layernames, ~ htmlwidgets::saveWidget(widget = .x, file = paste0(.y, ".html"), selfcontained = TRUE))
 
 # ------------------------------------------------------------------------------
 # end (not run)

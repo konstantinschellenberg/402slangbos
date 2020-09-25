@@ -54,6 +54,13 @@ types = map(gt.files, ~ substr(.x, start = 56, stop = 100))
 
 dfs = map(gt.files, ~ readRDS(.x)) %>% `names<-`(types)
 
+ex = dfs[[1]][[1]]
+ex = na.omit(ex)
+
+map(ex, ~ ggplot(.x) +
+    geom_line(aes(date, med)) +
+        geom_line(aes(date ,med_smooth)))
+
 
 # example stats
 ex = stats(dfs, 1, 15, coherence_smoothing = F)
