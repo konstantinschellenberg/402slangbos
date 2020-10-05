@@ -673,11 +673,10 @@ grep2 = function(source, class, number = NULL){
 # filter position out
 ################################################################################
 
-position = function(class, number = Null){
-    gt %>%
-        filter(Name == class) %>%
-        .[number, ] %>%
-        st_transform(4326)
+position = function(gt, class_nr, sample_nr){
+    #' class must be number
+    #' based on tidy sf "gt"
+    filter(gt, class_simple == class_nr & id == sample_nr)
 }
 
 ################################################################################

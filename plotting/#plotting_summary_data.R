@@ -35,6 +35,7 @@ setwd(env)
 
 # destination
 plotdir = "06_plots/"
+dstdir = "03_develop/extract/"
 
 # READ IN ----------------------------------------------------------------------
 data = readRDS(paste0(dstdir, "summary_statistics.RDS"))
@@ -225,7 +226,7 @@ s.plt3 = function(vh, co, ndvi, classnames){
         plt = plot_ly(width = 700, height = 500) %>%
             add_lines(data = vh, x = ~ date, y = ~ med_smooth,
                       yaxis = "y1", name = "S-1 VH backscatter smoothed", line = vh.fmt) %>%
-            add_lines(data = co, x = ~ date, y = ~ median,
+            add_lines(data = co, x = ~ date, y = ~ med_smooth,
                       yaxis = "y2", name = "S-1 VV coherence smoothed (2-weeks interval)", line = red.fmt,
                       connectgaps = F) %>%
             add_lines(data = ndvi, x = ~ date, y = ~ med_smooth,

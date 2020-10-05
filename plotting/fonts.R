@@ -6,6 +6,7 @@ blue_background = "#6ec3f7"
 red_background = "#fc8d59"
 green_background = "#007f00"
 grey_background = "#909090"
+orange_background = "#eb9c4d"
 
 # Format edits
 data.fmt = list(color="#878787", width=1)
@@ -20,7 +21,6 @@ interval.fmt = list(dash="solid", width = 1, color="grey")
 vh.fmt = list(dash="solid", width = 2, color="#2c6487") # blue
 vv.fmt = list(dash="solid", width = 2, color="#007f00") # green
 red.fmt = list(dash="solid", width = 2, color="#fc8d59") # red
-red.fmt = list(dash="solid", width = 2, color="#fc8d59") # red
 red2.fmt = list(dash="solid", width = 1, color="#fc8d59") # red
 nir.fmt = list(dash="solid", width = 2, color="#007f00") # green
 nir2.fmt = list(dash="solid", width = 1, color="#007f00") # green
@@ -29,6 +29,9 @@ black.fmt = list(dash = "solid", width = 2, color = "black")
 classes.fmt = map(c(increase = "#ff0040", continuous = "#fd8d3c", clearing = "black",
                          grass = "#009933", agro = "#bf8040"), ~ list(dash="solid", width = 2, color = .x))
 classes.fmt$grass$dash = "dash"; classes.fmt$agro$dash = "dash"
+
+vh.big.fmt = list(dash="solid", width = 3, color="#2c6487") # blue
+red.big.fmt = list(dash="solid", width = 3, color="#fc8d59") # red
 
 vh.fmt.slim = list(dash="solid", width = 0.3, color="#2c6487") # blue
 red.fmt.slim = list(dash="solid", width = 0.7, color="#fc8d59") # red
@@ -63,6 +66,17 @@ f4= list(
     size = 22,
     color = "black"
 )
+f5 <- list(
+    family = "Arial, sans-serif",
+    size = 24,
+    color = "grey"
+)
+
+f6 <- list(
+    family = "Arial, sans-serif",
+    size = 27,
+    color = "grey"
+)
 
 # X-Axis -----------------------------------------------------------------------
 date.axis <- list(
@@ -73,12 +87,37 @@ date.axis <- list(
     anchor = "free",
     position = 0)
 
+date.axis.big <- list(
+    type = "date",
+    title = "Date",
+    titlefont = list(
+        family = "Arial, sans-serif",
+        size = 28,
+        color = "grey"
+    ),
+    tickfont = f5,
+    anchor = "free",
+    position = 0)
+
 # Y-Axes------------------------------------------------------------------------
 
 y.s1 <- list(
     title = list(text = "S1 VH backscatter [dB]", standoff = 50),
     titlefont = f2,
     tickfont = f1,
+    showline = F,
+    showgrid = FALSE,
+    anchor = "free",
+    position = 0)
+
+y.s1.big <- list(
+    title = list(text = "S1 VH backscatter [dB]", standoff = 50),
+    titlefont = list(
+        family = "Arial, sans-serif",
+        size = 28,
+        color = vh.big.fmt$color
+    ),
+    tickfont = f5,
     showline = F,
     showgrid = FALSE,
     anchor = "free",
@@ -126,6 +165,20 @@ y.co_2 = list(
     title = list(text = "S1 VV coherence", standoff = 50),
     tickfont = f1,
     titlefont = f2,
+    overlaying = "y",
+    showline = F,
+    side = "right",
+    range = c(0,1),
+    zeroline = FALSE)
+
+y.co_2.big = list(
+    title = list(text = "S1 VV coherence", standoff = 50),
+    tickfont = f5,
+    titlefont = list(
+        family = "Arial, sans-serif",
+        size = 28,
+        color = red.big.fmt$color
+    ),
     overlaying = "y",
     showline = F,
     side = "right",

@@ -71,9 +71,30 @@ ndvi =  rename_bandnames(p.ndvi, n.ndvi)
 reip =  rename_bandnames(p.reip, n.reip)
 rvi =   rename_bandnames(p.rvi, n.rvi)
 
+rasters = list(co, dvi, evi, msavi, ndvi, reip, rvi, vh, vv)
+
+layernames = c("co", "dvi", "evi", "msavi", "ndvi", "reip", "rvi", "vh", "vv")
+proper_layernames = c("Sentinel-1 VV Coherence", "Sentinel-2 DVI", "Sentinel-2 EVI", "Sentinel-2 MSAVI", "Sentinel-2 NDVI",
+                      "Sentinel-2 REIP", "Sentinel-2 RVI", "Sentinel-1 VH", "Sentinel-1 VV")
+proper_layernames.axis = c("S-1 VV Coherence", "S-2 DVI Index", "S-2 EVI Index", "S-2 MSAVI Index",
+                           "S-2 NDVI Index", "S-2 REIP Index", "S-2 RVI Index", "S-1 VH [dB]", "S-1 VV [dB]")
+names(rasters) = layernames
+classnames = c("Slangbos Increase", "Slangbos Continuous", "Slangbos Clearning", "Grassland", "Cultivated")
+
 
 pred = brick("D:/Geodaten/#Jupiter/GEO402/04_products/rf/run1_vrn.tif")
 pred_classif = raster("D:/Geodaten/#Jupiter/GEO402/04_products/rf/run1_vrn_classif.tif")
+
+################################################################################
+# Extracted Information --------------------------------------------------------
+################################################################################
+
+files = list.files("D:/Geodaten/#Jupiter/GEO402/03_develop/extract", "^extract", full.names =  TRUE)
+files = files[!grepl("all", files)]
+extract = map(files, ~ readRDS(.x)) %>% `names<-`(layernames)
+extract = extract %>%
+    `names<-`(layernames) %>%
+    map( ~ `names<-`(.x, classnames))
 
 ################################################################################
 # Import Ground Truth-----------------------------------------------------------
@@ -86,5 +107,6 @@ gt = st_read("D:/Geodaten/#Jupiter/GEO402/02_features/features.gpkg", layer = "L
     st_zm() %>%
     group_by(class_simple) %>%
     # CREATE RUNNING NUMBERS FOR GT
-    mutate(id = row_number())
+    mutate(id = row_number()) %>%
+    dplyr::ungroup()
 

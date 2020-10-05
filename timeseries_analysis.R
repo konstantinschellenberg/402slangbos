@@ -5,8 +5,12 @@
 
 source("import.R")
 
-file = covv_all
-filename = "covv_all"
+file = vh
+filename = "vh"
+
+env = "D:/Geodaten/#Jupiter/GEO402"
+setwd(env)
+
 
 ###########################################################
 # Calculation of 5th and 95th Percentiles and median, intercepte and slope of multitemporal statistics
@@ -57,27 +61,23 @@ quickfun <- function(y) (invXtX %*% y)
 
 # calulate 5th percentile
 perc_5 = calc(file, fun=func_5th_perc, na.rm=TRUE)
-writeRaster(perc_5, paste0(path_developement, "multitemp/", filename, "_p05.tif"), overwrite = TRUE)
+writeRaster(perc_5, paste0("03_develop/multitemp/", filename, "_p05.tif"), overwrite = TRUE)
 
 # calulate 95th percentile
 perc_95 = calc(file, fun=func_95th_perc, na.rm=TRUE)
-writeRaster(perc_95, paste0(path_developement, "multitemp/", filename, "_p95.tif"), overwrite = TRUE)
+writeRaster(perc_95, paste0("03_develop/multitemp/", filename, "_p95.tif"), overwrite = TRUE)
 
 # calculate median
 med = calc(file, fun = func_median, na.rm = TRUE)
-writeRaster(med, paste0(path_developement, "multitemp/", filename, "_med.tif"), overwrite = TRUE)
+writeRaster(med, paste0("03_develop/multitemp/", filename, "_med.tif"), overwrite = TRUE)
 
 out <- calc(file, quickfun)
-writeRaster(out, paste0(path_developement, "multitemp/", filename, "_linear.tif"), overwrite = TRUE)
+writeRaster(out, paste0("03_develop/multitemp/", filename, "_linear.tif"), overwrite = TRUE)
 
 # SAR Index --------------------------------------------------------------------
 
-# σ0 (dB) = 10*log10 (abs (σ0))
-# Umkehrung: linear = 10^db
-
-a = vv
-b = vh
-
-# ratio1 = log10(10^a / 10^b)
-ratio = a - b
-writeRaster(ratio, filename = paste0(path_s1, "vv_vh_ratio"), format = "ENVI", overwrite = T)
+# batch calc median
+map2(rasters, layernames) function(ras, name){
+    med = calc(ras, fun = func_median, na.rm = TRUE)
+    writeRaster(med, paste0("03_develop/multitemp/", name, "_med.tif"), overwrite = TRUE)
+}

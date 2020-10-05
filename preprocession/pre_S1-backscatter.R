@@ -8,6 +8,11 @@ source("D:/Geodaten/Master/projects/402slangbos/import.R")
 headers = c("F:/geodata/geo402/S1_GRD/xx_new/S1A_IW_GRD_VH_stack.hdr",
          "F:/geodata/geo402/S1_GRD/xx_new/S1A_IW_GRD_VV_stack.hdr")
 
+# TODO: Only keep layers with extent
+
+ext = list(c(441536.3670000000274740,6679728.9309999998658895),
+           c(553596.3670000000856817,6797548.9309999998658895))
+
 
 # CREATE DATES -------------------------------------------------------------------
 stack_bandnames = map2(headers, prefix, function(x, y){
