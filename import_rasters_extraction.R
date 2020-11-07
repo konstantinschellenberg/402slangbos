@@ -63,6 +63,7 @@ path_rds = "D:/Geodaten/#Jupiter/GEO402/03_develop/rda/"
 # Import and rename data -------------------------------------------------------
 ################################################################################
 
+# loads raster (takes a few seconds)
 vh =    rename_bandnames(p.vh, n.vh)
 vv =    rename_bandnames(p.vv, n.vv)
 co =    rename_bandnames(p.co, n.co)
@@ -76,6 +77,7 @@ savi =  rename_bandnames(p.savi, n.savi)
 
 rasters = list(co, dvi, evi, msavi, ndvi, reip, rvi, savi, vh, vv)
 
+# layer names for pixel extraction routines
 layernames = c("co", "dvi", "evi", "msavi", "ndvi", "reip", "rvi", "savi", "vh", "vv")
 proper_layernames = c("Sentinel-1 VV Coherence", "Sentinel-2 DVI", "Sentinel-2 EVI", "Sentinel-2 MSAVI", "Sentinel-2 NDVI",
                       "Sentinel-2 REIP", "Sentinel-2 RVI", "Sentinel-2 SAVI", "Sentinel-1 VH", "Sentinel-1 VV")
@@ -84,43 +86,4 @@ proper_layernames.axis = c("S-1 VV Coherence", "S-2 DVI Index", "S-2 EVI Index",
 names(rasters) = layernames
 classnames = c("Slangbos Increase", "Slangbos Continuous", "Slangbos Clearning", "Grassland", "Cultivated")
 classnames_all = c("Slangbos Increase", "Slangbos Continuous", "Slangbos Clearning", "Grassland", "Cultivated",
-               "Bare Soil", "Woodland", "Urban", "Water")
-
-
-pred = brick("D:/Geodaten/#Jupiter/GEO402/04_products/rf/run1_vrn.tif")
-pred_classif = raster("D:/Geodaten/#Jupiter/GEO402/04_products/rf/run1_vrn_classif.tif")
-
-################################################################################
-# Extracted Information (not tidy table, but lists in lists) -------------------
-################################################################################
-
-files = list.files("D:/Geodaten/#Jupiter/GEO402/03_develop/extract", "^extract", full.names =  TRUE)
-files = files[!grepl("all", files)]
-extract = map(files, ~ readRDS(.x)) %>% `names<-`(layernames)
-extract = extract %>%
-    `names<-`(layernames) %>%
-    map( ~ `names<-`(.x, classnames))
-
-summary = readRDS("D:/Geodaten/#Jupiter/GEO402/03_develop/extract/summary_statistics.RDS")
-summary_all = readRDS("D:/Geodaten/#Jupiter/GEO402/03_develop/extract_all/summary_statistics.RDS")
-
-################################################################################
-# Import Ground Truth-----------------------------------------------------------
-################################################################################
-
-study_area = st_read("D:/Geodaten/#Jupiter/GEO402/02_features/study_area.gpkg", layer = "final", quiet = TRUE) %>%  # read in
-    st_zm(drop = TRUE)  # Remove Z-Dimension
-
-gt = st_read("D:/Geodaten/#Jupiter/GEO402/02_features/features.gpkg", layer = "LADYBRAND_gt_stats_simple") %>%
-    st_zm() %>%
-    group_by(class_simple) %>%
-    # CREATE RUNNING NUMBERS FOR GT
-    mutate(id = row_number()) %>%
-    dplyr::ungroup()
-
-cgt = st_read("D:/Geodaten/#Jupiter/GEO402/02_features/features.gpkg", layer = "LADYBRAND_gt_stats_full_simple") %>%
-    st_zm() %>%
-    group_by(class_simple) %>%
-    # CREATE RUNNING NUMBERS FOR GT
-    mutate(id = row_number()) %>%
-    dplyr::ungroup()
+                   "Bare Soil", "Woodland", "Urban", "Water")
