@@ -75,6 +75,8 @@ map(files, ~ map(.x, function(ras){
 
 
 # MOVE Data --------------------------------------------------------------------
+# Put the created VRTs into a seperate folder named after the index used in the
+# directory upwards
 
 # PYROSAR ----------------------------------------------------------------------
 # now switch to pyroSAR in python and execute groupbyTime on the stacks
@@ -84,8 +86,8 @@ map(files, ~ map(.x, function(ras){
 mosaics = "F:/geodata/geo402/S2/xx_S2_indices/mosaics/"
 files = list.files(mosaics, full.names = T)
 
-# exclude VRT data
-files.mosaic = files[!grepl(files, pattern = ".vrt$")]
+# exclude VRT data, get only folders
+files.mosaic = files[!grepl(files, pattern = "\\.")]
 
 names.stack = str_split(files.mosaic, "/") %>%
     map_chr(., ~ .x[length(.x)])
@@ -158,3 +160,4 @@ map2(folders, stack_bandnames, function(x, y){
 
     write.csv(y, outfile, row.names = FALSE)
 })
+# end

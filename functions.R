@@ -134,7 +134,7 @@ exactextracting = function(gt, ras, col_class, col_id, statistics, dstdir, outfi
     }
 
     print("processing median")
-    med = lapply(raslist, function(x) exact_extract(x, gt, function(values, coverage_fraction){
+    med = map(raslist, function(x) exact_extract(x, gt, function(values, coverage_fraction){
         median(values[!is.na(values)], na.rm = TRUE)
         })) %>%
         as.data.frame(col.names = medianname)
@@ -209,7 +209,7 @@ exactextracting = function(gt, ras, col_class, col_id, statistics, dstdir, outfi
             })
 
             stat_smoothed = left_join(stat, single_columns, by = "date", copy = TRUE, keep = FALSE) %>%
-                select(-c(date.1, date.2))
+                dplyr::select(-c(date.1, date.2))
 
             # create list and rename ij table
             entity = list(as.data.frame(stat_smoothed)) %>% `names<-`(j)
@@ -277,7 +277,7 @@ extract_summary = function(gt, ras, col_class){
     for (i in 1:nr_classes){
         # print(i)
         cls = sort(unique(gt[[col_class]]))[[i]]
-        summ[[i]] = filter(med, gt[[col_class]] == cls) %>% select(-class)
+        summ[[i]] = filter(med, gt[[col_class]] == cls) %>% dplyr::select(-class)
         names = c(names, cls)
         }
 
@@ -466,7 +466,7 @@ bind_newdata = function(list){
 
     # save coords
     coords = list[[1]] %>%
-        select(ends_with("x") | ends_with("y"))
+        dplyr::select(ends_with("x") | ends_with("y"))
 
     out = bind_cols(list) %>%
         dplyr::select(-contains("x"), -contains("y"), -contains("class")) %>%

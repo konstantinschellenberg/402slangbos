@@ -1,9 +1,9 @@
 # init 09.09.2020
-# bandname creation for GRD
+# bandname creation for SLC/Interferometric Coherences
 
 source("D:/Geodaten/Master/projects/402slangbos/import.R")
 
-dir = c("F:/geodata/geo402/S1_SLC/xx_new/VRTs")
+dir = c("F:/geodata/geo402/S1_SLC/xx_new/")
 
 # CREATE DATES -------------------------------------------------------------------
 

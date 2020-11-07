@@ -40,20 +40,25 @@ data = data %>% st_drop_geometry() %>% as.data.frame()
 
 
 # index the crop type columns
-data[1:3] = map_df(data[1:3], ~ renaming(.x))
+data[1:4] = map_df(data[1:4], ~ renaming(.x))
 data[data == 0] = NA
 
 # data = sample_n(data, 100) %>% print
 # data[[1,1]] = NA
 
+# turnover = data %>%
+#     mutate(turnover = case_when(!is.na(a&b&c&d) ~ as.numeric(a!=b) + as.numeric(b!=c) + as.numeric(c!=d),
+#                                 is.na(a) ~ as.numeric(b!=c),
+#                                 is.na(b) ~ as.numeric(a!=c),
+#                                 is.na(c) ~ as.numeric(a!=b),
+#                                 is.na(d) ~ as.numeric(d))) %>%
+    # st_set_geometry(sfc)
+
 turnover = data %>%
-    mutate(turnover = case_when(!is.na(a&b&c) ~ as.numeric(a!=b) + as.numeric(b!=c),
-                                is.na(a) ~ as.numeric(b!=c),
-                                is.na(b) ~ as.numeric(a!=c),
-                                is.na(c) ~ as.numeric(a!=b))) %>%
+    mutate(turnover = as.numeric(a!=b) + as.numeric(b!=c) + as.numeric(c!=d)) %>%
     st_set_geometry(sfc)
 
-st_write(turnover, "02_features/Ladybrand_CropData.gpkg", layer = "CropClassifiedSimplifiedTurnover")
+st_write(turnover, "02_features/Ladybrand_CropData.gpkg", layer = "CropClassifiedSimplifiedTurnover", append = FALSE)
 
 inter = st_join(gt, turnover, join = st_intersects)
 

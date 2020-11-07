@@ -46,7 +46,7 @@ gt = st_read("02_features/features.gpkg", layer = "LADYBRAND_all_samples") %>%
 # RECLASS ----------------------------------------------------------------------
 
 # classify
-gt = gt %>%
+gt_full = gt %>%
     filter(stats_use == TRUE) %>%
     mutate(class =  case_when(new_class == "slangbos_increase_oldfield" ~ "11",
                               new_class == "slangbos_increase_grassland" ~ "12",
@@ -62,17 +62,19 @@ gt = gt %>%
                               new_class == "water" ~ "9",
                               new_class == "eucalyptus" ~ "7"))
 
-st_write(gt, "02_features/features.gpkg", layer = "LADYBRAND_gt_stats_full", append = FALSE)
+gt_full = gt_full %>% dplyr::select(c(class, new_class, break_date, checked_name))
+st_write(gt_full, "02_features/features.gpkg", layer = "LADYBRAND_gt_stats_full", append = FALSE)
 
+
+# ------------------------------------------------------------------------------
 # filter for Slangbos analysis, not classification (drop woody, water, urban and bare)
-gt_stats = filter(gt, class != "6", class != "7", class != "8", class != "9") %>%
-    dplyr::select(c(class, new_class, break_date, checked_name))
-
+gt_stats = filter(gt_full, class != "6", class != "7", class != "8", class != "9")
 print(gt_stats, n =50)
 
 st_write(gt_stats, "02_features/features.gpkg", layer = "LADYBRAND_gt_stats_complex", append = FALSE)
 
-# even simplified further
+
+# even simplified further ------------------------------------------------------
 gt_stats_simplified = mutate(gt_stats, class_simple = case_when(class = str_detect(class, "^1") ~ 1,
                                                        class = str_detect(class, "^2") ~ 2,
                                                        class = str_detect(class, "^3") ~ 3,
@@ -82,7 +84,40 @@ gt_stats_simplified = mutate(gt_stats, class_simple = case_when(class = str_dete
 
 st_write(gt_stats_simplified, "02_features/features.gpkg", layer = "LADYBRAND_gt_stats_simple", append = FALSE)
 
+
+# making gt for all classes, but not slangbos subclasses: ----------------------
+gt_full_simplified = gt_full %>%
+    mutate(class_simple = case_when(class = str_detect(class, "^1") ~ 1,
+                                    class = str_detect(class, "^2") ~ 2,
+                                    class = str_detect(class, "^3") ~ 3,
+                                    class == "4" ~ 4,
+                                    class == "5" ~ 5,
+                                    TRUE ~ as.numeric(class))) %>%
+    mutate_at("class_simple", as.character()) %>%
+    mutate(classnames = case_when(class_simple == "1" ~ "Slangbos Increase",
+                                  class_simple == "2" ~ "Slangbos Continuous",
+                                  class_simple == "3" ~ "Slangbos Clearning",
+                                  class_simple == "4" ~ "Grassland",
+                                  class_simple == "5" ~ "Cultivated",
+                                  class_simple == "6" ~ "Bare Soil",
+                                  class_simple == "7" ~ "Woodland",
+                                  class_simple == "8" ~ "Urban",
+                                  class_simple == "9" ~ "Water")) %>%
+    mutate_at("classnames", as.factor) %>%
+
+# double-check final classes:
+unique(gt_full_simplified$class_simple) %>% sort
+st_write(gt_full_simplified, "02_features/features.gpkg", layer = "LADYBRAND_gt_stats_full_simple", append = FALSE)
+
+# ------------------------------------------------------------------------------
+
 # print count of each class
+count(gt, class)
+ggplot(gt) +
+    geom_bar(aes(new_class)) +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 60, vjust = 1, hjust=1))
+
 count(gt_stats, class)
 ggplot(gt_stats) +
     geom_bar(aes(new_class)) +
@@ -92,6 +127,12 @@ ggplot(gt_stats) +
 count(gt_stats_simplified, class_simple)
 ggplot(gt_stats_simplified) +
     geom_bar(aes(class_simple)) +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 60, vjust = 1, hjust=1))
+
+count(gt_full_simplified, class_simple)
+ggplot(gt_full_simplified) +
+    geom_bar(aes(classnames)) +
     theme_bw() +
     theme(axis.text.x = element_text(angle = 60, vjust = 1, hjust=1))
 

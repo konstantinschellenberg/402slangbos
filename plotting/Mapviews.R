@@ -15,27 +15,6 @@ library(leaflet)
 library(leafem)
 library(jsonlite)
 
-library(exactextractr)
-
-options(max.print=100)
-
-source("D:/Geodaten/Master/projects/402slangbos/import.R")
-source("D:/Geodaten/Master/projects/402slangbos/plotting/fonts.R")
-
-
-# SET ENVIRONMENT --------------------------------------------------------------
-
-env = "D:/Geodaten/#Jupiter/GEO402"
-setwd(env)
-
-# destination
-plotdir = "06_plots/"
-destdir = "03_develop/extract/"
-
-# READ IN MASTER DATA ----------------------------------------------------------
-
-master = readRDS("03_develop/extract/extract_all.RDS")
-
 # Map Function
 
 # read in QGIS palette

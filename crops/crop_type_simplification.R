@@ -9,7 +9,7 @@ library(mapview)
 library(TRAMPR)
 library(ggplot2)
 
-options(max.print = 100, )
+options(max.print = 100)
 
 # SET ENVIRONMENT --------------------------------------------------------------
 
@@ -21,7 +21,7 @@ setwd(env)
 
 # Spatial Join of croptypes with boundary data ---------------------------------
 crop.inter = st_read("02_features/Ladybrand_CropData.gpkg", layer = "CropIntersect") %>%
-    replace_na(list(CropType_1415 = "X", CropType_1516 = "X", CropType_1617 = "X"))
+    replace_na(list(CropType_1415 = "X", CropType_1516 = "X", CropType_1617 = "X", CropType_1718 = "X"))
 
 # contains NA data of LandCare
 crop.classif = st_read("02_features/Ladybrand_CropData.gpkg", layer = "CropClassifiedComplex")
@@ -45,15 +45,15 @@ sfc = st_geometry(data)
 # fetch only cropdata columns for comparing with look-up table
 data = data %>%
     as.data.frame() %>%
-    select(1:3) %>%
+    dplyr::select(1:4) %>%
     map_df(function(x) as.factor(x)) %>%
-    `colnames<-`(c("a", "b", "c"))
+    `colnames<-`(c("a", "b", "c", "d"))
 
 # all possible crop changes as dataframe (land use change = luc)
 # ct = croptypes possible
-ct = rep(list(c("Pasture", "Crops", "Fallow", "X")), 3)
+ct = rep(list(c("Pasture", "Crops", "Fallow", "X")), 4)
 
-luc_cat = tidyr::expand_grid(a = ct[[1]], b = ct[[2]], c = ct[[3]]) %>%
+luc_cat = tidyr::expand_grid(a = ct[[1]], b = ct[[2]], c = ct[[3]], d = ct[[4]]) %>%
     map_df(., ~ as.factor(.x))
 print(luc_cat, n = 50)
 
@@ -79,7 +79,7 @@ st_write(out, "02_features/Ladybrand_CropData.gpkg", layer = "CropIntersectSimpl
 
 # run classification
 classified = cbind(data, cat = TRAMPR::classify(data, luc_cat))
-classified = mutate(classified, description = paste(a, b, c, sep = "-"))
+classified = mutate(classified, description = paste(a, b, c, d, sep = "-"))
 
 # write out simplified classification
 out = st_set_geometry(classified, sfc)

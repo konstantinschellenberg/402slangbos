@@ -1,5 +1,12 @@
 # fonts and formats for data plotting
 
+
+
+# SCHRIFTARTEN JOURNALS --------------------------------------------------------
+
+
+# LINE FORMATES PLOTLY ---------------------------------------------------------
+
 mycolour = (20)
 
 blue_background = "#6ec3f7"
@@ -29,11 +36,13 @@ black.fmt = list(dash = "solid", width = 2, color = "black")
 classes.fmt = map(c(increase = "#ff0040", continuous = "#fd8d3c", clearing = "black",
                          grass = "#009933", agro = "#bf8040"), ~ list(dash="solid", width = 2, color = .x))
 classes.fmt$grass$dash = "dash"; classes.fmt$agro$dash = "dash"
+ndvi.fmt = list(dash="solid", width = 2, color="#017a32") # green
+savi.fmt = list(dash="solid", width = 2, color="black") # green
 
 vh.big.fmt = list(dash="solid", width = 3, color="#2c6487") # blue
 red.big.fmt = list(dash="solid", width = 3, color="#fc8d59") # red
 
-vh.fmt.slim = list(dash="solid", width = 0.3, color="#2c6487") # blue
+vh.fmt.slim = list(dash="solid", width = 0.5, color="#2c6487") # blue
 red.fmt.slim = list(dash="solid", width = 0.7, color="#fc8d59") # red
 nir.fmt.slim = list(dash="solid", width = 0.7, color="#007f00") # green
 ndvi.fmt.slim = list(dash = "do", width = 0.7, color = "red")
@@ -206,6 +215,30 @@ y.s2_2 <- list(
     range = c(0,1),
     anchor = "free",
     position = 1)
+
+y.ndvi_savi <- list(
+    title = "NDVI & SAVI",
+    titlefont = f2,
+    tickfont = f1,
+    showline = F,
+    overlaying = "y",
+    side = "right",
+    range = c(0,1),
+    anchor = "free",
+    position = 1,
+    zeroline = FALSE)
+
+y.savi <- list(
+    title = list(text = "SAVI", standoff = 10),
+    titlefont = f2,
+    tickfont = f1,
+    showline = F,
+    overlaying = "y",
+    side = "right",
+    range = c(0,0.5),
+    anchor = "free",
+    position = 0.95,
+    zeroline = FALSE)
 
 y.indizes <- list(
     titlefont = f2,
