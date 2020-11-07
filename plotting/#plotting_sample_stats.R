@@ -17,13 +17,14 @@ library(exactextractr)
 
 options(max.print=100)
 
-source("D:/Geodaten/Master/projects/402slangbos/import.R")
-source("D:/Geodaten/Master/projects/402slangbos/plotting/fonts.R")
-source("D:/Geodaten/Master/projects/402slangbos/plotting/Mapviews.R")
+source("D:/Projects/402slangbos/import_extractedInformation.R")
+source("D:/Projects/402slangbos/import_samples.R")
+source("D:/Projects/402slangbos/plotting/fonts.R")
+source("D:/Projects/402slangbos/plotting/Mapviews.R")
 
 # SET ENVIRONMENT --------------------------------------------------------------
 
-env = "D:/Geodaten/#Jupiter/GEO402"
+env = "D:/Geodaten/GEO402"
 setwd(env)
 
 # destination
@@ -32,11 +33,9 @@ destdir = "03_develop/extract/"
 
 # READ IN MASTER DATA ----------------------------------------------------------
 
-# TIDY DATA.FRAME
-master = readRDS("03_develop/extract/extract_all.RDS")
-
 # NAMED LISTS
 # View(extract)
+print(master)
 
 # EXAMPLE SITES ------------------------------------------------------------
 
@@ -66,6 +65,8 @@ ex_position = gt %>% position(1, 15)
 ################################################################################
 # plotting all graphs of all classes for VH ------------------------------------
 ################################################################################
+
+if ()
 
 pmap(list(extract, layernames, proper_layernames.axis, proper_layernames),
      function(extr, lnames, plnames.axis, plnames){
@@ -110,7 +111,7 @@ pmap(list(extract, layernames, proper_layernames.axis, proper_layernames),
         # subplot(plts, shareX = TRUE, nrows = 5)
 
         g1 = marrangeGrob(plts, nrow = 5, ncol = 10, top = paste(plnames, name))
-        ggsave(paste0(sensor_used, "_", name, ".png"), plot = g1, path = paste0(plotdir, "Samples/Facets/"), device = "png",
+        ggsave(paste0(sensor_used, "_", name, ".png"), plot = g1, path = paste0(plotdir, "Samples/Facets"), device = "png",
                scale = 2)
 
     })

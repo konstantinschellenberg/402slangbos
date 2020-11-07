@@ -36,7 +36,7 @@ mapping = function(class, sample, raster = NULL){
         rasterpal = colorQuantile(c("white", "black"), values(raster), na.color = "transparent")
     }
     # Custom palette
-    qgis_pal = get_qgis_palette("D:/Geodaten/#Jupiter/GEO402/layout/classification_palette.csv") %>% .[1:5]
+    qgis_pal = get_qgis_palette("D:/Geodaten/GEO402/layout/classification_palette.csv") %>% .[1:5]
 
     # get geographical position and identify of reference plot
     sf = gt %>% position(class, sample) %>%

@@ -4,7 +4,7 @@
 
 # Script to import and clean data
 
-source("D:/Geodaten/Master/projects/402slangbos/functions.R")
+source("D:/Projects/402slangbos/functions.R")
 
 library(tidyverse)
 library(raster)

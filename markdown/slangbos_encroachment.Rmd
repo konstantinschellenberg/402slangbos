@@ -17,19 +17,19 @@ always_allow_html: true
 
 ```{r, echo=FALSE, results='hide', message=FALSE, warning=FALSE, cache=TRUE}
 
-my.packages = c("raster", "sf", "rgdal", "caret", "mlr3", "mlr3spatiotempcv")
-lapply(my.packages, require, character.only = TRUE)
+#my.packages = c("raster", "sf", "rgdal", "caret", "mlr3", "mlr3spatiotempcv")
+#lapply(my.packages, require, character.only = TRUE)
 
-source("import.R")
+#source("import.R")
 ```
 
 
 ```{r include=FALSE}
-knitr::write_bib(my.packages,
-  file = "refs.bib",
-  prefix = "R-"
-)
-knitr::opts_chunk$set(fig.align = "center")
+#knitr::write_bib(my.packages,
+#  file = "refs.bib",
+#  prefix = "R-"
+#)
+#knitr::opts_chunk$set(fig.align = "center")
 ```
 
 # Introduction

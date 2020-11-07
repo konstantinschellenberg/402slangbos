@@ -1,0 +1,11 @@
+gdalbuildvrt.exe -b 1 -resolution lowest -allow_projection_difference -srcnodata 0 -overwrite red.vrt layers/*tif
+gdalbuildvrt.exe -b 2 -resolution lowest -allow_projection_difference -srcnodata 0 -overwrite gre.vrt layers/*tif
+gdalbuildvrt.exe -b 3 -resolution lowest -allow_projection_difference -srcnodata 0 -overwrite blu.vrt layers/*tif
+
+gdalbuildvrt.exe -separate Aerial_Mosaic.vrt red.vrt gre.vrt blu.vrt
+
+gdalwarp -t_srs EPSG:32735 Aerial_Mosaic.vrt new.vrt
+
+# in UTM coordinates:
+-t_srs EPSG:32735
+-te 463563 549706 6739018 6791364

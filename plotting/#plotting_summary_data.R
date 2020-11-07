@@ -14,12 +14,13 @@ library(exactextractr)
 
 options(max.print=100)
 
-source("D:/Geodaten/Master/projects/402slangbos/import.R")
-source("D:/Geodaten/Master/projects/402slangbos/plotting/fonts.R")
+source("D:/Projects/402slangbos/import_samples.R")
+source("D:/Projects/402slangbos/import_extractedInformation.R")
+source("D:/Projects/402slangbos/plotting/fonts.R")
 
 # SET ENVIRONMENT --------------------------------------------------------------
 
-env = "D:/Geodaten/#Jupiter/GEO402"
+env = "D:/Geodaten/GEO402"
 setwd(env)
 
 # destination
@@ -27,7 +28,7 @@ plotdir = "06_plots/"
 dstdir = "03_develop/extract/"
 
 # 1 = simplified, 2 = full sites
-mode = 2
+mode = 1
 
 # READ IN ----------------------------------------------------------------------
 
@@ -108,7 +109,7 @@ ggplot(p.vh[[2]], aes(x = date)) +
     theme_minimal()
 
 arr = list()
-for (i in seq_along(rasters)){
+for (i in seq_along(layernames)){
     summary_of_raster = summary[[i]]
 
     out = map2(summary_of_raster, classnames, function(x, y) ggplot(x, aes(date, median)) +
@@ -122,7 +123,7 @@ for (i in seq_along(rasters)){
 
 # arrange plot in grobs (lattice-like grid cells)
 arr = map2(arr, proper_layernames, ~ marrangeGrob(.x, nrow=3, ncol=2, top = .y))
-map(arr, ~ print(.x))
+# map(arr, ~ print(.x))
 
 # save the plots
 # map2(arr, proper_layernames, ~ ggsave(filename = paste0(.y, ".png"), path = plotdir, plot = .x, width = 10, height = 10))
@@ -171,7 +172,7 @@ s.plt1 = function(vh, co, classnames){
 }
 
 plots1 = s.plt1(summary[["vh"]], summary[["co"]], classnames)
-plots1[[8]]
+plots1[[1]]
 
 walk2(plots1, classnames, ~ plotly::orca(.x, file = paste0(plotdir, "Summary Statistics/Comparing/", .y, "_bscVH-cohVV.png"), scale = 3))
 
@@ -539,7 +540,7 @@ plts9[[1]]
 plts9[[2]]
 plts9[[3]]
 plts9[[4]]
-plts9[[7]]
+plts9[[5]]
 
 ggplot(summary[["ndvi"]][[1]]) +
     geom_line(aes(date, median))

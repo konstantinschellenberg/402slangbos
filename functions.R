@@ -44,6 +44,8 @@
 # BANDNAME FILE CREATION -------------------------------------------------------
 ################################################################################
 
+library(here)
+
 bandnames = function(file, prefix = NULL, writeout = FALSE){
 
     # load raster
