@@ -34,18 +34,18 @@ n.ndvi = "F:/geodata/geo402/S2/xx_S2_indices/mosaics/stack_ndvi.txt"
 n.savi = "F:/geodata/geo402/S2/xx_S2_indices/mosaics/stack_savi.txt"
 
 # vector files
-path_gt = "D:/Geodaten/#Jupiter/GEO402/02_features/features.gpkg"
+path_gt = "D:/Geodaten/GEO402/02_features/features.gpkg"
 
 # auxillary folders
-path_prediction = "D:/Geodaten/#Jupiter/GEO402/04_products/rf/"
-path_developement = "D:/Geodaten/#Jupiter/GEO402/03_develop/"
-path_tables = "D:/Geodaten/#Jupiter/GEO402/03_develop/ground_reference_files/"
+path_prediction = "D:/Geodaten/GEO402/04_products/rf/"
+path_developement = "D:/Geodaten/GEO402/03_develop/"
+path_tables = "D:/Geodaten/GEO402/03_develop/ground_reference_files/"
 path_vrt = paste0(path_developement, "s2/", "reflectance.vrt") # vrt path
-path_s2 = "D:/Geodaten/#Jupiter/GEO402/01_data/s2/"
-path_s1 = "D:/Geodaten/#Jupiter/GEO402/01_data/s1_data/"
-path_coherence = "D:/Geodaten/#Jupiter/GEO402/01_data/coherence/"
-path_coherence_develop = "D:/Geodaten/#Jupiter/GEO402/03_develop/coherence/"
-path_rds = "D:/Geodaten/#Jupiter/GEO402/03_develop/rda/"
+path_s2 = "D:/Geodaten/GEO402/01_data/s2/"
+path_s1 = "D:/Geodaten/GEO402/01_data/s1_data/"
+path_coherence = "D:/Geodaten/GEO402/01_data/coherence/"
+path_coherence_develop = "D:/Geodaten/GEO402/03_develop/coherence/"
+path_rds = "D:/Geodaten/GEO402/03_develop/rda/"
 
 ################################################################################
 # Import and rename data -------------------------------------------------------

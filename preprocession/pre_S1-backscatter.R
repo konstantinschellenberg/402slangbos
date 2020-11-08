@@ -1,7 +1,7 @@
 # init 09.09.2020
 # bandname creation for GRD
 
-source("D:/Geodaten/Master/projects/402slangbos/import.R")
+source("D:/Projects/402slangbos/import_rasters_classification.R")
 
 # LOAD RASTERS -----------------------------------------------------------------
 

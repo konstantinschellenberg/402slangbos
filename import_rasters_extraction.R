@@ -18,9 +18,9 @@ library(sf)
 # DATA (RASTERS)
 # p = path
 
-p.vv = "F:/geodata/geo402/S1_GRD/xx_new/S1A_IW_GRD_VV_stack"
-p.vh = "F:/geodata/geo402/S1_GRD/xx_new/S1A_IW_GRD_VH_stack"
-p.co = "F:/geodata/geo402/S1_SLC/xx_new/S1A_IW_SLC_VV_stack.img"
+p.vv = "F:/geodata/geo402/S1_GRD/S1A_IW_GRD_VV_stack"
+p.vh = "F:/geodata/geo402/S1_GRD/S1A_IW_GRD_VH_stack"
+p.co = "F:/geodata/geo402/S1_SLC/S1A_IW_SLC_VV_stack.img"
 p.dvi = "F:/geodata/geo402/S2/xx_S2_indices/mosaics/stack_dvi.vrt"
 p.evi = "F:/geodata/geo402/S2/xx_S2_indices/mosaics/stack_evi.vrt"
 p.msavi = "F:/geodata/geo402/S2/xx_S2_indices/mosaics/stack_msavi.vrt"
@@ -34,9 +34,9 @@ p.chrips = "F:/geodata/geo402/CHIRPS/FreeState_Ladybrand_14days_2015_2020.tif"
 # BANDNAMES
 # n = naming
 
-n.vv = "F:/geodata/geo402/S1_GRD/xx_new/S1A_IW_GRD_VV_stack.txt"
-n.vh = "F:/geodata/geo402/S1_GRD/xx_new/S1A_IW_GRD_VH_stack.txt"
-n.co = "F:/geodata/geo402/S1_SLC/xx_new/S1A_IW_SLC_VV_stack.txt"
+n.vv = "F:/geodata/geo402/S1_GRD/S1A_IW_GRD_VV_stack.txt"
+n.vh = "F:/geodata/geo402/S1_GRD/S1A_IW_GRD_VH_stack.txt"
+n.co = "F:/geodata/geo402/S1_SLC/S1A_IW_SLC_VV_stack.txt"
 n.dvi = "F:/geodata/geo402/S2/xx_S2_indices/mosaics/stack_dvi.txt"
 n.evi = "F:/geodata/geo402/S2/xx_S2_indices/mosaics/stack_evi.txt"
 n.msavi = "F:/geodata/geo402/S2/xx_S2_indices/mosaics/stack_msavi.txt"
