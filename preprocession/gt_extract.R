@@ -14,74 +14,59 @@ library(exactextractr)
 
 options(max.print = 200)
 
-source("D:/Geodaten/Master/projects/402slangbos/import.R")
+source("D:/Projects/402slangbos/import_rasters_extraction.R")
+source("D:/Projects/402slangbos/functions.R")
 
 # SET ENVIRONMENT --------------------------------------------------------------
 
-env = "D:/Geodaten/#Jupiter/GEO402"
+env = "D:/Geodaten/GEO402"
 setwd(env)
-
-# complex or simplified data?
-# 1 = selected classes, 2 = all sites
-mode = 2
 
 # be aware of using the gt or cgt samples data accordingly!
 
 # SOME METADATA  ----------------------------------------------------
 
+# get gt object
+sample = st_read("D:/Geodaten/GEO402/02_features/classif.gpkg", layer = "classif_2017-2018") %>%
+    group_by(classif) %>%
+    mutate(id = row_number())
+
 # metadata
-col_class = "class_simple"
+col_class = "classif"
 col_id = "id"
 
-if (mode == 1) dstdir = "03_develop/extract/"
-if (mode == 2) dstdir = "03_develop/extract_all/"
+dstdir = "03_develop/extract_classif"
+if (!dir.exists(dstdir)) dir.create(dstdir)
 
 # layernames of raster need to have a date suffix in the form yyyy.mm.dd
-
 outfiles = map(layernames, function(x) paste("extract", x, sep = "_"))
 outfile = "test"
 
 # median is calculated anyways; must be coercable by exact_extract()
-statistics = c("mean", "stdev", "count")
+statistics = c("median", "mean", "stdev", "count")
 
 # EXTRACTING -------------------------------------------------------------------
-if (mode == 1) b = exactextracting(gt, vh[[1:10]], col_class, col_id, statistics, dstdir, "outfile")
-if (mode == 2) b = exactextracting(cgt, vh[[1:10]], col_class, col_id, statistics, dstdir, "outfile")
+b = exactextracting(sample, vh[[1:10]], col_class, col_id, statistics, dstdir, "outfile")
+# b = readRDS(paste0(dstdir, "outfile"))
 
 ex = b[[8]][[1]]
-ggplot(ex, aes(date, med)) +
+ggplot(ex, aes(date, median)) +
     geom_point()
 
-if (mode == 1){
-
 map2(outfiles, rasters, function(x, y){
     cat(x)
-    exactextracting(gt = gt, ras = y,
-                    col_class = "class_simple",
+    exactextracting(gt = sample, ras = y,
+                    col_class = "classif",
                     col_id = "id",
                     statistics = statistics,
                     dstdir = dstdir,
                     outfile = x)})
-} else if (mode == 2){
-
-map2(outfiles, rasters, function(x, y){
-    cat(x)
-    exactextracting(gt = cgt, ras = y,
-                    col_class = "class_simple",
-                    col_id = "id",
-                    statistics = statistics,
-                    dstdir = dstdir,
-                    outfile = x)})
-}
-
-
-# reip 3-15 PROBLEM
 
 
 # READ IN ----------------------------------------------------------------------
 
 # concat file paths
-path.extract = list.files("03_develop/extract", pattern = "^extract") %>%
+path.extract = list.files(dstdir, pattern = "^extract") %>%
     file.path("03_develop", "extract", .)
 path.extract = path.extract[!grepl("all.RDS", path.extract)]
 

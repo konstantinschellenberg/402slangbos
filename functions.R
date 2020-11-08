@@ -111,6 +111,8 @@ exactextracting = function(gt, ras, col_class, col_id, statistics, dstdir, outfi
     #' 2nd order list: raster bands
     #' 3rd order dataframe: aggregated statistics with smoothing curves
 
+    library(exactextractr)
+
     if (!is_vector(gt[[col_id]])){
         stop("the col_id does not exist, please specify...")
     }
@@ -118,51 +120,31 @@ exactextracting = function(gt, ras, col_class, col_id, statistics, dstdir, outfi
         stop("the col_class does not exist, please specify...")
     }
 
-    statistics = c("med", statistics)
-
     layernames = names(ras)
-    medianname = paste("med", layernames, sep = ".")
-
-    library(exactextractr)
 
     # create dirs
     if (!dir.exists(dstdir)) {dir.create(dstdir)}
 
-    # extracting user-defined function (median) to the exactextract
-    raslist = list()
-    for (i in 1:nlayers(ras)){
-        r = ras[[i]]
-        raslist = append(raslist, r)
-    }
-
-    print("processing median")
-    med = map(raslist, function(x) exact_extract(x, gt, function(values, coverage_fraction){
-        median(values[!is.na(values)], na.rm = TRUE)
-        })) %>%
-        as.data.frame(col.names = medianname)
-
     # extracting
-    print("processing other metrics")
-    ex = exactextractr::exact_extract(ras, gt, statistics[2:length(statistics)]) # calculate means
-
-    all_data = cbind(med, ex)
+    print("Feature Extraction starting . . .")
+    all_data = exactextractr::exact_extract(ras, gt, statistics) # calculate means
 
     # join classes on extracted data for tidying pipe coming
     join = mutate(all_data, class = gt[[col_class]], id = gt[[col_id]])
     join[is.na(join)] = NA
 
-    outer = vector("list", length = length(unique(join$class)))
+    # outer = vector("list", length = length(unique(join$class)))
     # iterate by class
     for (i in sort(unique(join$class))){
         inner = list()
 
-        print(i)
+        cat("Calculating Class No.:", i, "\n")
         ij = filter(join, join$class == i)
 
         # iterate by number
         for (j in sort(unique(ij$id))){
 
-            print(j)
+            # print(j)
             # wrangle dataframe
             entity = filter(join, join$class == i & join$id == j) %>%
                 dplyr::select(-c(class, id)) %>%
@@ -222,7 +204,7 @@ exactextracting = function(gt, ras, col_class, col_id, statistics, dstdir, outfi
         outer[[i]] = inner
 
     }
-    saveRDS(outer, paste0(dstdir, outfile))
+    saveRDS(outer, paste0(dstdir, "/", outfile))
     return(outer)
 }
 
@@ -243,6 +225,7 @@ extract_summary = function(gt, ras, col_class){
     # pre ----------------------------------------------------------------------
     layernames = names(ras)
     medianname = paste("med", layernames, sep = ".")
+
     raslist = list()
     for (i in 1:nlayers(ras)){
         r = ras[[i]]
@@ -258,18 +241,15 @@ extract_summary = function(gt, ras, col_class){
 
 
     # date -------------------------------------------------------------------------
-    date = substr(medianname, start = nchar(medianname) - 9, stop = nchar(medianname))
+    date = substr(layernames, start = nchar(layernames) - 9, stop = nchar(layernames))
     date = as.POSIXct(date, tryFormats = "%Y.%m.%d") %>%
         unique()
 
     # data processing ----------------------------------------------------------
     cat("processing median\n\n")
-    med = map(raslist, function(x) exact_extract(x, gt, function(values, coverage_fraction){
-        cat(names(x))
-        median(values[!is.na(values)], na.rm = TRUE)
-    })) %>%
+    ex = map(raslist, ~ exact_extract(.x, gt, "mean")) %>%
         as.data.frame(col.names = medianname) %>%
-        mutate(class = gt$class_simple)
+        mutate(class = gt[[col_class]])
 
     # init class list
     summ = vector("list", length = nr_classes)
@@ -279,7 +259,7 @@ extract_summary = function(gt, ras, col_class){
     for (i in 1:nr_classes){
         # print(i)
         cls = sort(unique(gt[[col_class]]))[[i]]
-        summ[[i]] = filter(med, gt[[col_class]] == cls) %>% dplyr::select(-class)
+        summ[[i]] = filter(ex, gt[[col_class]] == cls) %>% dplyr::select(-class)
         names = c(names, cls)
         }
 

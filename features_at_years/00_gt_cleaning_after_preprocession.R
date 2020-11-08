@@ -1,5 +1,5 @@
 # splitting the gt data into years
-
+# just run once!
 
 # setwd("D:/Geodaten/Projects/402slangbos")
 source("import_samples.R")
