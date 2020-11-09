@@ -90,10 +90,8 @@ def main():
           targetres=[10, 10], srcnodata=-99, dstnodata=-99,
           shapefile=shp, sortfun=seconds, separate=sep, overwrite=False)
 
-
 if __name__ == '__main__':
     main()
-	
 
 def main():
     # define input directory containing file sto be stacked

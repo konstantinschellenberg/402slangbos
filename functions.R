@@ -41,10 +41,39 @@
 # 9 = water
 
 ################################################################################
-# BANDNAME FILE CREATION -------------------------------------------------------
+# Clips on the desired threshold fraction which is allowed to be obstructed on
+# raster -----------------------------------------------------------------------
 ################################################################################
 
-library(here)
+fraction_cleaner = function(ras, thresh = 0.2){
+
+    raslist = list()
+    for (i in 1:nlayers(ras)){
+        r = ras[[i]]
+        raslist = append(raslist, r)
+    }
+
+    ncells = map(raslist, ~ ncell(.x))
+
+    tables = map(raslist, ~ table(is.na(.x[])))
+    na.frac = map2(tables, ncells, function(x, n) as.numeric(x[2]) / n)
+
+    cat("fraction of NA pixels in images:\n")
+    cat(round(as.numeric(na.frac), digits = 2), sep = "\t")
+    cat("Threshold is:", thresh)
+    cat("\n")
+
+    keep = ras[[which(na.frac < thresh)]]
+
+    cat("Total Layers:", nlayers(ras), "\n")
+    cat("Obstructed Layers:", nlayers(ras) - nlayers(keep), "\n")
+    cat("Surviving Layers:", nlayers(keep), "\n")
+    return(keep)
+}
+
+################################################################################
+# BANDNAME FILE CREATION -------------------------------------------------------
+################################################################################
 
 bandnames = function(file, prefix = NULL, writeout = FALSE){
 
@@ -81,22 +110,28 @@ bandnames = function(file, prefix = NULL, writeout = FALSE){
 
 rename_bandnames = function(rasterfile, textfile = NULL){
 
-    ##### stop sequence
-    if (is.null(textfile)){stop("Define a textfile contain bandnames of all layers in the raster.")}
+    if (is.null(textfile)){stop("Define a textfile contain bandnames of all layers in the raster.\n")}
 
     # load raster
-    raster = brick(rasterfile)
+    ras = brick(rasterfile)
 
     # read in csv data
-    date = read.csv(file = textfile, colClasses = "character") %>% .$x
+    naming = read.csv(file = textfile, colClasses = "character") %>%
+        .$x
 
-    ##### stop sequence 2
-    a = length(names(raster)) - length(date)
-    if (a != 0){stop("Number of raster bands does not fit the input table")}
+    date = naming %>%
+        stringr::str_split(string = ., pattern = "\\.") %>%
+        map(., ~ .x[2:length(.x)]) %>%
+        map_chr(., ~ stringr::str_flatten(.x)) %>%
+        as.Date(., format = "%Y%m%d")
 
-    # final tranfer
-    names(raster) = date # change names to more easy
-    return(raster)
+    if (!nlayers(ras) == length(date)){stop("The raster and the textfile do not have the same length and can thus not be combined\n")}
+
+    # final tranfer: Set Z-Dimension to raster
+    ras = setZ(ras, date, name = "date")
+    names(ras) = naming
+
+    return(ras)
 }
 
 
@@ -132,6 +167,8 @@ exactextracting = function(gt, ras, col_class, col_id, statistics, dstdir, outfi
     # join classes on extracted data for tidying pipe coming
     join = mutate(all_data, class = gt[[col_class]], id = gt[[col_id]])
     join[is.na(join)] = NA
+
+    outer = list()
 
     # outer = vector("list", length = length(unique(join$class)))
     # iterate by class

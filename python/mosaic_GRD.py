@@ -54,47 +54,5 @@ def main():
           shapefile=shp, sortfun=seconds, separate=sep, overwrite=True,
           cores=7)
 
-
-    ### VV
-
-    # define input directory containing files to be stacked
-    dir_in = 'F:/geodata/geo402/S1_GRD/xx_new/GRD_VV_vrts/'
-    print(dir_in)
-    # os.makedirs(dir_in, exist_ok=True)
-
-    # define output file name
-    dstfile = 'F:/geodata/geo402/S1_GRD/xx_new/S1A_IW_GRD_VV_stack'
-    print(dstfile)
-
-    # list files to be resampled; those not overlapping with the shapefile geometry will excluded by function stack
-    srcfiles = finder(dir_in, ['*'])
-
-    # check whether dstfile is already a file
-    if os.path.isfile(dstfile):
-        raise IOError('dstfile already exists')
-
-    # create groups of similar time stamps for mosaicking.
-    # All images with a time stamp of less than 30s difference will be grouped
-    groups = groupbyTime(srcfiles, seconds, 30)
-
-    # final function call
-    # groups will be mosaicked first
-    # the resulting images will all have the same extent
-    stack(srcfiles=groups, dstfile=dstfile, resampling='bilinear',
-          targetres=resolution, srcnodata=-99, dstnodata=-99,
-          shapefile=shp, sortfun=seconds, separate=sep, overwrite=True,
-          cores=7)
-
 if __name__ == '__main__':
     main()
-
-# gdalbuildvrt -r nearest -srcnodata "-99" -tr 0.001 0.001 -te 26.6241841334384013 -29.4777883287671010
-# 27.5127027974126008 -29.0049152907063998 -input_file_list F:/geodata/geo402/S1_SLC/xx_new/inputfiles.txt
-# S1A_IW_SLC_stack.vrt
-
-# gdalwarp -s_srs EPSG:4326 -t_srs EPSG:32735 -tr 30 30 -te 26.6241841334384013 -29.4777883287671010 27.5127027974126008 -29.0049152907063998 -te_srs EPSG:4326 -overwrite /SLCs/*.tif output.vrt
-
-# writing input file list for gdalbuildvrt
-# with open('F:/geodata/geo402/S1_GRD/xx_new/S1A_IW_GRD_VV_stack.txt', 'w') as filehandle:
-#     for listitem in groups:
-#         filehandle.write('%s\n' % listitem)

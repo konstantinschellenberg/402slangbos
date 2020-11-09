@@ -97,3 +97,32 @@ leaflet() %>%
                 fillOpacity = 1,
                 weight = 1,
                 color = "red")
+
+# Just once!! MERGE PASTURE CLASS WITH GRASSLAND -------------------------------
+
+# sf = st_read("D:/Geodaten/GEO402/02_features/classif.gpkg", layer = "classif_2017-2018")
+#
+# # merge classes by renaming
+# sf = sf %>%
+#     mutate(classif = case_when(classif == 3 ~ 2,
+#                      classif == 4 ~ 3,
+#                      classif == 5 ~ 4,
+#                      classif == 6 ~ 5,
+#                      classif == 7 ~ 6,
+#                      classif == 8 ~ 7,
+#                      TRUE ~ as.numeric(classif)))
+# # renaming
+# sf = sf %>%
+#     mutate(classnames = case_when(classif == 1 ~ "Slangbos",
+#                                          classif == 2 ~ "Grassland",
+#                                          classif == 3 ~ "Cultivated",
+#                                          classif == 4 ~ "Bare",
+#                                          classif == 5 ~ "Woodland",
+#                                          classif == 6 ~ "Urban",
+#                                          classif == 7 ~ "Water")) %>%
+#     dplyr::select(classif, classnames) %>%
+#     mutate_at("classif", factor)
+#
+# sf$classnames %>% unique()
+#
+# st_write(sf, "D:/Geodaten/GEO402/02_features/classif.gpkg", layer = "classif_2017-2018", append = FALSE)

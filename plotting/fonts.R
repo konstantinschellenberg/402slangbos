@@ -36,7 +36,7 @@ black.fmt = list(dash = "solid", width = 2, color = "black")
 classes.fmt = map(c(increase = "#ff0040", continuous = "#fd8d3c", clearing = "black",
                          grass = "#009933", agro = "#bf8040"), ~ list(dash="solid", width = 2, color = .x))
 classes.fmt$grass$dash = "dash"; classes.fmt$agro$dash = "dash"
-ndvi.fmt = list(dash="solid", width = 2, color="#017a32") # green
+ndvi.green.fmt = list(dash="solid", width = 2, color="#017a32") # green
 savi.fmt = list(dash="solid", width = 2, color="black") # green
 
 vh.big.fmt = list(dash="solid", width = 3, color="#2c6487") # blue
@@ -48,7 +48,10 @@ nir.fmt.slim = list(dash="solid", width = 0.7, color="#007f00") # green
 ndvi.fmt.slim = list(dash = "do", width = 0.7, color = "red")
 black.fmt.slim = list(dash = "solid", width = 0.3, color = "black")
 classes.fmt.slim = map(c(increase = "#ff0040", continuous = "#fd8d3c", clearing = "black",
-                         grass = "#009933", agro = "#bf8040"), ~ list(dash="solid", width = 1, color = .x))
+                         grass = "#009933", agro = "#bf8040",
+                         woodland = "green",
+                         urban = "lightblue",
+                         water = "darkblue"), ~ list(dash="solid", width = 1, color = .x))
 # classes.fmt.slim$grass$dash = "dash"; classes.fmt.slim$agro$dash = "dash"
 # Fonts ------------------------------------------------------------------------
 f1 <- list(

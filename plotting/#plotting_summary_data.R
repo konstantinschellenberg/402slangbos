@@ -15,6 +15,8 @@ library(exactextractr)
 options(max.print=100)
 
 source("D:/Projects/402slangbos/import_samples.R")
+
+commandArgs = function(...) 2
 source("D:/Projects/402slangbos/import_extractedInformation.R")
 source("D:/Projects/402slangbos/plotting/fonts.R")
 
@@ -24,11 +26,15 @@ env = "D:/Geodaten/GEO402"
 setwd(env)
 
 # destination
-plotdir = "06_plots/"
-dstdir = "03_develop/extract/"
+plotdir = "06_plots/Classification/Plots"
+comp = "06_plots/Classification/Plots/Summary Statistics/Comparing/"
+indi = "06_plots/Classification/Plots/Summary Statistics/Indizes/"
+sens = "06_plots/Classification/Plots/Summary Statistics/Sensors/"
+dstdir = "03_develop/extract"
 
-# 1 = simplified, 2 = full sites
-mode = 1
+# make dirs
+map(c(plotdir, comp, indi, sens, dstdir), ~ if (!dir.exists(.x)) dir.create(.x, recursive = TRUE))
+
 
 # READ IN ----------------------------------------------------------------------
 
@@ -36,18 +42,7 @@ mode = 1
 # selective cleaning of NA: map_at
 
 # not to be cleaned:
-vars = c("vh", "vv", "co")
-
-
-if (mode == 1){
-    summary = summary
-    classnames = classnames
-}
-if (mode == 2){
-    summary = summary_all
-    classnames = classnames_all
-}
-
+vars = c()
 
 summary = summary %>% map_at(., .at = vars(!vars), ~ map(.x, function(x){
     na.omit(x)
@@ -59,6 +54,9 @@ summary = summary %>% map_at(., .at = vars(!vars), ~ map(.x, function(x){
 indizes = list(evi = summary[["evi"]], ndvi = summary[["ndvi"]], reip = summary[["reip"]],
                msavi = summary[["msavi"]], savi = summary[["savi"]],
                dvi = summary[["dvi"]], rvi = summary[["rvi"]])
+
+indizes = indizes[lapply(indizes, length) > 0]
+
 i_name = names(indizes)
 
 # range berechnen
@@ -136,10 +134,11 @@ arr = map2(arr, proper_layernames, ~ marrangeGrob(.x, nrow=3, ncol=2, top = .y))
 s.plt1 = function(vh, co, classnames){
 
     # calculate range min-max
-    max = map_dbl(vh, ~ max(.x$median)) %>% max()
-    min = map_dbl(vh, ~ min(.x$median)) %>% min()
 
-    pmap(list(vh, co, classnames), function(vh, co, classnames){
+    min = ranges.all$vh[[1]][1]
+    max = ranges.all$vh[[1]][2]
+
+        pmap(list(vh, co, classnames), function(vh, co, classnames){
 
         plt = plot_ly(width = 700, height = 500) %>%
             add_lines(data = vh, x = ~ date, y = ~ med_smooth,
@@ -174,20 +173,12 @@ s.plt1 = function(vh, co, classnames){
 plots1 = s.plt1(summary[["vh"]], summary[["co"]], classnames)
 plots1[[1]]
 
-walk2(plots1, classnames, ~ plotly::orca(.x, file = paste0(plotdir, "Summary Statistics/Comparing/", .y, "_bscVH-cohVV.png"), scale = 3))
+walk2(plots1, classnames, ~ plotly::orca(.x, file = paste0(comp, .y, "_bscVH-cohVV.png"), scale = 3))
 
 # ------------------------------------------------------------------------------
 
 # VH vs. NDVI with ribbons
 s.plt2 = function(vh, ndvi, classnames){
-
-    # calculate range min-max
-    max = map_dbl(vh, ~ max(.x$median)) %>% max()
-    min = map_dbl(vh, ~ min(.x$median)) %>% min()
-
-    ndvi_max = map_dbl(ndvi, ~ max(.x$median)) %>% max()
-    ndvi_min = map_dbl(ndvi, ~ min(.x$median)) %>% min()
-
 
     pmap(list(vh, ndvi, classnames), function(vh, ndvi, classnames){
 
@@ -196,7 +187,7 @@ s.plt2 = function(vh, ndvi, classnames){
                       yaxis = "y1", name = "S-1 VH backscatter smoothed", line = vh.fmt) %>%
 
             add_lines(data = ndvi, x = ~ date, y = ~ med_smooth,
-                      yaxis = "y2", name = "NDVI", line = ndvi.fmt,
+                      yaxis = "y2", name = "NDVI", line = ndvi.fmt.slim,
                       connectgaps = F) %>%
             add_lines(data = ndvi, x = ~ date, y = ~ median,
                       yaxis = "y2", name = "NDVI", line = ndvi.fmt.slim,
@@ -212,7 +203,7 @@ s.plt2 = function(vh, ndvi, classnames){
                         color = I(red_background), line = list(width = 1), opacity = 0.3,
                         showlegend = T) %>%
             layout(xaxis = date.axis,
-                   yaxis = c(y.s1, range = list(c(min, max))),
+                   yaxis = c(y.s1, range = list(c(ranges.all$vh[[1]][1], ranges.all$vh[[1]][2]))),
                    yaxis2 = y.s2_2,
                    legend = list(font = f1, orientation = "h", xanchor = "center", yanchor = "bottom", y = -0.7, x = 0.5),
                    margin = list(pad = 0, b = 200, l = 0, r = 100, automargin = TRUE),
@@ -224,20 +215,12 @@ s.plt2 = function(vh, ndvi, classnames){
 plots2 = s.plt2(summary[["vh"]], summary[["ndvi"]], classnames)
 plots2[[3]]
 
-walk2(plots2, classnames, ~ plotly::orca(.x, file = paste0(plotdir, "Summary Statistics/Comparing/", .y, "_bscVH-NDVI.png"), scale = 3))
+walk2(plots2, classnames, ~ plotly::orca(.x, file = paste0(comp, .y, "_bscVH-NDVI.png"), scale = 3))
 
 # ------------------------------------------------------------------------------
 
 # VH, CO vs. NDVI with ribbons
 s.plt3 = function(vh, co, ndvi, classnames){
-
-    # calculate range min-max
-    max = map_dbl(vh, ~ max(.x$median)) %>% max()
-    min = map_dbl(vh, ~ min(.x$median)) %>% min()
-
-    ndvi_max = map_dbl(ndvi, ~ max(.x$median)) %>% max()
-    ndvi_min = map_dbl(ndvi, ~ min(.x$median)) %>% min()
-
 
     pmap(list(vh, co, ndvi, classnames), function(vh, co, ndvi, classnames){
 
@@ -263,7 +246,7 @@ s.plt3 = function(vh, co, ndvi, classnames){
                         color = I(red_background), line = list(width = 1), opacity = 0.3,
                         showlegend = T) %>%
             layout(xaxis = date.axis,
-                   yaxis = c(y.s1, range = list(c(min, max))),
+                   yaxis = c(y.s1, range = list(c(ranges.all$vh[[1]][1], ranges.all$vh[[1]][2]))),
                    yaxis2 = y.co_2,
                    yaxis3 = y.s2_2,
                    legend = list(font = f1, orientation = "h", xanchor = "center", yanchor = "bottom", y = -0.7, x = 0.5),
@@ -276,7 +259,7 @@ s.plt3 = function(vh, co, ndvi, classnames){
 plots3 = s.plt3(summary[["vh"]], summary[["co"]], summary[["ndvi"]], classnames)
 plots3[[1]]
 
-walk2(plots3, classnames, ~ plotly::orca(.x, file = paste0(plotdir, "Summary Statistics/Comparing/", .y, "_bscVH-cohVV-NDVI.png"), scale = 3))
+walk2(plots3, classnames, ~ plotly::orca(.x, file = paste0(comp, .y, "_bscVH-cohVV-NDVI.png"), scale = 3))
 
 # ------------------------------------------------------------------------------
 
@@ -335,8 +318,6 @@ s.plt4 = function(vh, indizes, classnames){
 
 }
 
-
-
 # GO
 plots4 = s.plt4(summary[["vh"]], indizes = indizes, classnames)
 # map(plots4[[1]], ~ print(.x))
@@ -348,7 +329,7 @@ plots4[[1]][[2]]
 map2(plots4, i_name, function(plots, i_name){
     print(i_name)
     pwalk(list(plots, classnames, i_name), function(x, y, z){
-        plotly::orca(x, file = paste0(plotdir, "Summary Statistics/Indizes/", i_name, "-bscVH_", y, ".png"), scale = 3)
+        plotly::orca(x, file = paste0(indi, i_name, "-bscVH_", y, ".png"), scale = 3)
     })
 })
 
@@ -366,7 +347,7 @@ plots6 = pmap(list(summary, proper_layernames, proper_layernames.axis, ranges.al
         # stack lines up
     plt = plot_ly(width = 700, height = 500)
     for (i in length(classnames):1){
-        plt = add_lines(plt, data = data[[i]], x ~ date, y ~ med_smooth, name = classnames[i], line = classes.fmt[[i]], showlegend = TRUE)
+        plt = add_lines(plt, data = data[[i]], x ~ date, y ~ med_smooth, name = classnames[i], line = classes.fmt.slim[[i]], showlegend = TRUE)
     }
     plt = plt %>%
         layout(title = layr_names,
@@ -378,11 +359,13 @@ plots6 = pmap(list(summary, proper_layernames, proper_layernames.axis, ranges.al
 
 })
 
-plots6[[5]]
+plots6[[1]]
 
 # save plots
-walk2(plots6, proper_layernames, ~ plotly::orca(.x, file = paste0(plotdir, "Summary Statistics/Sensors/", .y, "_smoothed.png"), scale = 3))
+walk2(plots6, proper_layernames, ~ plotly::orca(.x, file = paste0(sens, .y, "_smoothed.png"), scale = 3))
+setwd(sens)
 walk2(plots6, proper_layernames, ~ htmlwidgets::saveWidget(widget = .x, file = paste0(.y, "_smoothed.html"), selfcontained = TRUE))
+setwd(env)
 # ACHTUNG: LETZTERE MÜSSEN NOCH EINMAL VON HAND VERSCHOBEN WERDEN!!!!!
 
 # ------------------------------------------------------------------------------
@@ -397,8 +380,9 @@ plots7 = pmap(list(summary, proper_layernames, proper_layernames.axis, ranges.al
 
                   # stack lines up
                   plt = plot_ly(width = 700, height = 500)
-                  for (i in length(classnames):1){
+                  for (i in 1:length(classnames)){
                       plt = add_lines(plt, data = data[[i]], x ~ date, y ~ median, name = classnames[i], line = classes.fmt.slim[[i]], showlegend = TRUE)
+                      if (i == 4) break
                   }
                   plt = plt %>%
                       layout(title = layr_names,
@@ -413,9 +397,10 @@ plots7 = pmap(list(summary, proper_layernames, proper_layernames.axis, ranges.al
 plots7[[3]]
 
 # save plots
-walk2(plots7, proper_layernames, ~ plotly::orca(.x, file = paste0(plotdir, "Summary Statistics/Sensors/", .y, ".png"), scale = 3))
+walk2(plots7, proper_layernames, ~ plotly::orca(.x, file = paste0(sens, .y, ".png"), scale = 3))
+setwd(sens)
 walk2(plots7, proper_layernames, ~ htmlwidgets::saveWidget(widget = .x, file = paste0(.y, ".html"), selfcontained = TRUE))
-
+setwd(env)
 # ------------------------------------------------------------------------------
 # Same as plot6 bis with subtle smoothing line above the raw median data
 
@@ -428,11 +413,13 @@ plots8 = pmap(list(summary, proper_layernames, proper_layernames.axis, ranges.al
 
                   # stack lines up
                   plt = plot_ly(width = 700, height = 500)
-                  for (i in length(classnames):1){
+                  for (i in 1:length(classnames)){
                       plt = add_lines(plt, data = data[[i]], x ~ date, y ~ median, name = classnames[i], line = classes.fmt.slim[[i]], showlegend = TRUE)
+                      if (i == 4) break
                   }
-                  for (i in length(classnames):1){
+                  for (i in 1:length(classnames)){
                       plt = add_lines(plt, data = data[[i]], x ~ date, y ~ med_smooth, name = paste(classnames[i], "smoothed"), opacity = 0.6, line = classes.fmt[[i]], showlegend = T)
+                      if (i == 4) break
                   }
 
                   plt = plt %>%
@@ -443,11 +430,13 @@ plots8 = pmap(list(summary, proper_layernames, proper_layernames.axis, ranges.al
                              margin = list(pad = 0, b = 200, l = 0, r = 100, automargin = TRUE))
               })
 
-plots8[[3]]
+plots8[[2]]
 
 # save plots
-walk2(plots8, proper_layernames, ~ plotly::orca(.x, file = paste0(plotdir, "Summary Statistics/Sensors/", .y, "_with_smooth.png"), scale = 3))
+walk2(plots8, proper_layernames, ~ plotly::orca(.x, file = paste0(sens, .y, "_with_smooth.png"), scale = 3))
+setwd(sens)
 walk2(plots8, proper_layernames, ~ htmlwidgets::saveWidget(widget = .x, file = paste0(.y, "_with_smooth.html"), selfcontained = TRUE))
+setwd(env)
 
 # ------------------------------------------------------------------------------
 # Classwise plots: VH, COH, NDVI, SAVI
@@ -455,18 +444,6 @@ walk2(plots8, proper_layernames, ~ htmlwidgets::saveWidget(widget = .x, file = p
 plots9 = function(vh, co, ndvi, savi, classnames){
 
     size_markers = 3
-
-    # calculate range min-max
-    vh_max = map_dbl(vh, ~ max(.x$median)) %>% max()
-    vh_min = map_dbl(vh, ~ min(.x$median)) %>% min()
-
-    ndvi_max = map_dbl(ndvi, ~ max(.x$median)) %>% max()
-    ndvi_min = map_dbl(ndvi, ~ min(.x$median)) %>% min()
-
-    savi_max = map_dbl(savi, ~ max(.x$median)) %>% max()
-    savi_min = map_dbl(savi, ~ min(.x$median)) %>% min()
-
-    print(savi_max);print(savi_min)
 
     pmap(list(vh, co, ndvi, savi, classnames), function(vh, co, ndvi, savi, classnames){
 
@@ -498,7 +475,7 @@ plots9 = function(vh, co, ndvi, savi, classnames){
             add_lines(data = ndvi, x = ~ date, y = ~ med_smooth,
                       yaxis = "y3", name = "S-2 NDVI",
                       opacity = 0.7,
-                      line = ndvi.fmt) %>%
+                      line = ndvi.green.fmt) %>%
             add_lines(data = savi, x = ~ date, y = ~ med_smooth,
                       yaxis = "y3", name = "S-2 SAVI",
                       opacity = 0.7,
@@ -520,7 +497,7 @@ plots9 = function(vh, co, ndvi, savi, classnames){
                       connectgaps = F) %>%
 
             layout(xaxis = date.axis,
-                   yaxis = c(y.s1, range = list(c(vh_min, vh_max))),
+                   yaxis = c(y.s1, range = list(c(ranges.all$vh[[1]][1], ranges.all$vh[[1]][2]))),
                    yaxis2 = y.co_2,
                    yaxis3 = y.ndvi_savi,
                    yaxis4 = y.savi,
@@ -533,23 +510,13 @@ plots9 = function(vh, co, ndvi, savi, classnames){
 
 plts9 = plots9(summary[["vh"]], summary[["co"]], summary[["ndvi"]], summary[["savi"]], classnames)
 
-map2(plts9, seq_along(plts9), function(p, n){
-    p[[n]]
-})
 plts9[[1]]
 plts9[[2]]
 plts9[[3]]
 plts9[[4]]
 plts9[[5]]
 
-ggplot(summary[["ndvi"]][[1]]) +
-    geom_line(aes(date, median))
-
-summary[["co"]][[1]] %>%
-    is.na() %>%
-    sum()
-
-walk2(plts9, classnames_all, ~ plotly::orca(.x, file = paste0(plotdir, "Summary Statistics/Comparing/", .y, "_bscVH-cohVV-NDVI-SAVI.png"), scale = 3))
+walk2(plts9, classnames, ~ plotly::orca(.x, file = paste0(comp, .y, "_bscVH-cohVV-NDVI-SAVI.png"), scale = 3))
 
 # ------------------------------------------------------------------------------
 # Classwise plots: VH, COH, NDVI, SAVI
@@ -557,18 +524,6 @@ walk2(plts9, classnames_all, ~ plotly::orca(.x, file = paste0(plotdir, "Summary 
 plots10 = function(vh, co, ndvi, savi, classnames){
 
     size_markers = 3
-
-    # calculate range min-max
-    vh_max = map_dbl(vh, ~ max(.x$median)) %>% max()
-    vh_min = map_dbl(vh, ~ min(.x$median)) %>% min()
-
-    ndvi_max = map_dbl(ndvi, ~ max(.x$median)) %>% max()
-    ndvi_min = map_dbl(ndvi, ~ min(.x$median)) %>% min()
-
-    savi_max = map_dbl(savi, ~ max(.x$median)) %>% max()
-    savi_min = map_dbl(savi, ~ min(.x$median)) %>% min()
-
-    print(vh_max);print(vh_min)
 
     pmap(list(vh, co, ndvi, savi, classnames), function(vh, co, ndvi, savi, classnames){
 
@@ -595,17 +550,6 @@ plots10 = function(vh, co, ndvi, savi, classnames){
                                 color = "grey80",
                                 width = 0.2
                             ))) %>%
-
-            # smoothed lines indizes
-            # add_lines(data = ndvi, x = ~ date, y = ~ med_smooth,
-            #           yaxis = "y3", name = "S-2 NDVI",
-            #           opacity = 0.7,
-            #           line = ndvi.fmt) %>%
-            # add_lines(data = savi, x = ~ date, y = ~ med_smooth,
-            #           yaxis = "y3", name = "S-2 SAVI",
-            #           opacity = 0.7,
-            #           line = savi.fmt) %>%
-
 
             # smoothed lines
             add_lines(data = vh, x = ~ date, y = ~ med_smooth,
@@ -640,18 +584,10 @@ plts10[[3]]
 plts10[[4]]
 plts10[[7]]
 
-ggplot(summary[["ndvi"]][[1]]) +
-    geom_line(aes(date, median))
-
-summary[["co"]][[1]] %>%
-    is.na() %>%
-    sum()
-
-walk2(plts10, classnames, ~ plotly::orca(.x, file = paste0(plotdir, "Summary Statistics/Comparing/", .y, "_bscVH-cohVV-NDVI-SAVI.png"), scale = 3))
+walk2(plts10, classnames, ~ plotly::orca(.x, file = paste0(comp, .y, "_bscVH-cohVV-NDVI-SAVI.png"), scale = 3))
 
 # ------------------------------------------------------------------------------
 # fuse increase and continuous!
-
 
 plots11 = function(in.vh, in.co, in.ndvi, in.savi){
 

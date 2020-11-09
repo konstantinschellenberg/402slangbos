@@ -12,11 +12,12 @@ library(exactextractr)
 
 options(max.print = 200)
 
-source("D:/Geodaten/Master/projects/402slangbos/import.R")
+source("D:/Projects/402slangbos/import_rasters_extraction.R")
+source("D:/Projects/402slangbos/functions.R")
 
 # SET ENVIRONMENT --------------------------------------------------------------
 
-env = "D:/Geodaten/#Jupiter/GEO402"
+env = "D:/Geodaten/GEO402"
 setwd(env)
 
 # complex or simplified data?
@@ -28,24 +29,24 @@ mode = 2
 # STATISTICS FOR ALL CLASSES AGGREGATED ----------------------------------------
 # USER INPUT -------------------------------------------------------------------
 
-if (mode == 1) classnames = c("Slangbos Increase", "Slangbos Continuous", "Slangbos Clearning", "Grassland", "Cultivated")
-if (mode == 2) classnames = c("Slangbos Increase", "Slangbos Continuous", "Slangbos Clearning", "Grassland", "Cultivated",
-                              "Bare Soil", "Woodland", "Urban", "Water")
+# get gt object
+sample = st_read("D:/Geodaten/GEO402/02_features/classif.gpkg", layer = "classif_2017-2018") %>%
+    group_by(classif) %>%
+    mutate(id = row_number())
 
 # metadata
-col_class = "class_simple"
+col_class = "classif"
 col_id = "id"
 
-if (mode == 1) dstdir = "03_develop/extract/"
-if (mode == 2) dstdir = "03_develop/extract_all/"
-
+dstdir = "03_develop/extract_classif/"
+if (!dir.exists(dstdir)) dir.create(dstdir)
 
 # RUN --------------------------------------------------------------------------
 
 # example raster
 ras = ndvi[[1:30]]
 # example run
-example = extract_summary(cgt, ras, col_class)
+example = extract_summary(sample, ras, col_class)
 
 o = example[[1]]
 
@@ -69,8 +70,8 @@ ggplot(o2) +
 
 # batch run --------------------------------------------------------------------
 
-if (mode == 1) summary = map(rasters, ~ extract_summary(gt, .x, col_class))
-if (mode == 2) summary = map(rasters, ~ extract_summary(cgt, .x, col_class))
+summary = map(rasters, ~ extract_summary(sample, .x, col_class))
+
 saveRDS(summary, paste0(dstdir, "summary_statistics.RDS"))
 # summary = readRDS("03_develop/extract/summary_statistics.RDS")
 
