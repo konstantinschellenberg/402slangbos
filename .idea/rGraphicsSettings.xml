@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="RGraphicsSettings">
-    <option name="darkMode" value="false" />
-    <option name="height" value="670" />
+    <option name="height" value="380" />
     <option name="resolution" value="75" />
     <option name="version" value="1" />
-    <option name="width" value="527" />
+    <option name="width" value="639" />
   </component>
 </project>

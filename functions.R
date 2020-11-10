@@ -44,32 +44,81 @@
 # Clips on the desired threshold fraction which is allowed to be obstructed on
 # raster -----------------------------------------------------------------------
 ################################################################################
+#' Very nice function!!
 
-fraction_cleaner = function(ras, thresh = 0.2){
+fraction_cleaner_z = function(ras, thresh = 0.8, surpress_stdout = FALSE){
+    #' requires statistics from gdalinfo, make sure your are connected to gdal
+    stopifnot(require(stringr))
 
-    raslist = list()
-    for (i in 1:nlayers(ras)){
-        r = ras[[i]]
-        raslist = append(raslist, r)
+    # get Z-inforamtion
+    z_value = getZ(ras)
+
+    # call gdalinfo
+    query = sprintf("gdalinfo -approx_stats %s", ras@file@name)
+    gi = system(query, intern = TRUE, ignore.stdout = TRUE)
+
+    # split into vectors when "STATISTICS_VALID_PERCENT" is found
+    valid_percent = gi[str_detect(gi, "STATISTICS_VALID_PERCENT")]
+    na.frac = str_extract(valid_percent, "\\d.*") %>%
+      as.numeric()
+    fraction = na.frac / 100
+
+    if (surpress_stdout == FALSE){
+        cat("fraction of Valid pixels in images:\n")
+        cat(round(as.numeric(na.frac), digits = 2), sep = "\t")
+        cat("\nThreshold is:", thresh)
+        cat("\n")
     }
 
-    ncells = map(raslist, ~ ncell(.x))
+    # choose valid z-arguments, logical vector
+    # subsetting
+    out_z = z_value[fraction > thresh]
+    keep = ras[[which(fraction > thresh)]]
 
-    tables = map(raslist, ~ table(is.na(.x[])))
-    na.frac = map2(tables, ncells, function(x, n) as.numeric(x[2]) / n)
-
-    cat("fraction of NA pixels in images:\n")
-    cat(round(as.numeric(na.frac), digits = 2), sep = "\t")
-    cat("Threshold is:", thresh)
-    cat("\n")
-
-    keep = ras[[which(na.frac < thresh)]]
+    out = setZ(keep, out_z, name = "date")
 
     cat("Total Layers:", nlayers(ras), "\n")
-    cat("Obstructed Layers:", nlayers(ras) - nlayers(keep), "\n")
-    cat("Surviving Layers:", nlayers(keep), "\n")
-    return(keep)
+    cat("Obstructed Layers:", nlayers(ras) - nlayers(out), "\n")
+    cat("Surviving Layers:", nlayers(out), "\n")
+    return(out)
 }
+
+################################################################################
+# Temporal subsetting based on raster*s z-value (date) ------------------------
+################################################################################
+
+sub_temporal_z = function(ras, start_date, end_date){
+
+    # TODO: output the number of survival datasets
+
+    zvalue = getZ(ras)
+
+    # creating grepper
+    grepper = zvalue >= start_date & zvalue <= end_date
+
+    # subset time (1) and raster (2)
+    sub_z = zvalue[grepper]
+    sub_ras = ras[[which(grepper)]]
+
+    # assign back zvalue
+    out = setZ(sub_ras, sub_z)
+    return(out)
+}
+
+################################################################################
+# Save stacking, preserving the z-value ----------------------------------------
+################################################################################
+
+stacking_z = function(raslist){
+    zvalues = map(raslist, ~ getZ(.x))
+    concat_z = reduce(zvalues, c)
+
+    # stacking rasters
+    stacks = raster::stack(raslist) %>%
+      setZ(concat_z)
+    return(stacks)
+}
+
 
 ################################################################################
 # BANDNAME FILE CREATION -------------------------------------------------------
@@ -146,7 +195,7 @@ exactextracting = function(gt, ras, col_class, col_id, statistics, dstdir, outfi
     #' 2nd order list: raster bands
     #' 3rd order dataframe: aggregated statistics with smoothing curves
 
-    library(exactextractr)
+    stopifnot(require(exactextractr))
 
     if (!is_vector(gt[[col_id]])){
         stop("the col_id does not exist, please specify...")

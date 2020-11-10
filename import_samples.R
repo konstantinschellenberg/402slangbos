@@ -30,6 +30,6 @@ cgt = st_read("D:/Geodaten/GEO402/02_features/features.gpkg", layer = "LADYBRAND
     mutate(id = row_number()) %>%
     dplyr::ungroup()
 
-classif = st_read("D:/Geodaten/GEO402/02_features/classif.gpkg", layer = "classif_2017-2018")
+gt_classif = st_read("D:/Geodaten/GEO402/02_features/classif.gpkg", layer = "classif_2017-2018")
 
 maske = st_read("D:/Geodaten/GEO402/02_features/study_area.gpkg", layer = "mask")
