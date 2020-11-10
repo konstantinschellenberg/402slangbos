@@ -578,6 +578,9 @@ warp_tiles = function(raster, extent, outname){
 
 exporting = function(output, input, filepath){
 
+    #stopifnot(as.character(filepath))
+    # TODO: Error handling here with filepaths
+
     # bind coords on data.table
     out5 = cbind(output, x = input$x, y = input$y)
 
